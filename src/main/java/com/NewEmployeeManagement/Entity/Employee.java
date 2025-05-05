@@ -28,7 +28,6 @@ public class Employee {
     private int otp;
     private Long parentNo;
 
-
     @Email
     @Column(unique = true, nullable = false)
     private String email;
