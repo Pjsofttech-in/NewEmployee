@@ -1,9 +1,7 @@
 package com.NewEmployeeManagement.Entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -31,4 +29,9 @@ public class EmpQuery
     private String createdByEmail;
     private String role;
     private String branchCode;
+
+    @ManyToOne
+    @JoinColumn(name = "employee_id")
+    @JsonIgnore
+    private Employee employee;
 }

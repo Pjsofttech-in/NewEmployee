@@ -1,11 +1,12 @@
 package com.NewEmployeeManagement.Entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import lombok.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @AllArgsConstructor
@@ -25,4 +26,8 @@ public class Department {
     private String createdByEmail;
     private String role;
     private String branchCode;
+
+    @OneToMany(mappedBy = "departmentEntity", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private List<Employee> employees = new ArrayList<>();
 }

@@ -1,13 +1,13 @@
 package com.NewEmployeeManagement.Entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @ToString
@@ -22,13 +22,7 @@ public class EmployeeCategory {
     private Long id;
 
     private String categoryName;
-
-    //private BigDecimal bonusPercentage;
-//    private String department;
     private BigDecimal hraPercentage;
-    //    private BigDecimal taPercentage;
-//    private BigDecimal incentivePercentage;
-//    private BigDecimal spiPercentage;
     private BigDecimal medicalAllowancePercentage;
     private BigDecimal pfPercentage;
     private BigDecimal esicPercentage;
@@ -42,4 +36,9 @@ public class EmployeeCategory {
     private String createdByEmail;
     private String role;
     private String branchCode;
+
+    @OneToMany(mappedBy = "employeeCategory", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private List<Employee> employees = new ArrayList<>();
+
 }
