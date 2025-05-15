@@ -10,7 +10,7 @@ public interface EmployeeCategoryService {
 
     EmployeeCategory createCategory(EmployeeCategory category, String role, String email);
 
-    List<EmployeeCategory> getAllCategories(String role, String email, String branchCode);
+    List<EmployeeCategory> getAllCategories(String role, String email);
 
     EmployeeCategory updateCategory(Long id, EmployeeCategory category, String role, String email);
 
@@ -36,6 +36,5 @@ public interface EmployeeCategoryService {
 
     List<EmployeeCategory> getNonDeletedCategories(String branchCode);
 
-//    void softDeleteCategory(Long id, String role, String email);
 
 }

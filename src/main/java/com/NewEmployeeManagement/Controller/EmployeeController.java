@@ -56,7 +56,7 @@ public class EmployeeController {
     }
 
     @PutMapping("/updateEmployee/{id}")
-    public ResponseEntity<Employee> update(@PathVariable int id,
+    public ResponseEntity<Employee> updateEmployee(@PathVariable int id,
                                            @RequestBody Employee employee,
                                            @RequestParam String role,
                                            @RequestParam String email) {
@@ -64,7 +64,7 @@ public class EmployeeController {
     }
 
     @DeleteMapping("/deleteEmployee/{id}")
-    public ResponseEntity<String> delete(@PathVariable int id,
+    public ResponseEntity<String> deleteEmployee(@PathVariable int id,
                                          @RequestParam String role,
                                          @RequestParam String email) {
         service.deleteEmployee(id, role, email);

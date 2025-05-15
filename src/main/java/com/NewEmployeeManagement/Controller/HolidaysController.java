@@ -24,9 +24,8 @@ public class HolidaysController {
 
     @GetMapping("/getAllHolidays")
     public ResponseEntity<List<Holidays>> getAllHolidays(@RequestParam String role,
-                                                         @RequestParam String email,
-                                                         @RequestParam String branchCode) {
-        return ResponseEntity.ok(service.getAllHolidays(role, email, branchCode));
+                                                         @RequestParam String email) {
+        return ResponseEntity.ok(service.getAllHolidays(role, email));
     }
 
     @GetMapping("/getHolidayById/{id}")

@@ -24,9 +24,8 @@ public class MemoController {
 
     @GetMapping("/getAllMemos")
     public ResponseEntity<List<Memo>> getAllMemos(@RequestParam String role,
-                                                  @RequestParam String email,
-                                                  @RequestParam String branchCode) {
-        return ResponseEntity.ok(service.getAllMemos(role, email, branchCode));
+                                                  @RequestParam String email) {
+        return ResponseEntity.ok(service.getAllMemos(role, email));
     }
 
     @GetMapping("/getMemoById/{id}")

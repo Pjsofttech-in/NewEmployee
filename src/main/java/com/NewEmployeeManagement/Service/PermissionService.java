@@ -1,5 +1,9 @@
 package com.NewEmployeeManagement.Service;
 
 public interface PermissionService {
-    boolean hasPermission(String module, String action, String role, String email);
+
+    boolean hasPermission(String role, String email, String action);
+    String fetchBranchCode(String role, String email);
+
+
 }

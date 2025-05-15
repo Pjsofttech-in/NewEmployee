@@ -8,6 +8,6 @@ import java.util.List;
 
 public interface MemoRepository extends JpaRepository<Memo, Integer> {
 
-    @Query("SELECT m FROM Memo m WHERE m.branchCode = :branchCode AND m.isDeleted = false")
+    @Query("SELECT m FROM Memo m WHERE m.branchCode = :branchCode AND m.isDeleted = false ORDER BY e.id DESC")
     List<Memo> findAllByBranchCode(String branchCode);
 }

@@ -3,6 +3,7 @@ package com.NewEmployeeManagement.ServiceImpl;
 import com.NewEmployeeManagement.Entity.Notice;
 import com.NewEmployeeManagement.Repository.NoticeRepository;
 import com.NewEmployeeManagement.Service.NoticeService;
+import com.NewEmployeeManagement.Service.PermissionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
@@ -15,89 +16,20 @@ import java.util.Map;
 @Service
 public class NoticeServiceImpl implements NoticeService {
 
-    private final NoticeRepository repository;
-    private final WebClient webClient;
-    private final StaffService staffService;
-
-    @Value("${client.superadmin.base-url}")
-    private String superAdminBaseUrl;
+    @Autowired
+    NoticeRepository repository;
 
     @Autowired
-    public NoticeServiceImpl(NoticeRepository repository, WebClient webClient, StaffService staffService) {
-        this.repository = repository;
-        this.webClient = webClient;
-        this.staffService = staffService;
-    }
+    private PermissionService permissionService;
 
-    private boolean hasPermission(String role, String email, String action) {
-        if ("BRANCH".equalsIgnoreCase(role)) {
-            try {
-                Boolean exists = webClient.get()
-                        .uri(uriBuilder -> uriBuilder
-                                .path("/existBranchbyemail")
-                                .queryParam("email", email)
-                                .build())
-                        .retrieve()
-                        .bodyToMono(Boolean.class)
-                        .block();
-
-                return Boolean.TRUE.equals(exists);
-            } catch (Exception e) {
-                e.printStackTrace();
-                return false;
-            }
-        }
-
-        return switch (role.toUpperCase()) {
-            case "STAFF" -> {
-                Map<String, Boolean> perms = staffService.getPermissionsByEmail(email);
-                yield switch (action.toUpperCase()) {
-                    case "GET" -> Boolean.TRUE.equals(perms.get("cansGet"));
-                    case "POST" -> Boolean.TRUE.equals(perms.get("cansPost"));
-                    case "PUT" -> Boolean.TRUE.equals(perms.get("cansPut"));
-                    case "DELETE" -> Boolean.TRUE.equals(perms.get("cansDelete"));
-                    default -> false;
-                };
-            }
-            case "DEPARTMENT" -> {
-                Map<String, Object> perms = staffService.getCrudPermissionForDepartmentByEmail(email);
-                yield switch (action.toUpperCase()) {
-                    case "GET" -> Boolean.TRUE.equals(perms.get("candGet"));
-                    case "POST" -> Boolean.TRUE.equals(perms.get("candPost"));
-                    case "PUT" -> Boolean.TRUE.equals(perms.get("candPut"));
-                    case "DELETE" -> Boolean.TRUE.equals(perms.get("candDelete"));
-                    default -> false;
-                };
-            }
-            default -> false;
-        };
-    }
-
-    private String fetchBranchCodeByRole(String role, String email) {
-        String endpoint = switch (role.toLowerCase()) {
-            case "branch" -> "/branch/getbranchcode";
-            case "department" -> "/department/getbranchcode";
-            case "staff" -> "/staff/getbranchcode";
-            default -> throw new IllegalArgumentException("Invalid role: " + role);
-        };
-
-        return webClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path(endpoint)
-                        .queryParam("email", email)
-                        .build())
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
-    }
 
     @Override
     public Notice createNotice(Notice notice, String role, String email) {
-        if (!hasPermission(role, email, "POST")) {
+        if (!permissionService.hasPermission(role, email, "POST")) {
             throw new AccessDeniedException("No permission to create notice");
         }
 
-        String branchCode = fetchBranchCodeByRole(role, email);
+        String branchCode = permissionService.fetchBranchCode(role, email);
         notice.setBranchCode(branchCode);
         notice.setRole(role);
         notice.setCreatedByEmail(email);
@@ -105,17 +37,17 @@ public class NoticeServiceImpl implements NoticeService {
     }
 
     @Override
-    public List<Notice> getAllNotices(String role, String email, String branchCode) {
-        if (!hasPermission(role, email, "GET")) {
+    public List<Notice> getAllNotices(String role, String email) {
+        if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to view notices");
         }
-
+        String branchCode = permissionService.fetchBranchCode(role, email);
         return repository.findAllByBranchCode(branchCode);
     }
 
     @Override
     public Notice updateNotice(int id, Notice notice, String role, String email) {
-        if (!hasPermission(role, email, "PUT")) {
+        if (!permissionService.hasPermission(role, email, "PUT")) {
             throw new AccessDeniedException("No permission to update notice");
         }
 
@@ -140,7 +72,7 @@ public class NoticeServiceImpl implements NoticeService {
 
     @Override
     public void deleteNotice(int id, String role, String email) {
-        if (!hasPermission(role, email, "DELETE")) {
+        if (!permissionService.hasPermission(role, email, "DELETE")) {
             throw new AccessDeniedException("No permission to delete notice");
         }
 
@@ -153,7 +85,7 @@ public class NoticeServiceImpl implements NoticeService {
 
     @Override
     public Notice getNoticeById(int id, String role, String email) {
-        if (!hasPermission(role, email, "GET")) {
+        if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to view notice");
         }
 

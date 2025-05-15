@@ -7,6 +7,7 @@ import com.NewEmployeeManagement.Repository.DepartmentRepository;
 import com.NewEmployeeManagement.Repository.EmployeeCategoryRepository;
 import com.NewEmployeeManagement.Repository.EmployeeRepository;
 import com.NewEmployeeManagement.Service.EmployeeService;
+import com.NewEmployeeManagement.Service.PermissionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
@@ -24,78 +25,16 @@ public class EmployeeServiceImpl implements EmployeeService {
     private EmployeeRepository repository;
 
     @Autowired
-    private StaffService staffService;
+    DepartmentRepository departmentRepository;
+    @Autowired
+    EmployeeCategoryRepository employeeCategoryRepository;
 
     @Autowired
-    private WebClient webClient;
-
-    @Autowired
-    private DepartmentRepository departmentRepository;
-
-    @Autowired
-    private EmployeeCategoryRepository employeeCategoryRepository;
-
-    @Value("${client.superadmin.base-url}")
-    private String superAdminBaseUrl;
-
-    private boolean hasPermission(String role, String email, String action) {
-        if ("BRANCH".equalsIgnoreCase(role)) {
-            Boolean exists = webClient.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/existBranchbyemail")
-                            .queryParam("email", email)
-                            .build())
-                    .retrieve()
-                    .bodyToMono(Boolean.class)
-                    .block();
-            return Boolean.TRUE.equals(exists);
-        }
-
-        return switch (role.toUpperCase()) {
-            case "STAFF" -> {
-                Map<String, Boolean> perms = staffService.getPermissionsByEmail(email);
-                yield switch (action.toUpperCase()) {
-                    case "GET" -> Boolean.TRUE.equals(perms.get("cansGet"));
-                    case "POST" -> Boolean.TRUE.equals(perms.get("cansPost"));
-                    case "PUT" -> Boolean.TRUE.equals(perms.get("cansPut"));
-                    case "DELETE" -> Boolean.TRUE.equals(perms.get("cansDelete"));
-                    default -> false;
-                };
-            }
-            case "DEPARTMENT" -> {
-                Map<String, Object> perms = staffService.getCrudPermissionForDepartmentByEmail(email);
-                yield switch (action.toUpperCase()) {
-                    case "GET" -> Boolean.TRUE.equals(perms.get("candGet"));
-                    case "POST" -> Boolean.TRUE.equals(perms.get("candPost"));
-                    case "PUT" -> Boolean.TRUE.equals(perms.get("candPut"));
-                    case "DELETE" -> Boolean.TRUE.equals(perms.get("candDelete"));
-                    default -> false;
-                };
-            }
-            default -> false;
-        };
-    }
-
-    private String fetchBranchCode(String role, String email) {
-        String endpoint = switch (role.toLowerCase()) {
-            case "branch" -> "/branch/getbranchcode";
-            case "department" -> "/department/getbranchcode";
-            case "staff" -> "/staff/getbranchcode";
-            default -> throw new IllegalArgumentException("Invalid role: " + role);
-        };
-        return webClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path(endpoint)
-                        .queryParam("email", email)
-                        .build())
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
-    }
+    private PermissionService permissionService;
 
     @Override
     public Employee createEmployee(Employee employee, String role, String email, int departmentId, Long categoryId) {
-        if (!hasPermission(role, email, "POST")) throw new AccessDeniedException("No permission");
+        if (!permissionService.hasPermission(role, email, "POST")) throw new AccessDeniedException("No permission");
 
         Department department = departmentRepository.findById(departmentId)
                 .orElseThrow(() -> new RuntimeException("Department not found with ID: " + departmentId));
@@ -113,28 +52,29 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         employee.setCreatedByEmail(email);
         employee.setRole(role);
-        employee.setBranchCode(fetchBranchCode(role, email));
+        employee.setBranchCode(permissionService.fetchBranchCode(role, email));
         return repository.save(employee);
     }
 
 
 
     @Override
-    public List<Employee> getAllEmployees(String role, String email, String branchCode) {
-        if (!hasPermission(role, email, "GET")) throw new AccessDeniedException("No permission");
+    public List<Employee> getAllEmployees(String role, String email) {
+        if (!permissionService.hasPermission(role, email, "GET")) throw new AccessDeniedException("No permission");
+       String branchCode = permissionService.fetchBranchCode(role, email);
         return repository.findAllByBranchCodeAndIsDeletedFalse(branchCode);
     }
 
     @Override
     public Employee getEmployeeById(int id, String role, String email) {
-        if (!hasPermission(role, email, "GET")) throw new AccessDeniedException("No permission");
+        if (!permissionService.hasPermission(role, email, "GET")) throw new AccessDeniedException("No permission");
         return repository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found or has been deleted"));
     }
 
     @Override
     public Employee updateEmployee(int id, Employee employee, String role, String email) {
-        if (!hasPermission(role, email, "PUT")) throw new AccessDeniedException("No permission");
+        if (!permissionService.hasPermission(role, email, "PUT")) throw new AccessDeniedException("No permission");
 
         Employee existing = repository.findById(id).orElseThrow(() -> new RuntimeException("Employee not found"));
 
@@ -208,7 +148,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public void deleteEmployee(int id, String role, String email) {
-        if (!hasPermission(role, email, "DELETE")) throw new AccessDeniedException("No permission");
+        if (!permissionService.hasPermission(role, email, "DELETE")) throw new AccessDeniedException("No permission");
         Employee emp = repository.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
         emp.setDeleted(true);
         repository.save(emp);
@@ -218,7 +158,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     public Employee uploadDocuments(int id, MultipartFile idProof, MultipartFile photo,
                                     MultipartFile resume, MultipartFile addressProof,
                                     MultipartFile experienceLetter, String role, String email) {
-        if (!hasPermission(role, email, "PUT")) throw new AccessDeniedException("No permission");
+        if (!permissionService.hasPermission(role, email, "PUT")) throw new AccessDeniedException("No permission");
 
         Employee emp = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
@@ -237,7 +177,6 @@ public class EmployeeServiceImpl implements EmployeeService {
                     extension = originalFilename.substring(dotIndex);
                 }
 
-                // Create custom file name: employee_{id}_{branchCode}.jpg
                 String customFileName = "employee_" + emp.getId() + "_" + emp.getBranchCode() + extension;
 
                 emp.setEmployeePhoto(customFileName);

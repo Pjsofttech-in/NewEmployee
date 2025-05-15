@@ -12,7 +12,7 @@ import java.util.Optional;
 @Repository
 public interface EmployeeCategoryRepository extends JpaRepository<EmployeeCategory, Long> {
 
-    @Query("SELECT e FROM EmployeeCategory e WHERE e.branchCode = :branchCode AND e.isDeleted = false")
+    @Query("SELECT e FROM EmployeeCategory e WHERE e.branchCode = :branchCode AND e.isDeleted = false ORDER BY e.id DESC")
     List<EmployeeCategory> findAllByBranchCode(@Param("branchCode") String branchCode);
 
     @Query("SELECT e FROM EmployeeCategory e WHERE e.isDeleted = false AND e.categoryName = :categoryName AND e.branchCode = :branchCode")
@@ -24,7 +24,7 @@ public interface EmployeeCategoryRepository extends JpaRepository<EmployeeCatego
     @Query("SELECT e FROM EmployeeCategory e WHERE e.isDeleted = false AND e.categoryName = :categoryName AND e.branchCode = :branchCode")
     EmployeeCategory findCategoryByCategoryName(@Param("categoryName") String categoryName, @Param("branchCode") String branchCode);
 
-    @Query("SELECT e FROM EmployeeCategory e WHERE e.isDeleted = false AND e.branchCode = :branchCode")
+    @Query("SELECT e FROM EmployeeCategory e WHERE e.isDeleted = false AND e.branchCode = :branchCode ORDER BY e.id DESC")
     List<EmployeeCategory> findByIsDeletedFalseAndBranchCode(@Param("branchCode") String branchCode);
 
     Optional<EmployeeCategory> findByCategoryNameAndBranchCode(String categoryName, String branchCode);

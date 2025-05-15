@@ -27,8 +27,8 @@ public class LeaveRequestController {
 
     @GetMapping("/getAllLeaveRequests")
     public List<LeaveRequest> getAllLeaveRequests(@RequestParam String role,
-                                                  @RequestParam String email, @RequestParam String branchCode) {
-        return leaveRequestService.getAllLeaveRequests(role, email, branchCode);
+                                                  @RequestParam String email) {
+        return leaveRequestService.getAllLeaveRequests(role, email);
     }
 
     @GetMapping("/getLeaveRequestById/{id}")

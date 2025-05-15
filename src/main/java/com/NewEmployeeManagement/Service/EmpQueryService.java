@@ -6,7 +6,7 @@ import java.util.List;
 
 public interface EmpQueryService {
     EmpQuery createQuery(EmpQuery query, String role, String email);
-    List<EmpQuery> getAllQueries(String role, String email, String branchCode);
+    List<EmpQuery> getAllQueries(String role, String email);
     EmpQuery updateQuery(int id, EmpQuery query, String role, String email);
     void deleteQuery(int id, String role, String email);
     EmpQuery getQueryById(int id, String role, String email);

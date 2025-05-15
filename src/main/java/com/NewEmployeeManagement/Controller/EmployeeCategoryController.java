@@ -25,9 +25,8 @@ public class EmployeeCategoryController {
 
     @GetMapping("/getAllCategories")
     public ResponseEntity<List<EmployeeCategory>> getAllCategories(@RequestParam String role,
-                                                                   @RequestParam String email,
-                                                                   @RequestParam String branchCode) {
-        return ResponseEntity.ok(service.getAllCategories(role, email, branchCode));
+                                                                   @RequestParam String email) {
+        return ResponseEntity.ok(service.getAllCategories(role, email));
     }
 
     @GetMapping("/getCategoryById/{id}")

@@ -24,9 +24,8 @@ public class EmpQueryController {
 
     @GetMapping("/getAllEmpQueries")
     public ResponseEntity<List<EmpQuery>> getAllQueries(@RequestParam String role,
-                                                        @RequestParam String email,
-                                                        @RequestParam String branchCode) {
-        return ResponseEntity.ok(service.getAllQueries(role, email, branchCode));
+                                                        @RequestParam String email) {
+        return ResponseEntity.ok(service.getAllQueries(role, email));
     }
 
     @GetMapping("/getEmpQueryById/{id}")

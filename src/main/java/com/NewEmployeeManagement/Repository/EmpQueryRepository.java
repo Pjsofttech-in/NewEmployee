@@ -8,6 +8,6 @@ import java.util.List;
 
 public interface EmpQueryRepository extends JpaRepository<EmpQuery, Integer> {
 
-    @Query("SELECT q FROM EmpQuery q WHERE q.branchCode = :branchCode")
+    @Query("SELECT q FROM EmpQuery q WHERE q.branchCode = :branchCode ORDER BY e.id DESC")
     List<EmpQuery> findAllByBranchCode(String branchCode);
 }

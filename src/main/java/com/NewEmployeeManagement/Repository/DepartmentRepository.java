@@ -10,6 +10,6 @@ import java.util.List;
 @Repository
 public interface DepartmentRepository extends JpaRepository<Department, Integer> {
 
-    @Query("SELECT d FROM Department d WHERE d.branchCode = :branchCode AND d.isDeleted = false")
+    @Query("SELECT d FROM Department d WHERE d.branchCode = :branchCode AND d.isDeleted = false ORDER BY d.id DESC")
     List<Department> findAllByBranchCode(String branchCode);
 }

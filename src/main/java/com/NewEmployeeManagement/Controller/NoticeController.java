@@ -24,9 +24,8 @@ public class NoticeController {
 
     @GetMapping("/getAllNotices")
     public ResponseEntity<List<Notice>> getAllNotices(@RequestParam String role,
-                                                      @RequestParam String email,
-                                                      @RequestParam String branchCode) {
-        return ResponseEntity.ok(service.getAllNotices(role, email, branchCode));
+                                                      @RequestParam String email) {
+        return ResponseEntity.ok(service.getAllNotices(role, email));
     }
 
     @GetMapping("/getNoticeById/{id}")

@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface EmployeeService {
     Employee createEmployee(Employee employee, String role, String email, int departmentId, Long categoryId);
-    List<Employee> getAllEmployees(String role, String email, String branchCode);
+    List<Employee> getAllEmployees(String role, String email);
     Employee getEmployeeById(int id, String role, String email);
     Employee updateEmployee(int id, Employee employee, String role, String email);
     void deleteEmployee(int id, String role, String email);

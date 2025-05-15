@@ -24,9 +24,8 @@ public class DepartmentController {
 
     @GetMapping("/getAllDepartments")
     public ResponseEntity<List<Department>> getAllDepartments(@RequestParam String role,
-                                                              @RequestParam String email,
-                                                              @RequestParam String branchCode) {
-        return ResponseEntity.ok(service.getAllDepartments(role, email, branchCode));
+                                                              @RequestParam String email) {
+        return ResponseEntity.ok(service.getAllDepartments(role, email));
     }
 
     @GetMapping("/getDepartmentById/{id}")
