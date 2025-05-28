@@ -48,7 +48,7 @@ public class SecurityConfig {
                     return config;
                 }))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/stafflogin").permitAll()
+                        .requestMatchers("/stafflogin","/AttendanceLogin").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session

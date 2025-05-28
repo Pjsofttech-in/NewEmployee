@@ -5,7 +5,7 @@ import com.NewEmployeeManagement.Entity.Holidays;
 import java.util.List;
 
 public interface HolidaysService {
-    Holidays createHoliday(Holidays holiday, String role, String email);
+    Holidays createHoliday(Holidays holiday, int employeeId, String role, String email);
     List<Holidays> getAllHolidays(String role, String email);
     Holidays updateHoliday(Long id, Holidays holiday, String role, String email);
     void deleteHoliday(Long id, String role, String email);

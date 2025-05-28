@@ -1,17 +1,35 @@
 package com.NewEmployeeManagement.Service;
 
+import com.NewEmployeeManagement.DTO.EmployeeCreateDTO;
 import com.NewEmployeeManagement.Entity.Employee;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 public interface EmployeeService {
-    Employee createEmployee(Employee employee, String role, String email, int departmentId, Long categoryId);
+    Employee createEmployee(EmployeeCreateDTO dto, String role, String email, int departmentId, Long categoryId,
+                            MultipartFile idProof,
+                            MultipartFile employeePhoto,
+                            MultipartFile resume,
+                            MultipartFile addressProof,
+                            MultipartFile experienceLetter);
     List<Employee> getAllEmployees(String role, String email);
     Employee getEmployeeById(int id, String role, String email);
-    Employee updateEmployee(int id, Employee employee, String role, String email);
+    Employee updateEmployee(
+            int id,
+            EmployeeCreateDTO dto,
+            String role,
+            String email,
+            int departmentId,
+            Long categoryId,
+            MultipartFile idProof,
+            MultipartFile employeePhoto,
+            MultipartFile resume,
+            MultipartFile addressProof,
+            MultipartFile experienceLetter
+    );
+
     void deleteEmployee(int id, String role, String email);
-    Employee uploadDocuments(int id, MultipartFile idProof, MultipartFile photo,
-                             MultipartFile resume, MultipartFile addressProof,
-                             MultipartFile experienceLetter, String role, String email);
+    void carryForwardLeavesForEligibleEmployees();
+
 }

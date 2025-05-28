@@ -1,6 +1,7 @@
 package com.NewEmployeeManagement.Controller;
 
 import com.NewEmployeeManagement.Entity.Holidays;
+import com.NewEmployeeManagement.Repository.EmployeeRepository;
 import com.NewEmployeeManagement.Service.HolidaysService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -15,11 +16,14 @@ public class HolidaysController {
     @Autowired
     private HolidaysService service;
 
+
+
     @PostMapping("/createHoliday")
     public ResponseEntity<Holidays> createHoliday(@RequestBody Holidays holiday,
+                                                  @RequestParam int employeeId,
                                                   @RequestParam String role,
                                                   @RequestParam String email) {
-        return ResponseEntity.ok(service.createHoliday(holiday, role, email));
+        return ResponseEntity.ok(service.createHoliday(holiday, employeeId, role, email));
     }
 
     @GetMapping("/getAllHolidays")

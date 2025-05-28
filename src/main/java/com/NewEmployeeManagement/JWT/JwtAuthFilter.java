@@ -34,6 +34,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
+        String path = request.getRequestURI();
+
+        if (path.equals("/AttendanceLogin")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String token = authHeader.substring(7);
         String email = jwtUtil.extractEmail(token);
         System.out.println("✅ Token received for email: " + email);

@@ -41,6 +41,8 @@ public class LeaveRequest {
     private LocalDate leaveRequestDate;
     private String LeaveType;
     private boolean isDeleted = false;
+    private String duration;
+
 
     @Email
     private String createdByEmail;
@@ -55,18 +57,23 @@ public class LeaveRequest {
 
     public void calculateToDateAndLeaveRequestDate() {
         if (this.fromDate != null && this.leaveRequired != null) {
-            this.toDate = fromDate.plusDays(leaveRequired.intValue() - 1);
+            if (leaveRequired == 0.5) {
+                // Half-day leave ends on the same day
+                this.toDate = fromDate;
+            } else {
+                // For full-day or multi-day leave
+                this.toDate = fromDate.plusDays((long) (leaveRequired - 1));
+            }
         }
 
         // Automatically set today's date
         this.leaveRequestDate = LocalDate.now();
 
         // Calculate total leave count from paid + unpaid
-        if (this.paidleave != null || this.unpaidleave != null) {
-            double paid = this.paidleave != null ? this.paidleave : 0.0;
-            double unpaid = this.unpaidleave != null ? this.unpaidleave : 0.0;
-            this.totalleavecount = paid + unpaid;
-        }
+        double paid = this.paidleave != null ? this.paidleave : 0.0;
+        double unpaid = this.unpaidleave != null ? this.unpaidleave : 0.0;
+        this.totalleavecount = paid + unpaid;
     }
+
 
 }

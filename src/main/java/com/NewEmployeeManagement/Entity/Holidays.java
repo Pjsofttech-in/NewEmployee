@@ -1,9 +1,7 @@
 package com.NewEmployeeManagement.Entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import lombok.*;
 
@@ -20,7 +18,6 @@ public class Holidays {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private int empID;
     private String holidayName;
     private String day;
     private LocalDate date;
@@ -30,4 +27,11 @@ public class Holidays {
     private String createdByEmail;
     private String role;
     private String branchCode;
+
+    @ManyToOne
+    @JoinColumn(name = "empid")
+    @JsonIgnore
+    private Employee employee;
+
+
 }

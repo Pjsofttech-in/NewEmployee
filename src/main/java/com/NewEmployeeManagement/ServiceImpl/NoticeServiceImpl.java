@@ -5,13 +5,10 @@ import com.NewEmployeeManagement.Repository.NoticeRepository;
 import com.NewEmployeeManagement.Service.NoticeService;
 import com.NewEmployeeManagement.Service.PermissionService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class NoticeServiceImpl implements NoticeService {

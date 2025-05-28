@@ -1,22 +1,24 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
-import com.NewEmployeeManagement.Entity.Department;
-import com.NewEmployeeManagement.Entity.Employee;
-import com.NewEmployeeManagement.Entity.EmployeeCategory;
+import com.NewEmployeeManagement.DTO.EmployeeCreateDTO;
+import com.NewEmployeeManagement.Entity.*;
 import com.NewEmployeeManagement.Repository.DepartmentRepository;
 import com.NewEmployeeManagement.Repository.EmployeeCategoryRepository;
 import com.NewEmployeeManagement.Repository.EmployeeRepository;
 import com.NewEmployeeManagement.Service.EmployeeService;
 import com.NewEmployeeManagement.Service.PermissionService;
+import com.NewEmployeeManagement.Service.S3Service;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.reactive.function.client.WebClient;
 
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
+import java.util.function.Consumer;
 
 @Service
 public class EmployeeServiceImpl implements EmployeeService {
@@ -32,29 +34,121 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Autowired
     private PermissionService permissionService;
 
+    @Autowired
+    private S3Service s3Service;
+
+
+    private String saveFileToStorageOrReturnName(MultipartFile file) {
+        if (file != null && !file.isEmpty()) {
+            // For real project, save the file to disk or S3, etc.
+            return file.getOriginalFilename();
+        }
+        return null;
+    }
+
     @Override
-    public Employee createEmployee(Employee employee, String role, String email, int departmentId, Long categoryId) {
-        if (!permissionService.hasPermission(role, email, "POST")) throw new AccessDeniedException("No permission");
+    public Employee createEmployee(EmployeeCreateDTO dto, String role, String email, int departmentId, Long categoryId,
+                                   MultipartFile idProof,
+                                   MultipartFile employeePhoto,
+                                   MultipartFile resume,
+                                   MultipartFile addressProof,
+                                   MultipartFile experienceLetter) {
+
+        if (!permissionService.hasPermission(role, email, "POST")) {
+            throw new AccessDeniedException("No permission");
+        }
 
         Department department = departmentRepository.findById(departmentId)
                 .orElseThrow(() -> new RuntimeException("Department not found with ID: " + departmentId));
-
         EmployeeCategory category = employeeCategoryRepository.findById(categoryId)
                 .orElseThrow(() -> new RuntimeException("Category not found with ID: " + categoryId));
 
-        // Set string values
-        employee.setDepartment(department.getDepartment());
-        employee.setCategoryName(category.getCategoryName());
+        Employee employee = new Employee();
+        employee.setFullName(dto.getFullName());
+        employee.setEmpEmail(dto.getEmpEmail());
+        employee.setPassword(dto.getPassword());
+        employee.setDob(dto.getDob());
+        employee.setMobileNo(dto.getMobileNo());
+        employee.setParentNo(dto.getParentNo());
+        employee.setGender(dto.getGender());
+        employee.setBloodGroup(dto.getBloodGroup());
+        employee.setAdharNo(dto.getAdharNo());
+        employee.setPanNo(dto.getPanNo());
+        employee.setJoiningDate(dto.getJoiningDate());
+        employee.setDepartment(dto.getDepartment());
+        employee.setWorkLocation(dto.getWorkLocation());
+        employee.setDesignation(dto.getDesignation());
+        employee.setDutyType(dto.getDutyType());
+        employee.setEmployeeType(dto.getEmployeeType());
+        employee.setSalary(dto.getSalary());
+        employee.setCpfNo(dto.getCpfNo());
+        employee.setEsicNo(dto.getEsicNo());
+        employee.setBasicQualification(dto.getBasicQualification());
+        employee.setProfessionalQualification(dto.getProfessionalQualification());
+        employee.setShift(dto.getShift());
+        employee.setShiftStartTime(dto.getShiftStartTime());
+        employee.setShiftEndTime(dto.getShiftEndTime());
+        employee.setCategoryName(dto.getCategoryName());
+        employee.setStatus(dto.getStatus());
+        employee.setOsen(dto.getOsen());
+        employee.setToMail(dto.getToMail());
+        employee.setSubject(dto.getSubject());
+        employee.setBody(dto.getBody());
+        employee.setCreateAt(dto.getCreateAt());
+        employee.setPaidleaves(dto.getPaidleaves());
+        employee.setCarryForwardedLeaves(dto.getCarryForwardedLeaves());
+        employee.setUnpaidleaves(dto.getUnpaidleaves());
+        employee.setDeleted(dto.isDeleted());
+        employee.setFaceEncoding(dto.getFaceEncoding());
+        employee.setCreatedByEmail(dto.getCreatedByEmail());
+        employee.setRole(dto.getRole());
 
-        // Set entity associations
+        // Fetch branch code and define system name for document upload paths
+        String branchCode = permissionService.fetchBranchCode(role, email);
+        String systemName = "NewEmployee";
+
+        employee.setBranchCode(branchCode);
+
+        // Set address if available
+        if (dto.getAddress() != null) {
+            EmployeeAddress empAddress = new EmployeeAddress();
+            BeanUtils.copyProperties(dto.getAddress(), empAddress);
+            empAddress.setEmployee(employee);
+            employee.setEmployeeAddress(empAddress);
+        }
+
+        EmployeeCreateDTO.DocumentDTO documentDTO = new EmployeeCreateDTO.DocumentDTO();
+        try {
+            if (idProof != null && !idProof.isEmpty()) {
+                documentDTO.setIdProof(s3Service.uploadEmployeeDocument(idProof, branchCode, systemName));
+            }
+            if (employeePhoto != null && !employeePhoto.isEmpty()) {
+                documentDTO.setEmployeePhoto(s3Service.uploadEmployeeDocument(employeePhoto, branchCode, systemName));
+            }
+            if (resume != null && !resume.isEmpty()) {
+                documentDTO.setResume(s3Service.uploadEmployeeDocument(resume, branchCode, systemName));
+            }
+            if (addressProof != null && !addressProof.isEmpty()) {
+                documentDTO.setAddressProof(s3Service.uploadEmployeeDocument(addressProof, branchCode, systemName));
+            }
+            if (experienceLetter != null && !experienceLetter.isEmpty()) {
+                documentDTO.setExperienceLetter(s3Service.uploadEmployeeDocument(experienceLetter, branchCode, systemName));
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Error uploading employee documents to S3", e);
+        }
+
+        // Set uploaded document URLs in DTO
+        dto.setDocument(documentDTO);
+
+        // Set department and category
         employee.setDepartmentEntity(department);
         employee.setEmployeeCategory(category);
 
-        employee.setCreatedByEmail(email);
-        employee.setRole(role);
-        employee.setBranchCode(permissionService.fetchBranchCode(role, email));
         return repository.save(employee);
     }
+
+
 
 
 
@@ -73,76 +167,115 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
-    public Employee updateEmployee(int id, Employee employee, String role, String email) {
-        if (!permissionService.hasPermission(role, email, "PUT")) throw new AccessDeniedException("No permission");
+    public Employee updateEmployee(
+            int id,
+            EmployeeCreateDTO dto,
+            String role,
+            String email,
+            int departmentId,
+            Long categoryId,
+            MultipartFile idProof,
+            MultipartFile employeePhoto,
+            MultipartFile resume,
+            MultipartFile addressProof,
+            MultipartFile experienceLetter
+    ) {
+        if (!permissionService.hasPermission(role, email, "PUT")) {
+            throw new AccessDeniedException("No permission");
+        }
 
-        Employee existing = repository.findById(id).orElseThrow(() -> new RuntimeException("Employee not found"));
+        Employee existing = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
 
-        existing.setFullName(employee.getFullName() != null ? employee.getFullName() : existing.getFullName());
-        existing.setBloodGroup(employee.getBloodGroup() != null ? employee.getBloodGroup() : existing.getBloodGroup());
-        existing.setGender(employee.getGender() != null ? employee.getGender() : existing.getGender());
-        existing.setEmpEmail(employee.getEmpEmail() != null ? employee.getEmpEmail() : existing.getEmpEmail());
-        existing.setPassword(employee.getPassword() != null ? employee.getPassword() : existing.getPassword());
-        existing.setDob(employee.getDob() != null ? employee.getDob() : existing.getDob());
-        existing.setAdharNo(employee.getAdharNo() != null ? employee.getAdharNo() : existing.getAdharNo());
-        existing.setPanNo(employee.getPanNo() != null ? employee.getPanNo() : existing.getPanNo());
-        existing.setMobileNo(employee.getMobileNo() != null ? employee.getMobileNo() : existing.getMobileNo());
-        existing.setOtp(employee.getOtp() != 0 ? employee.getOtp() : existing.getOtp());
-        existing.setOtpExpiry(employee.getOtpExpiry() != null ? employee.getOtpExpiry() : existing.getOtpExpiry());
-        existing.setParentNo(employee.getParentNo() != null ? employee.getParentNo() : existing.getParentNo());
-        existing.setCountry(employee.getCountry() != null ? employee.getCountry() : existing.getCountry());
-        existing.setState(employee.getState() != null ? employee.getState() : existing.getState());
-        existing.setDistrict(employee.getDistrict() != null ? employee.getDistrict() : existing.getDistrict());
-        existing.setTaluka(employee.getTaluka() != null ? employee.getTaluka() : existing.getTaluka());
-        existing.setCity(employee.getCity() != null ? employee.getCity() : existing.getCity());
-        existing.setPinCode(employee.getPinCode() != 0 ? employee.getPinCode() : existing.getPinCode());
-        existing.setLandmark(employee.getLandmark() != null ? employee.getLandmark() : existing.getLandmark());
-        existing.setCurrentAddress(employee.getCurrentAddress() != null ? employee.getCurrentAddress() : existing.getCurrentAddress());
-        existing.setPAddress(employee.getPAddress() != null ? employee.getPAddress() : existing.getPAddress());
-        existing.setPCountry(employee.getPCountry() != null ? employee.getPCountry() : existing.getPCountry());
-        existing.setPState(employee.getPState() != null ? employee.getPState() : existing.getPState());
-        existing.setPDistrict(employee.getPDistrict() != null ? employee.getPDistrict() : existing.getPDistrict());
-        existing.setPTaluka(employee.getPTaluka() != null ? employee.getPTaluka() : existing.getPTaluka());
-        existing.setPCity(employee.getPCity() != null ? employee.getPCity() : existing.getPCity());
-        existing.setPPinCode(employee.getPPinCode() != 0 ? employee.getPPinCode() : existing.getPPinCode());
-        existing.setPLandmark(employee.getPLandmark() != null ? employee.getPLandmark() : existing.getPLandmark());
-        existing.setJoiningDate(employee.getJoiningDate() != null ? employee.getJoiningDate() : existing.getJoiningDate());
-        existing.setDepartment(employee.getDepartment() != null ? employee.getDepartment() : existing.getDepartment());
-        existing.setWorkLocation(employee.getWorkLocation() != null ? employee.getWorkLocation() : existing.getWorkLocation());
-        existing.setDesignation(employee.getDesignation() != null ? employee.getDesignation() : existing.getDesignation());
-        existing.setDutyType(employee.getDutyType() != null ? employee.getDutyType() : existing.getDutyType());
-        existing.setEmployeeType(employee.getEmployeeType() != null ? employee.getEmployeeType() : existing.getEmployeeType());
-        existing.setSalary(employee.getSalary() != null ? employee.getSalary() : existing.getSalary());
-        existing.setCpfNo(employee.getCpfNo() != null ? employee.getCpfNo() : existing.getCpfNo());
-        existing.setEsicNo(employee.getEsicNo() != null ? employee.getEsicNo() : existing.getEsicNo());
-        existing.setBasicQualification(employee.getBasicQualification() != null ? employee.getBasicQualification() : existing.getBasicQualification());
-        existing.setProfessionalQualification(employee.getProfessionalQualification() != null ? employee.getProfessionalQualification() : existing.getProfessionalQualification());
-        existing.setShift(employee.getShift() != null ? employee.getShift() : existing.getShift());
-        existing.setShiftStartTime(employee.getShiftStartTime() != null ? employee.getShiftStartTime() : existing.getShiftStartTime());
-        existing.setShiftEndTime(employee.getShiftEndTime() != null ? employee.getShiftEndTime() : existing.getShiftEndTime());
-        existing.setCategoryName(employee.getCategoryName() != null ? employee.getCategoryName() : existing.getCategoryName());
-        existing.setStatus(employee.getStatus() != null ? employee.getStatus() : existing.getStatus());
-        existing.setIdProof(employee.getIdProof() != null ? employee.getIdProof() : existing.getIdProof());
-        existing.setEmployeePhoto(employee.getEmployeePhoto() != null ? employee.getEmployeePhoto() : existing.getEmployeePhoto());
-        existing.setResume(employee.getResume() != null ? employee.getResume() : existing.getResume());
-        existing.setAddressProof(employee.getAddressProof() != null ? employee.getAddressProof() : existing.getAddressProof());
-        existing.setExperienceLetter(employee.getExperienceLetter() != null ? employee.getExperienceLetter() : existing.getExperienceLetter());
-        existing.setOsen(employee.getOsen() != 0 ? employee.getOsen() : existing.getOsen());
-        existing.setToMail(employee.getToMail() != null ? employee.getToMail() : existing.getToMail());
-        existing.setSubject(employee.getSubject() != null ? employee.getSubject() : existing.getSubject());
-        existing.setBody(employee.getBody() != null ? employee.getBody() : existing.getBody());
-        existing.setCreateAt(employee.getCreateAt() != null ? employee.getCreateAt() : existing.getCreateAt());
-        existing.setPaidleaves(employee.getPaidleaves() != null ? employee.getPaidleaves() : existing.getPaidleaves());
-        existing.setCarryForwardedLeaves(employee.getCarryForwardedLeaves() != null ? employee.getCarryForwardedLeaves() : existing.getCarryForwardedLeaves());
-        existing.setUnpaidleaves(employee.getUnpaidleaves() != null ? employee.getUnpaidleaves() : existing.getUnpaidleaves());
-        existing.setFaceEncoding(employee.getFaceEncoding() != null ? employee.getFaceEncoding() : existing.getFaceEncoding());
-        existing.setCreatedByEmail(employee.getCreatedByEmail() != null ? employee.getCreatedByEmail() : existing.getCreatedByEmail());
-        existing.setRole(employee.getRole() != null ? employee.getRole() : existing.getRole());
-        existing.setBranchCode(employee.getBranchCode() != null ? employee.getBranchCode() : existing.getBranchCode());
-        existing.setDepartmentEntity(employee.getDepartmentEntity() != null ? employee.getDepartmentEntity() : existing.getDepartmentEntity());
-        existing.setEmployeeCategory(employee.getEmployeeCategory() != null ? employee.getEmployeeCategory() : existing.getEmployeeCategory());
+        // Update main employee fields
+        updateIfNotNull(existing::setFullName, dto.getFullName());
+        updateIfNotNull(existing::setEmpEmail, dto.getEmpEmail());
+        updateIfNotNull(existing::setPassword, dto.getPassword());
+        updateIfNotNull(existing::setDob, dto.getDob());
+        updateIfNotNull(existing::setMobileNo, dto.getMobileNo());
+        updateIfNotNull(existing::setParentNo, dto.getParentNo());
+        updateIfNotNull(existing::setGender, dto.getGender());
+        updateIfNotNull(existing::setBloodGroup, dto.getBloodGroup());
+        updateIfNotNull(existing::setAdharNo, dto.getAdharNo());
+        updateIfNotNull(existing::setPanNo, dto.getPanNo());
+        updateIfNotNull(existing::setJoiningDate, dto.getJoiningDate());
+        updateIfNotNull(existing::setDepartment, dto.getDepartment());
+        updateIfNotNull(existing::setWorkLocation, dto.getWorkLocation());
+        updateIfNotNull(existing::setDesignation, dto.getDesignation());
+        updateIfNotNull(existing::setDutyType, dto.getDutyType());
+        updateIfNotNull(existing::setEmployeeType, dto.getEmployeeType());
+        updateIfNotNull(existing::setSalary, dto.getSalary());
+        updateIfNotNull(existing::setCpfNo, dto.getCpfNo());
+        updateIfNotNull(existing::setEsicNo, dto.getEsicNo());
+        updateIfNotNull(existing::setBasicQualification, dto.getBasicQualification());
+        updateIfNotNull(existing::setProfessionalQualification, dto.getProfessionalQualification());
+        updateIfNotNull(existing::setShift, dto.getShift());
+        updateIfNotNull(existing::setShiftStartTime, dto.getShiftStartTime());
+        updateIfNotNull(existing::setShiftEndTime, dto.getShiftEndTime());
+        updateIfNotNull(existing::setCategoryName, dto.getCategoryName());
+        updateIfNotNull(existing::setStatus, dto.getStatus());
+        if (dto.getOsen() != 0) existing.setOsen(dto.getOsen());
+        updateIfNotNull(existing::setToMail, dto.getToMail());
+        updateIfNotNull(existing::setSubject, dto.getSubject());
+        updateIfNotNull(existing::setBody, dto.getBody());
+        updateIfNotNull(existing::setCreateAt, dto.getCreateAt());
+        updateIfNotNull(existing::setPaidleaves, dto.getPaidleaves());
+        updateIfNotNull(existing::setCarryForwardedLeaves, dto.getCarryForwardedLeaves());
+        updateIfNotNull(existing::setUnpaidleaves, dto.getUnpaidleaves());
+        updateIfNotNull(existing::setFaceEncoding, dto.getFaceEncoding());
+        updateIfNotNull(existing::setCreatedByEmail, dto.getCreatedByEmail());
+        updateIfNotNull(existing::setRole, dto.getRole());
+        updateIfNotNull(existing::setBranchCode, dto.getBranchCode());
+        existing.setDeleted(dto.isDeleted());
+
+        // Update Address
+        if (dto.getAddress() != null) {
+            EmployeeAddress address = existing.getEmployeeAddress() != null ? existing.getEmployeeAddress() : new EmployeeAddress();
+            EmployeeCreateDTO.AddressDTO dtoAddress = dto.getAddress();
+
+            updateIfNotNull(address::setCountry, dtoAddress.getCountry());
+            updateIfNotNull(address::setState, dtoAddress.getState());
+            updateIfNotNull(address::setDistrict, dtoAddress.getDistrict());
+            updateIfNotNull(address::setTaluka, dtoAddress.getTaluka());
+            updateIfNotNull(address::setCity, dtoAddress.getCity());
+            if (dtoAddress.getPinCode() != 0) address.setPinCode(dtoAddress.getPinCode());
+            updateIfNotNull(address::setLandmark, dtoAddress.getLandmark());
+            updateIfNotNull(address::setCurrentAddress, dtoAddress.getCurrentAddress());
+            updateIfNotNull(address::setPCountry, dtoAddress.getPcountry());
+            updateIfNotNull(address::setPState, dtoAddress.getPstate());
+            updateIfNotNull(address::setPDistrict, dtoAddress.getPdistrict());
+            updateIfNotNull(address::setPTaluka, dtoAddress.getPtaluka());
+            updateIfNotNull(address::setPCity, dtoAddress.getPcity());
+            if (dtoAddress.getPpinCode() != 0) address.setPPinCode(dtoAddress.getPpinCode());
+            updateIfNotNull(address::setPLandmark, dtoAddress.getPlandmark());
+            updateIfNotNull(address::setPAddress, dtoAddress.getPaddress());
+
+            address.setEmployee(existing);
+            existing.setEmployeeAddress(address);
+        }
+
+        // Update Document
+        if (dto.getDocument() != null) {
+            EmployeeDocument document = existing.getEmployeeDocument() != null ? existing.getEmployeeDocument() : new EmployeeDocument();
+            EmployeeCreateDTO.DocumentDTO dtoDoc = dto.getDocument();
+
+            updateIfNotNull(document::setIdProof, dtoDoc.getIdProof());
+            updateIfNotNull(document::setEmployeePhoto, dtoDoc.getEmployeePhoto());
+            updateIfNotNull(document::setResume, dtoDoc.getResume());
+            updateIfNotNull(document::setAddressProof, dtoDoc.getAddressProof());
+            updateIfNotNull(document::setExperienceLetter, dtoDoc.getExperienceLetter());
+
+            document.setEmployee(existing);
+            existing.setEmployeeDocument(document);
+        }
 
         return repository.save(existing);
+    }
+
+    private <T> void updateIfNotNull(Consumer<T> setter, T value) {
+        if (value != null) {
+            setter.accept(value);
+        }
     }
 
 
@@ -155,50 +288,29 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
-    public Employee uploadDocuments(int id, MultipartFile idProof, MultipartFile photo,
-                                    MultipartFile resume, MultipartFile addressProof,
-                                    MultipartFile experienceLetter, String role, String email) {
-        if (!permissionService.hasPermission(role, email, "PUT")) throw new AccessDeniedException("No permission");
+    public void carryForwardLeavesForEligibleEmployees() {
+        List<Employee> employees = repository.findByIsDeletedFalse();
 
-        Employee emp = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
-
-        try {
-            if (idProof != null && !idProof.isEmpty()) {
-                emp.setIdProof(idProof.getOriginalFilename());
+        for (Employee employee : employees) {
+            if (employee.getJoiningDate() == null || employee.getEmployeeCategory() == null) {
+                continue;
             }
 
-            if (photo != null && !photo.isEmpty()) {
-                // Extract file extension
-                String originalFilename = photo.getOriginalFilename();
-                String extension = "";
-                int dotIndex = originalFilename.lastIndexOf('.');
-                if (dotIndex >= 0) {
-                    extension = originalFilename.substring(dotIndex);
+            LocalDate joiningDate = new java.sql.Date(employee.getJoiningDate().getTime()).toLocalDate();
+            long years = ChronoUnit.YEARS.between(joiningDate, LocalDate.now());
+
+            if (years >= 1) {
+                EmployeeCategory category = employee.getEmployeeCategory();
+                Double totalLeave = category.getTotalPaidLeave(); // Assuming totalLeave is in EmployeeCategory
+
+                if (totalLeave != null) {
+                    Double remaining = employee.getPaidleaves() != null ? employee.getPaidleaves() : 0.0;
+                    employee.setCarryForwardedLeaves(remaining);
+                    employee.setPaidleaves(totalLeave+remaining);
+                    repository.save(employee);
                 }
-
-                String customFileName = "employee_" + emp.getId() + "_" + emp.getBranchCode() + extension;
-
-                emp.setEmployeePhoto(customFileName);
             }
-
-            if (resume != null && !resume.isEmpty()) {
-                emp.setResume(resume.getOriginalFilename());
-            }
-
-            if (addressProof != null && !addressProof.isEmpty()) {
-                emp.setAddressProof(addressProof.getOriginalFilename());
-            }
-
-            if (experienceLetter != null && !experienceLetter.isEmpty()) {
-                emp.setExperienceLetter(experienceLetter.getOriginalFilename());
-            }
-
-        } catch (Exception e) {
-            throw new RuntimeException("Error saving documents", e);
         }
-
-        return repository.save(emp);
     }
 
 }

@@ -30,7 +30,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         department.setRole(role);
         department.setCreatedByEmail(email);
         department.setBranchCode(branchCode);
-        department.setDeleted(false);
+
         return departmentRepository.save(department);
     }
 
@@ -39,6 +39,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to view departments");
         }
+
         String branchCode = permissionService.fetchBranchCode(role, email);
         return departmentRepository.findAllByBranchCode(branchCode);
     }
@@ -53,6 +54,7 @@ public class DepartmentServiceImpl implements DepartmentService {
                 .orElseThrow(() -> new RuntimeException("Department not found"));
 
         existing.setDepartment(department.getDepartment());
+
         return departmentRepository.save(existing);
     }
 
@@ -65,8 +67,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         Department existing = departmentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Department not found"));
 
-        existing.setDeleted(true);
-        departmentRepository.save(existing);
+        departmentRepository.delete(existing); // ❌ No soft delete, directly remove
     }
 
     @Override

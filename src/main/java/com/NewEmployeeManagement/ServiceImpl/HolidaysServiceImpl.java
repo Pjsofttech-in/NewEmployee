@@ -1,17 +1,16 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
+import com.NewEmployeeManagement.Entity.Employee;
 import com.NewEmployeeManagement.Entity.Holidays;
+import com.NewEmployeeManagement.Repository.EmployeeRepository;
 import com.NewEmployeeManagement.Repository.HolidaysRepository;
 import com.NewEmployeeManagement.Service.HolidaysService;
 import com.NewEmployeeManagement.Service.PermissionService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class HolidaysServiceImpl implements HolidaysService {
@@ -20,10 +19,12 @@ public class HolidaysServiceImpl implements HolidaysService {
     HolidaysRepository repository;
 
     @Autowired
+    private EmployeeRepository employeeRepository;
+    @Autowired
     private PermissionService permissionService;
 
     @Override
-    public Holidays createHoliday(Holidays holiday, String role, String email) {
+    public Holidays createHoliday(Holidays holiday, int employeeId, String role, String email) {
         if (!permissionService.hasPermission(role, email, "POST")) {
             throw new AccessDeniedException("No permission to create holiday");
         }
@@ -33,8 +34,13 @@ public class HolidaysServiceImpl implements HolidaysService {
         holiday.setBranchCode(branchCode);
         holiday.setRole(role);
 
+        // Fetch employee and set to holiday
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(()-> new RuntimeException("employee not found by id:"+employeeId));
+        holiday.setEmployee(employee);
+
         return repository.save(holiday);
     }
+
 
     @Override
     public List<Holidays> getAllHolidays(String role, String email) {

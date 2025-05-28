@@ -23,15 +23,20 @@ public class EmployeeCategory {
 
     private String categoryName;
     private BigDecimal hraPercentage;
-    private BigDecimal medicalAllowancePercentage;
+    private Double medicalAllowancePercentage; // amount
     private BigDecimal pfPercentage;
     private BigDecimal esicPercentage;
-    private BigDecimal professionalTaxPercentage;
-    private BigDecimal incomeTaxPercentage;
+    private Double professionalTaxPercentage; // amount
+    private Double incomeTaxPercentage;
     private Double totalPaidLeave;
     private Double totalUnpaidLeave;
     private boolean isDeleted = false;
-
+    private Double pt;
+    private Double insentive;
+    private Double tds;
+    private Double ta;
+    private Double companyFund;
+    //pt amount Amount(ta) insantive tds incometax amount company fund (amount)
     @Email
     private String createdByEmail;
     private String role;

@@ -1,11 +1,16 @@
 package com.NewEmployeeManagement.Controller;
 
+import com.NewEmployeeManagement.DTO.EmployeeCreateDTO;
 import com.NewEmployeeManagement.Entity.Employee;
 import com.NewEmployeeManagement.Pageination.SpecializationService;
 import com.NewEmployeeManagement.Service.EmployeeService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,13 +27,35 @@ public class EmployeeController {
     @Autowired
     private SpecializationService specializationService;
 
-    @PostMapping("createEmployee")
-    public ResponseEntity<Employee> createEmployee(@RequestBody Employee employee,
-                                                   @RequestParam String role,
-                                                   @RequestParam String email,
-                                                   @RequestParam int departmentId,
-                                                   @RequestParam Long categoryId) {
-        Employee createdEmployee = service.createEmployee(employee, role, email, departmentId, categoryId);
+    @PostMapping(value = "/createEmployee", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Employee> createEmployee(
+            @RequestPart("employeeDTO") String employeeDTOJson,
+            @RequestParam("role") String role,
+            @RequestParam("email") String email,
+            @RequestParam("departmentId") int departmentId,
+            @RequestParam("categoryId") Long categoryId,
+
+            @RequestParam(value = "idProof", required = false) MultipartFile idProof,
+            @RequestParam(value = "employeePhoto", required = false) MultipartFile employeePhoto,
+            @RequestParam(value = "resume", required = false) MultipartFile resume,
+            @RequestParam(value = "addressProof", required = false) MultipartFile addressProof,
+            @RequestParam(value = "experienceLetter", required = false) MultipartFile experienceLetter
+    ) {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        EmployeeCreateDTO dto;
+        try {
+            dto = mapper.readValue(employeeDTOJson, EmployeeCreateDTO.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid JSON: " + e.getMessage());
+        }
+
+        Employee createdEmployee = service.createEmployee(
+                dto, role, email, departmentId, categoryId,
+                idProof, employeePhoto, resume, addressProof, experienceLetter
+        );
         return new ResponseEntity<>(createdEmployee, HttpStatus.CREATED);
     }
 
@@ -55,13 +82,39 @@ public class EmployeeController {
         return ResponseEntity.ok(service.getEmployeeById(id, role, email));
     }
 
-    @PutMapping("/updateEmployee/{id}")
-    public ResponseEntity<Employee> updateEmployee(@PathVariable int id,
-                                           @RequestBody Employee employee,
-                                           @RequestParam String role,
-                                           @RequestParam String email) {
-        return ResponseEntity.ok(service.updateEmployee(id, employee, role, email));
+    @PutMapping(value = "/updateEmployee/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Employee> updateEmployee(
+            @PathVariable int id,
+            @RequestPart("employeeDTO") String employeeDTOJson,
+            @RequestParam("role") String role,
+            @RequestParam("email") String email,
+            @RequestParam(value = "departmentId",required = false) int departmentId,
+            @RequestParam(value = "categoryId",required = false) Long categoryId,
+
+            @RequestParam(value = "idProof", required = false) MultipartFile idProof,
+            @RequestParam(value = "employeePhoto", required = false) MultipartFile employeePhoto,
+            @RequestParam(value = "resume", required = false) MultipartFile resume,
+            @RequestParam(value = "addressProof", required = false) MultipartFile addressProof,
+            @RequestParam(value = "experienceLetter", required = false) MultipartFile experienceLetter
+    ) {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        EmployeeCreateDTO dto;
+        try {
+            dto = mapper.readValue(employeeDTOJson, EmployeeCreateDTO.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid JSON: " + e.getMessage());
+        }
+
+        Employee updatedEmployee = service.updateEmployee(
+                id, dto, role, email, departmentId, categoryId,
+                idProof, employeePhoto, resume, addressProof, experienceLetter
+        );
+        return new ResponseEntity<>(updatedEmployee, HttpStatus.OK);
     }
+
 
     @DeleteMapping("/deleteEmployee/{id}")
     public ResponseEntity<String> deleteEmployee(@PathVariable int id,
@@ -71,15 +124,9 @@ public class EmployeeController {
         return ResponseEntity.ok("Deleted successfully");
     }
 
-    @PostMapping("/uploadDocuments/{id}")
-    public ResponseEntity<Employee> uploadDocuments(@PathVariable int id,
-                                                    @RequestParam MultipartFile idProof,
-                                                    @RequestParam MultipartFile photo,
-                                                    @RequestParam MultipartFile resume,
-                                                    @RequestParam MultipartFile addressProof,
-                                                    @RequestParam MultipartFile experienceLetter,
-                                                    @RequestParam String role,
-                                                    @RequestParam String email) {
-        return ResponseEntity.ok(service.uploadDocuments(id, idProof, photo, resume, addressProof, experienceLetter, role, email));
+    @PostMapping("/carryforward")
+    public String carryForwardLeaves() {
+        service.carryForwardLeavesForEligibleEmployees();
+        return "Carry forward process completed for eligible employees.";
     }
 }

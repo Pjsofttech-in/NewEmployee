@@ -52,26 +52,26 @@ public class Employee {
     @Pattern(regexp = "\\d{10}", message = "Mobile number must be 10 digits")
     private String parentNo;
 
-    private String country;
-    private String state;
-    private String district;
-    private String taluka;
-    private String city;
-    private int pinCode;
-    private String landmark;
-    private String currentAddress;
-    private String pAddress;
-    private String pCountry;
-    private String pState;
-    private String pDistrict;
-    private String pTaluka;
-    private String pCity;
-    private int pPinCode;
-    private String pLandmark;
+//    private String country;
+//    private String state;
+//    private String district;
+//    private String taluka;
+//    private String city;
+//    private int pinCode;
+//    private String landmark;
+//    private String currentAddress;
+//    private String pAddress;
+//    private String pCountry;
+//    private String pState;
+//    private String pDistrict;
+//    private String pTaluka;
+//    private String pCity;
+//    private int pPinCode;
+//    private String pLandmark;
 
     //2nd page form
     private Date joiningDate;
-    private String department;     //
+    private String department;
     private String workLocation;
     private String designation;
     private String dutyType;
@@ -85,16 +85,16 @@ public class Employee {
     private String shiftStartTime;
     private String shiftEndTime;
 
-    private String categoryName;  //
+    private String categoryName;
 
     private String status = "Joined";
 
     //Document
-    private String idProof;
-    private String employeePhoto;
-    private String resume;
-    private String addressProof;
-    private String experienceLetter;
+//    private String idProof;
+//    private String employeePhoto;
+//    private String resume;
+//    private String addressProof;
+//    private String experienceLetter;
 
     //extra Felid
     private int osen;
@@ -136,5 +136,23 @@ public class Employee {
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private List<LeaveRequest> leaveRequests = new ArrayList<>();
+
+    @OneToOne(mappedBy = "employee", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private EmployeeAddress employeeAddress;
+
+    @OneToOne(mappedBy = "employee", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private EmployeeDocument employeeDocument;
+
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<Attendence> attendences = new ArrayList<>();
+
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<Holidays> holidays = new ArrayList<>();
+
+    private String systemName;
 
 }

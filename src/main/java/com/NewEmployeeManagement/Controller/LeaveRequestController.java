@@ -1,8 +1,10 @@
 package com.NewEmployeeManagement.Controller;
 
+import com.NewEmployeeManagement.DTO.EmployeeLeaveSummaryDTO;
 import com.NewEmployeeManagement.Entity.LeaveRequest;
 import com.NewEmployeeManagement.Service.LeaveRequestService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -55,6 +57,12 @@ public class LeaveRequestController {
                                              @RequestParam String role,
                                              @RequestParam String email) {
         return leaveRequestService.approveOrRejectLeave(id, action, role, email);
+    }
+
+    @GetMapping("/getLeaveSummary/{employeeId}")
+    public ResponseEntity<EmployeeLeaveSummaryDTO> getLeaveSummary(@PathVariable int employeeId) {
+        EmployeeLeaveSummaryDTO summary = leaveRequestService.getLeaveSummary(employeeId);
+        return ResponseEntity.ok(summary);
     }
 
 }
