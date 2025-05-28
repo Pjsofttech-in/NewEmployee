@@ -55,12 +55,23 @@ public class S3Service {
             throw new IllegalArgumentException("File must have a valid name");
         }
 
-        String sanitizedFilename = originalFilename.replaceAll("[^a-zA-Z0-9\\.\\-_]", "_");
-        String key = branchCode + "/" + systemName.toLowerCase() + "/doct/" + sanitizedFilename;
+        // ✅ Generate a UUID-based filename
+        String fileExtension = "";
+        int dotIndex = originalFilename.lastIndexOf(".");
+        if (dotIndex > 0) {
+            fileExtension = originalFilename.substring(dotIndex);
+        }
+
+        String uuidFileName = java.util.UUID.randomUUID().toString() + fileExtension;
+
+        // ✅ Construct path like your existing logic
+        String key = branchCode + "/" + systemName.toLowerCase() + "/doct/" + uuidFileName;
 
         try (InputStream inputStream = file.getInputStream()) {
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentLength(file.getSize());
+            metadata.setContentType(file.getContentType()); // Optional but helpful
+
             s3Client.putObject(new PutObjectRequest(bucketName, key, inputStream, metadata));
             logger.info("File uploaded successfully with key: {}", key);
         } catch (SdkClientException e) {
@@ -68,7 +79,8 @@ public class S3Service {
             throw new RuntimeException("Error uploading to S3", e);
         }
 
-        return s3Client.getUrl(bucketName, key).toString();
+        // ✅ Return formatted public S3 URL
+        return String.format("https://%s.s3.amazonaws.com/%s", bucketName, key);
     }
 
 

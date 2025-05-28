@@ -8,6 +8,8 @@ import com.NewEmployeeManagement.Repository.EmployeeRepository;
 import com.NewEmployeeManagement.Service.EmployeeService;
 import com.NewEmployeeManagement.Service.PermissionService;
 import com.NewEmployeeManagement.Service.S3Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
@@ -37,6 +39,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Autowired
     private S3Service s3Service;
 
+    private static final Logger logger = LoggerFactory.getLogger(EmployeeServiceImpl.class);
 
     private String saveFileToStorageOrReturnName(MultipartFile file) {
         if (file != null && !file.isEmpty()) {
@@ -64,52 +67,15 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .orElseThrow(() -> new RuntimeException("Category not found with ID: " + categoryId));
 
         Employee employee = new Employee();
-        employee.setFullName(dto.getFullName());
-        employee.setEmpEmail(dto.getEmpEmail());
-        employee.setPassword(dto.getPassword());
-        employee.setDob(dto.getDob());
-        employee.setMobileNo(dto.getMobileNo());
-        employee.setParentNo(dto.getParentNo());
-        employee.setGender(dto.getGender());
-        employee.setBloodGroup(dto.getBloodGroup());
-        employee.setAdharNo(dto.getAdharNo());
-        employee.setPanNo(dto.getPanNo());
-        employee.setJoiningDate(dto.getJoiningDate());
-        employee.setDepartment(dto.getDepartment());
-        employee.setWorkLocation(dto.getWorkLocation());
-        employee.setDesignation(dto.getDesignation());
-        employee.setDutyType(dto.getDutyType());
-        employee.setEmployeeType(dto.getEmployeeType());
-        employee.setSalary(dto.getSalary());
-        employee.setCpfNo(dto.getCpfNo());
-        employee.setEsicNo(dto.getEsicNo());
-        employee.setBasicQualification(dto.getBasicQualification());
-        employee.setProfessionalQualification(dto.getProfessionalQualification());
-        employee.setShift(dto.getShift());
-        employee.setShiftStartTime(dto.getShiftStartTime());
-        employee.setShiftEndTime(dto.getShiftEndTime());
-        employee.setCategoryName(dto.getCategoryName());
-        employee.setStatus(dto.getStatus());
-        employee.setOsen(dto.getOsen());
-        employee.setToMail(dto.getToMail());
-        employee.setSubject(dto.getSubject());
-        employee.setBody(dto.getBody());
-        employee.setCreateAt(dto.getCreateAt());
-        employee.setPaidleaves(dto.getPaidleaves());
-        employee.setCarryForwardedLeaves(dto.getCarryForwardedLeaves());
-        employee.setUnpaidleaves(dto.getUnpaidleaves());
-        employee.setDeleted(dto.isDeleted());
-        employee.setFaceEncoding(dto.getFaceEncoding());
-        employee.setCreatedByEmail(dto.getCreatedByEmail());
-        employee.setRole(dto.getRole());
+        // set all basic fields
+        BeanUtils.copyProperties(dto, employee);
 
-        // Fetch branch code and define system name for document upload paths
+        // Get and set branch/system
         String branchCode = permissionService.fetchBranchCode(role, email);
         String systemName = "NewEmployee";
-
         employee.setBranchCode(branchCode);
 
-        // Set address if available
+        // Set address if present
         if (dto.getAddress() != null) {
             EmployeeAddress empAddress = new EmployeeAddress();
             BeanUtils.copyProperties(dto.getAddress(), empAddress);
@@ -117,34 +83,51 @@ public class EmployeeServiceImpl implements EmployeeService {
             employee.setEmployeeAddress(empAddress);
         }
 
-        EmployeeCreateDTO.DocumentDTO documentDTO = new EmployeeCreateDTO.DocumentDTO();
+        // Upload documents to S3
+        EmployeeDocument employeeDocument = new EmployeeDocument();
+
         try {
             if (idProof != null && !idProof.isEmpty()) {
-                documentDTO.setIdProof(s3Service.uploadEmployeeDocument(idProof, branchCode, systemName));
+                String idProofUrl = s3Service.uploadEmployeeDocument(idProof, branchCode, systemName);
+                employeeDocument.setIdProof(idProofUrl);
             }
             if (employeePhoto != null && !employeePhoto.isEmpty()) {
-                documentDTO.setEmployeePhoto(s3Service.uploadEmployeeDocument(employeePhoto, branchCode, systemName));
+                String photoUrl = s3Service.uploadEmployeeDocument(employeePhoto, branchCode, systemName);
+                employeeDocument.setEmployeePhoto(photoUrl);
             }
             if (resume != null && !resume.isEmpty()) {
-                documentDTO.setResume(s3Service.uploadEmployeeDocument(resume, branchCode, systemName));
+                String resumeUrl = s3Service.uploadEmployeeDocument(resume, branchCode, systemName);
+                employeeDocument.setResume(resumeUrl);
             }
             if (addressProof != null && !addressProof.isEmpty()) {
-                documentDTO.setAddressProof(s3Service.uploadEmployeeDocument(addressProof, branchCode, systemName));
+                String addressProofUrl = s3Service.uploadEmployeeDocument(addressProof, branchCode, systemName);
+                employeeDocument.setAddressProof(addressProofUrl);
             }
             if (experienceLetter != null && !experienceLetter.isEmpty()) {
-                documentDTO.setExperienceLetter(s3Service.uploadEmployeeDocument(experienceLetter, branchCode, systemName));
+                String experienceUrl = s3Service.uploadEmployeeDocument(experienceLetter, branchCode, systemName);
+                employeeDocument.setExperienceLetter(experienceUrl);
             }
         } catch (IOException e) {
             throw new RuntimeException("Error uploading employee documents to S3", e);
         }
 
-        // Set uploaded document URLs in DTO
-        dto.setDocument(documentDTO);
+        // Save document record
+        employeeDocument.setEmployee(employee);
+        employee.setEmployeeDocument(employeeDocument);
 
         // Set department and category
         employee.setDepartmentEntity(department);
         employee.setEmployeeCategory(category);
 
+        // Save employee first to get ID
+        Employee savedEmployee = repository.save(employee);
+
+        // ✅ Call method to copy employee photo to attendance folder
+        try {
+            s3Service.copyImageToAttendanceFolderWithEmpId(savedEmployee.getId());
+        } catch (Exception ex) {
+            logger.error("Failed to copy image to attendance folder for employee ID: {}", savedEmployee.getId(), ex);
+        }
         return repository.save(employee);
     }
 
