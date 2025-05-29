@@ -54,23 +54,17 @@ public class EmployeeCategoryController {
 
     @GetMapping("/getCategoryByName/{categoryName}")
     public ResponseEntity<Optional<EmployeeCategory>> getCategoryByName(@PathVariable String categoryName,
-                                                                        @RequestParam String role,
-                                                                        @RequestParam String email,
                                                                         @RequestParam String branchCode) {
         return ResponseEntity.ok(service.getCategoryByName(categoryName, branchCode));
     }
 
     @GetMapping("/getTotalCategory")
-    public ResponseEntity<Long> getTotalCategory(@RequestParam String role,
-                                                 @RequestParam String email,
-                                                 @RequestParam String branchCode) {
+    public ResponseEntity<Long> getTotalCategory(@RequestParam String branchCode) {
         return ResponseEntity.ok(service.getTotalCategory(branchCode));
     }
 
     @GetMapping("/getNonDeletedCategories")
-    public ResponseEntity<List<EmployeeCategory>> getNonDeletedCategories(@RequestParam String role,
-                                                                          @RequestParam String email,
-                                                                          @RequestParam String branchCode) {
+    public ResponseEntity<List<EmployeeCategory>> getNonDeletedCategories(@RequestParam String branchCode) {
         return ResponseEntity.ok(service.getNonDeletedCategories(branchCode));
     }
 
