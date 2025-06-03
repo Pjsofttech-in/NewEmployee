@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -36,6 +37,8 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Autowired
     private PermissionService permissionService;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
     @Autowired
     private S3Service s3Service;
 
@@ -76,6 +79,8 @@ public class EmployeeServiceImpl implements EmployeeService {
         employee.setBranchCode(branchCode);
         employee.setRole(role);
         employee.setCreatedByEmail(email);
+        employee.setEmpRole("USER");
+        employee.setPassword(passwordEncoder.encode(employee.getPassword()));
 
         // Set address if present
         if (dto.getAddress() != null) {
@@ -119,7 +124,9 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // Set department and category
         employee.setDepartmentEntity(department);
+        employee.setDepartment(department.getDepartment());
         employee.setEmployeeCategory(category);
+        employee.setCategoryName(category.getCategoryName());
 
         // Save employee first to get ID
         Employee savedEmployee = repository.save(employee);
