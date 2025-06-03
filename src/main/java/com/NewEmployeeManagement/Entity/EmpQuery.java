@@ -8,6 +8,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
+
 @Entity
 @Getter
 @Setter
@@ -24,7 +26,7 @@ public class EmpQuery
     @Email
     private String email;
     private String query;
-
+    private LocalDate Date;
     @Email
     private String createdByEmail;
     private String role;

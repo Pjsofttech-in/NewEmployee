@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -29,6 +30,7 @@ public class EmpQueryServiceImpl implements EmpQueryService {
         query.setRole(role);
         query.setCreatedByEmail(email);
         query.setBranchCode(branchCode);
+        query.setDate(LocalDate.now());
         return repository.save(query);
     }
 
