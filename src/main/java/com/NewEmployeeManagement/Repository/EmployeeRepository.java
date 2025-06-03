@@ -21,4 +21,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Integer>, Jp
 
     List<Employee> findByIsDeletedFalse();
 
+    Optional<Employee> findByEmpEmail(String empEmail);
+
+
 }

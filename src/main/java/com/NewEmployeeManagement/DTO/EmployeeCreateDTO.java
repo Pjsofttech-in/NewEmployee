@@ -40,6 +40,11 @@ public class EmployeeCreateDTO {
     //extra Felid
     private int osen;
 
+    private boolean candGet;
+    private boolean candPost;
+    private boolean candPut;
+    private boolean candDelete;
+
     private String toMail;
     private String subject;
     private String body;
@@ -66,7 +71,7 @@ public class EmployeeCreateDTO {
     private AddressDTO address;
     private DocumentDTO document;
 
-    // other employee fields...
+
 
     @Data
     public static class AddressDTO {

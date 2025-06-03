@@ -8,6 +8,7 @@ import com.NewEmployeeManagement.Repository.EmployeeRepository;
 import com.NewEmployeeManagement.Service.EmployeeService;
 import com.NewEmployeeManagement.Service.PermissionService;
 import com.NewEmployeeManagement.Service.S3Service;
+import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -20,7 +21,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 @Service
@@ -305,4 +309,19 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
     }
 
+
+    @Override
+    public Map<String, Object> getCrudPermissionForEmployeeByEmail(String empEmail) {
+        Optional<Employee> employeeOpt = repository.findByEmpEmail(empEmail);
+        if (employeeOpt.isPresent()) {
+            Employee employee = employeeOpt.get();
+            Map<String, Object> permissions = new HashMap<>();
+            permissions.put("candGet", employee.isCandGet());
+            permissions.put("candPost", employee.isCandPost());
+            permissions.put("candPut", employee.isCandPut());
+            permissions.put("candDelete", employee.isCandDelete());
+            return permissions;
+        }
+        throw new EntityNotFoundException("Employee not found with email: " + empEmail);
+    }
 }

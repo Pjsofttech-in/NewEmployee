@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @CrossOrigin(origins = "https://pjsofttech.in")
@@ -128,5 +129,11 @@ public class EmployeeController {
     public String carryForwardLeaves() {
         service.carryForwardLeavesForEligibleEmployees();
         return "Carry forward process completed for eligible employees.";
+    }
+
+    @GetMapping("/permissions")
+    public ResponseEntity<Map<String, Object>> getCrudPermissions(@RequestParam String email) {
+        Map<String, Object> permissions = service.getCrudPermissionForEmployeeByEmail(email);
+        return ResponseEntity.ok(permissions);
     }
 }

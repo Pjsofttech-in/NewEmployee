@@ -154,4 +154,8 @@ public class Employee {
     @JsonIgnore
     private List<Holidays> holidays = new ArrayList<>();
 
+    private boolean candGet;
+    private boolean candPost;
+    private boolean candPut;
+    private boolean candDelete;
 }

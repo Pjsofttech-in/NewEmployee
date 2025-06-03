@@ -5,6 +5,7 @@ import com.NewEmployeeManagement.Entity.Employee;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 public interface EmployeeService {
     Employee createEmployee(EmployeeCreateDTO dto, String role, String email, int departmentId, Long categoryId,
@@ -31,5 +32,7 @@ public interface EmployeeService {
 
     void deleteEmployee(int id, String role, String email);
     void carryForwardLeavesForEligibleEmployees();
+
+    Map<String, Object> getCrudPermissionForEmployeeByEmail(String empEmail);
 
 }

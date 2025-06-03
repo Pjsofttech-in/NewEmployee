@@ -1,7 +1,9 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
+import com.NewEmployeeManagement.Service.EmployeeService;
 import com.NewEmployeeManagement.Service.PermissionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -12,6 +14,10 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Autowired
     StaffService staffService;
+
+    @Autowired
+    @Lazy
+    EmployeeService employeeService;
 
     @Autowired
     WebClient webClient;
@@ -47,6 +53,16 @@ public class PermissionServiceImpl implements PermissionService {
             }
             case "DEPARTMENT" -> {
                 Map<String, Object> perms = staffService.getCrudPermissionForDepartmentByEmail(email);
+                yield switch (action.toUpperCase()) {
+                    case "GET" -> Boolean.TRUE.equals(perms.get("candGet"));
+                    case "POST" -> Boolean.TRUE.equals(perms.get("candPost"));
+                    case "PUT" -> Boolean.TRUE.equals(perms.get("candPut"));
+                    case "DELETE" -> Boolean.TRUE.equals(perms.get("candDelete"));
+                    default -> false;
+                };
+            }
+            case "USER" -> {
+                Map<String, Object> perms = employeeService.getCrudPermissionForEmployeeByEmail(email);
                 yield switch (action.toUpperCase()) {
                     case "GET" -> Boolean.TRUE.equals(perms.get("candGet"));
                     case "POST" -> Boolean.TRUE.equals(perms.get("candPost"));
