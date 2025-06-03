@@ -153,6 +153,4 @@ public class Employee {
     @JsonIgnore
     private List<Holidays> holidays = new ArrayList<>();
 
-    private String systemName;
-
 }

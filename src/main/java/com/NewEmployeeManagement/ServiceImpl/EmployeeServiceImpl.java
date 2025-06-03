@@ -74,6 +74,8 @@ public class EmployeeServiceImpl implements EmployeeService {
         String branchCode = permissionService.fetchBranchCode(role, email);
         String systemName = "NewEmployee";
         employee.setBranchCode(branchCode);
+        employee.setRole(role);
+        employee.setCreatedByEmail(email);
 
         // Set address if present
         if (dto.getAddress() != null) {
