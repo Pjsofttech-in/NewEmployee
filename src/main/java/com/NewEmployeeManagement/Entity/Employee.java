@@ -113,6 +113,7 @@ public class Employee {
     private boolean isDeleted = false;
 
     private String faceEncoding;
+    private String empRole;
 
     @Email
     private String createdByEmail;
