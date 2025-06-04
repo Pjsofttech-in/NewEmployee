@@ -35,6 +35,11 @@ public class AuthController {
 
         Employee employee = optionalEmployee.get();
 
+        // ✅ Check if the employee is soft deleted
+        if (employee.isDeleted()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Employee not found or access denied");
+        }
+
         if (!passwordEncoder.matches(request.getPassword(), employee.getPassword())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password");
         }

@@ -83,6 +83,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         employee.setBranchCode(branchCode);
         employee.setRole(role);
         employee.setCreatedByEmail(email);
+        employee.setJoiningDate(LocalDate.now());
         employee.setEmpRole("USER");
         employee.setPassword(passwordEncoder.encode(employee.getPassword()));
 
@@ -125,13 +126,11 @@ public class EmployeeServiceImpl implements EmployeeService {
         // Save document record
         employeeDocument.setEmployee(employee);
         employee.setEmployeeDocument(employeeDocument);
-
         // Set department and category
         employee.setDepartmentEntity(department);
         employee.setDepartment(department.getDepartment());
         employee.setEmployeeCategory(category);
         employee.setCategoryName(category.getCategoryName());
-
         // Save employee first to get ID
         Employee savedEmployee = repository.save(employee);
 
@@ -194,7 +193,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         updateIfNotNull(existing::setBloodGroup, dto.getBloodGroup());
         updateIfNotNull(existing::setAdharNo, dto.getAdharNo());
         updateIfNotNull(existing::setPanNo, dto.getPanNo());
-        updateIfNotNull(existing::setJoiningDate, dto.getJoiningDate());
         updateIfNotNull(existing::setDepartment, dto.getDepartment());
         updateIfNotNull(existing::setWorkLocation, dto.getWorkLocation());
         updateIfNotNull(existing::setDesignation, dto.getDesignation());
@@ -292,7 +290,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 continue;
             }
 
-            LocalDate joiningDate = new java.sql.Date(employee.getJoiningDate().getTime()).toLocalDate();
+            LocalDate joiningDate = employee.getJoiningDate();
             long years = ChronoUnit.YEARS.between(joiningDate, LocalDate.now());
 
             if (years >= 1) {

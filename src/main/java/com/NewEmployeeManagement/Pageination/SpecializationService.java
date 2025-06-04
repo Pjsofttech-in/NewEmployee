@@ -11,11 +11,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.sql.Date;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -34,83 +37,52 @@ public class SpecializationService {
 
     public Page<Employee> filterEmployees(String department, String categoryName, String designation,
                                           String status, String branchCode, String role, String email,
+                                          String fullName, String joiningDateFilter,
+                                          LocalDate startDate, LocalDate endDate,
                                           int page, int size) {
 
-        if (!hasPermission(role, email, "POST")) throw new AccessDeniedException("No permission");
-
-
+        if (!permissionService.hasPermission(role, email, "POST"))
+            throw new AccessDeniedException("No permission");
 
         Specification<Employee> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
-            predicates.add(cb.isFalse(root.get("isDeleted")));
 
+            // Only employees who are not deleted and are currently joined
+            predicates.add(cb.isFalse(root.get("isDeleted")));
+            predicates.add(cb.equal(root.get("status"), "Joined"));
+
+            // Filter by branchCode, department, etc.
             if (branchCode != null) predicates.add(cb.equal(root.get("branchCode"), branchCode));
             if (department != null) predicates.add(cb.equal(root.get("department"), department));
             if (categoryName != null) predicates.add(cb.equal(root.get("categoryName"), categoryName));
             if (designation != null) predicates.add(cb.equal(root.get("designation"), designation));
             if (status != null) predicates.add(cb.equal(root.get("status"), status));
+            if (fullName != null && !fullName.trim().isEmpty())
+                predicates.add(cb.like(cb.lower(root.get("fullName")), "%" + fullName.toLowerCase() + "%"));
 
+            // Handle joining date filters
+            if (joiningDateFilter != null) {
+                LocalDate today = LocalDate.now();
+                switch (joiningDateFilter.toLowerCase()) {
+                    case "today" -> predicates.add(cb.equal(root.get("joiningDate"), today));
+                    case "last7days" -> predicates.add(cb.between(root.get("joiningDate"), today.minusDays(6), today));
+                    case "last30days" ->
+                            predicates.add(cb.between(root.get("joiningDate"), today.minusDays(29), today));
+                    case "last365days" ->
+                            predicates.add(cb.between(root.get("joiningDate"), today.minusDays(364), today));
+                    case "custom" -> {
+                        if (startDate != null && endDate != null) {
+                            predicates.add(cb.between(root.get("joiningDate"), startDate, endDate));
+                        }
+                    }
+                }
+            }
+
+            query.orderBy(cb.desc(root.get("joiningDate"))); // Sort by joiningDate descending
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
         Pageable pageable = PageRequest.of(page, size);
         return employeeRepository.findAll(spec, pageable);
     }
-
-    private boolean hasPermission(String role, String email, String action) {
-        if ("BRANCH".equalsIgnoreCase(role)) {
-            Boolean exists = webClient.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/existBranchbyemail")
-                            .queryParam("email", email)
-                            .build())
-                    .retrieve()
-                    .bodyToMono(Boolean.class)
-                    .block();
-            return Boolean.TRUE.equals(exists);
-        }
-
-        return switch (role.toUpperCase()) {
-            case "STAFF" -> {
-                Map<String, Boolean> perms = staffService.getPermissionsByEmail(email);
-                yield switch (action.toUpperCase()) {
-                    case "GET" -> Boolean.TRUE.equals(perms.get("cansGet"));
-                    case "POST" -> Boolean.TRUE.equals(perms.get("cansPost"));
-                    case "PUT" -> Boolean.TRUE.equals(perms.get("cansPut"));
-                    case "DELETE" -> Boolean.TRUE.equals(perms.get("cansDelete"));
-                    default -> false;
-                };
-            }
-            case "DEPARTMENT" -> {
-                Map<String, Object> perms = staffService.getCrudPermissionForDepartmentByEmail(email);
-                yield switch (action.toUpperCase()) {
-                    case "GET" -> Boolean.TRUE.equals(perms.get("candGet"));
-                    case "POST" -> Boolean.TRUE.equals(perms.get("candPost"));
-                    case "PUT" -> Boolean.TRUE.equals(perms.get("candPut"));
-                    case "DELETE" -> Boolean.TRUE.equals(perms.get("candDelete"));
-                    default -> false;
-                };
-            }
-            default -> false;
-        };
-    }
-
-    private String fetchBranchCode(String role, String email) {
-        String endpoint = switch (role.toLowerCase()) {
-            case "branch" -> "/branch/getbranchcode";
-            case "department" -> "/department/getbranchcode";
-            case "staff" -> "/staff/getbranchcode";
-            default -> throw new IllegalArgumentException("Invalid role: " + role);
-        };
-        return webClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path(endpoint)
-                        .queryParam("email", email)
-                        .build())
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
-    }
-
-
 }

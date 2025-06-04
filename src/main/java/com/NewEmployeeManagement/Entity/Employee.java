@@ -70,7 +70,10 @@ public class Employee {
 //    private String pLandmark;
 
     //2nd page form
-    private Date joiningDate;
+    @Column(name = "joining_date")
+    private LocalDate joiningDate;
+
+
     private String department;
     private String workLocation;
     private String designation;
