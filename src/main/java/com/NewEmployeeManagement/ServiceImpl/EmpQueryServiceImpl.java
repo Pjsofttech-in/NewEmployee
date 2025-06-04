@@ -1,7 +1,9 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
 import com.NewEmployeeManagement.Entity.EmpQuery;
+import com.NewEmployeeManagement.Entity.Employee;
 import com.NewEmployeeManagement.Repository.EmpQueryRepository;
+import com.NewEmployeeManagement.Repository.EmployeeRepository;
 import com.NewEmployeeManagement.Service.EmpQueryService;
 import com.NewEmployeeManagement.Service.PermissionService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +20,9 @@ public class EmpQueryServiceImpl implements EmpQueryService {
     private EmpQueryRepository repository;
 
     @Autowired
+    private EmployeeRepository employeeRepository;
+
+    @Autowired
     private PermissionService permissionService;
 
     @Override
@@ -27,12 +32,24 @@ public class EmpQueryServiceImpl implements EmpQueryService {
         }
 
         String branchCode = permissionService.fetchBranchCode(role, email);
+
+        // 🔍 Check Employee existence
+        Employee employee = employeeRepository.findByEmpEmail(query.getEmail())
+                .orElseThrow(() -> new RuntimeException("Employee with given email not found"));
+
+        if (employee.isDeleted()) {
+            throw new RuntimeException("Employee with given email is deleted");
+        }
+
         query.setRole(role);
         query.setCreatedByEmail(email);
         query.setBranchCode(branchCode);
         query.setDate(LocalDate.now());
+        query.setEmployee(employee); // ✅ Set employee object
+
         return repository.save(query);
     }
+
 
     @Override
     public List<EmpQuery> getAllQueries(String role, String email) {
