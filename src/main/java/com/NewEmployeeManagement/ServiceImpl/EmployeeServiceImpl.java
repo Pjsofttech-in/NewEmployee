@@ -131,6 +131,8 @@ public class EmployeeServiceImpl implements EmployeeService {
         employee.setDepartment(department.getDepartment());
         employee.setEmployeeCategory(category);
         employee.setCategoryName(category.getCategoryName());
+        employee.setPaidleaves(category.getTotalPaidLeave());
+        employee.setUnpaidleaves(category.getTotalUnpaidLeave());
         // Save employee first to get ID
         Employee savedEmployee = repository.save(employee);
 
