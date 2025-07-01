@@ -23,5 +23,13 @@ public interface EmployeeRepository extends JpaRepository<Employee, Integer>, Jp
 
     Optional<Employee> findByEmpEmail(String empEmail);
 
+    Optional<Employee> findBySystemName(String systemName);
+
+    Optional<Employee> findByFullName(String fullName);
+
+    @Query("SELECT e FROM Employee e JOIN e.employeeDocument d WHERE d.employeePhoto = :photo")
+    Optional<Employee> findByEmployeePhoto(@Param("photo") String photo);
+
+    List<Employee> findByBranchCodeAndStatus(String branchCode, String status);
 
 }

@@ -44,12 +44,12 @@ public class EmployeeCreateDTO {
     private boolean candPost;
     private boolean candPut;
     private boolean candDelete;
+    private String systemName;
 
     private String toMail;
     private String subject;
     private String body;
 
-    private String systemName;
 
     private LocalDateTime createAt;
 

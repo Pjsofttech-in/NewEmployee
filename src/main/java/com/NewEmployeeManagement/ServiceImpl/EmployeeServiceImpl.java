@@ -9,6 +9,7 @@ import com.NewEmployeeManagement.Service.EmployeeService;
 import com.NewEmployeeManagement.Service.PermissionService;
 import com.NewEmployeeManagement.Service.S3Service;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -57,7 +58,9 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
-    public Employee createEmployee(EmployeeCreateDTO dto, String role, String email, int departmentId, Long categoryId,
+    @Transactional(rollbackOn = Exception.class) // ensures atomic save or rollback
+    public Employee createEmployee(EmployeeCreateDTO dto, String role, String email,
+                                   int departmentId, Long categoryId,
                                    MultipartFile idProof,
                                    MultipartFile employeePhoto,
                                    MultipartFile resume,
@@ -68,86 +71,89 @@ public class EmployeeServiceImpl implements EmployeeService {
             throw new AccessDeniedException("No permission");
         }
 
+        Optional<Employee> existingEmp = repository.findByEmpEmail(dto.getEmpEmail());
+        if (existingEmp.isPresent()) {
+            throw new IllegalArgumentException("Employee already exists with email: " + dto.getEmpEmail());
+        }
+
+        Employee employee = new Employee();
+        BeanUtils.copyProperties(dto, employee);
+
         Department department = departmentRepository.findById(departmentId)
                 .orElseThrow(() -> new RuntimeException("Department not found with ID: " + departmentId));
+
         EmployeeCategory category = employeeCategoryRepository.findById(categoryId)
                 .orElseThrow(() -> new RuntimeException("Category not found with ID: " + categoryId));
 
-        Employee employee = new Employee();
-        // set all basic fields
-        BeanUtils.copyProperties(dto, employee);
-
-        // Get and set branch/system
         String branchCode = permissionService.fetchBranchCode(role, email);
-        String systemName = "NewEmployee";
+        String systemName = "employee-sys";
+
+        employee.setEmpRole("USER");
+        employee.setSystemName("employee-sys");
+        employee.setJoiningDate(LocalDate.now());
         employee.setBranchCode(branchCode);
         employee.setRole(role);
         employee.setCreatedByEmail(email);
-        employee.setJoiningDate(LocalDate.now());
-        employee.setEmpRole("USER");
-        employee.setPassword(passwordEncoder.encode(employee.getPassword()));
-
-        // Set address if present
-        if (dto.getAddress() != null) {
-            EmployeeAddress empAddress = new EmployeeAddress();
-            BeanUtils.copyProperties(dto.getAddress(), empAddress);
-            empAddress.setEmployee(employee);
-            employee.setEmployeeAddress(empAddress);
-        }
-
-        // Upload documents to S3
-        EmployeeDocument employeeDocument = new EmployeeDocument();
-
-        try {
-            if (idProof != null && !idProof.isEmpty()) {
-                String idProofUrl = s3Service.uploadEmployeeDocument(idProof, branchCode, systemName);
-                employeeDocument.setIdProof(idProofUrl);
-            }
-            if (employeePhoto != null && !employeePhoto.isEmpty()) {
-                String photoUrl = s3Service.uploadEmployeeDocument(employeePhoto, branchCode, systemName);
-                employeeDocument.setEmployeePhoto(photoUrl);
-            }
-            if (resume != null && !resume.isEmpty()) {
-                String resumeUrl = s3Service.uploadEmployeeDocument(resume, branchCode, systemName);
-                employeeDocument.setResume(resumeUrl);
-            }
-            if (addressProof != null && !addressProof.isEmpty()) {
-                String addressProofUrl = s3Service.uploadEmployeeDocument(addressProof, branchCode, systemName);
-                employeeDocument.setAddressProof(addressProofUrl);
-            }
-            if (experienceLetter != null && !experienceLetter.isEmpty()) {
-                String experienceUrl = s3Service.uploadEmployeeDocument(experienceLetter, branchCode, systemName);
-                employeeDocument.setExperienceLetter(experienceUrl);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Error uploading employee documents to S3", e);
-        }
-
-        // Save document record
-        employeeDocument.setEmployee(employee);
-        employee.setEmployeeDocument(employeeDocument);
-        // Set department and category
         employee.setDepartmentEntity(department);
         employee.setDepartment(department.getDepartment());
         employee.setEmployeeCategory(category);
         employee.setCategoryName(category.getCategoryName());
         employee.setPaidleaves(category.getTotalPaidLeave());
         employee.setUnpaidleaves(category.getTotalUnpaidLeave());
-        // Save employee first to get ID
+        employee.setDeleted(false);
+
+        if (dto.getPassword() != null) {
+            employee.setPassword(passwordEncoder.encode(dto.getPassword()));
+        }
+
+        if (dto.getAddress() != null) {
+            EmployeeAddress address = new EmployeeAddress();
+            BeanUtils.copyProperties(dto.getAddress(), address);
+            address.setEmployee(employee);
+            employee.setEmployeeAddress(address);
+        }
+
         Employee savedEmployee = repository.save(employee);
 
-        // ✅ Call method to copy employee photo to attendance folder
         try {
-            s3Service.copyImageToAttendanceFolderWithEmpId(savedEmployee.getId());
-        } catch (Exception ex) {
-            logger.error("Failed to copy image to attendance folder for employee ID: {}", savedEmployee.getId(), ex);
+            EmployeeDocument employeeDocument = new EmployeeDocument();
+
+            if (idProof != null && !idProof.isEmpty()) {
+                String url = s3Service.uploadEmployeeDocument(idProof, branchCode, systemName);
+                employeeDocument.setIdProof(url);
+            }
+
+            if (resume != null && !resume.isEmpty()) {
+                String url = s3Service.uploadEmployeeDocument(resume, branchCode, systemName);
+                employeeDocument.setResume(url);
+            }
+
+            if (addressProof != null && !addressProof.isEmpty()) {
+                String url = s3Service.uploadEmployeeDocument(addressProof, branchCode, systemName);
+                employeeDocument.setAddressProof(url);
+            }
+
+            if (experienceLetter != null && !experienceLetter.isEmpty()) {
+                String url = s3Service.uploadEmployeeDocument(experienceLetter, branchCode, systemName);
+                employeeDocument.setExperienceLetter(url);
+            }
+
+            if (employeePhoto != null && !employeePhoto.isEmpty()) {
+                String faceImageUrl = s3Service.uploadEmployeeFaceImage(employeePhoto, branchCode, savedEmployee.getId());
+                employeeDocument.setEmployeePhoto(faceImageUrl);
+            }
+
+            employeeDocument.setEmployee(savedEmployee);
+            savedEmployee.setEmployeeDocument(employeeDocument);
+
+            savedEmployee = repository.save(savedEmployee);
+
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to upload documents", e); // rollback will be triggered
         }
-        return repository.save(employee);
+
+        return savedEmployee;
     }
-
-
-
-
 
     @Override
     public List<Employee> getAllEmployees(String role, String email) {

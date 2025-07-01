@@ -16,15 +16,15 @@ import java.time.LocalTime;
 @NoArgsConstructor
 public class Attendence {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
-    private int empID;
+    private String email;
     private LocalDate todaysDate;
     private String name;
     private LocalTime LoginTime;
     private LocalTime LogoutTime;
-    private Long minutes;
     private String status;
+    private String systemName;
     private String systemIP;
     private String IP;       // Field for Wi-Fi IP
     private String logoutIP;
@@ -32,20 +32,16 @@ public class Attendence {
     private LocalTime breakIn;
     private LocalTime breakOut;
     private Long breakMinutes;
-    private Long shiftMinutes;
+    private Integer shiftMinutes;
     private String workType;
-    private String lateMark;
     private String shiftStartTime;
+    private Double day;
     private String shiftEndTime;
-
-    @Email
-    private String createdByEmail;
-    private String role;
+    private Long overTime;
     private String branchCode;
 
     @ManyToOne
-    @JoinColumn(name = "employee_id")
+    @JoinColumn(name = "empid")
     @JsonIgnore
     private Employee employee;
-
 }

@@ -37,7 +37,6 @@ public class EmployeeController {
             @RequestParam("email") String email,
             @RequestParam("departmentId") int departmentId,
             @RequestParam("categoryId") Long categoryId,
-
             @RequestParam(value = "idProof", required = false) MultipartFile idProof,
             @RequestParam(value = "employeePhoto", required = false) MultipartFile employeePhoto,
             @RequestParam(value = "resume", required = false) MultipartFile resume,
@@ -59,6 +58,7 @@ public class EmployeeController {
                 dto, role, email, departmentId, categoryId,
                 idProof, employeePhoto, resume, addressProof, experienceLetter
         );
+
         return new ResponseEntity<>(createdEmployee, HttpStatus.CREATED);
     }
 

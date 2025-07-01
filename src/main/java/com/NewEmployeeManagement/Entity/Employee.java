@@ -52,22 +52,7 @@ public class Employee {
     @Pattern(regexp = "\\d{10}", message = "Mobile number must be 10 digits")
     private String parentNo;
 
-//    private String country;
-//    private String state;
-//    private String district;
-//    private String taluka;
-//    private String city;
-//    private int pinCode;
-//    private String landmark;
-//    private String currentAddress;
-//    private String pAddress;
-//    private String pCountry;
-//    private String pState;
-//    private String pDistrict;
-//    private String pTaluka;
-//    private String pCity;
-//    private int pPinCode;
-//    private String pLandmark;
+
 
     //2nd page form
     @Column(name = "joining_date")
@@ -92,12 +77,10 @@ public class Employee {
 
     private String status = "Joined";
 
-    //Document
-//    private String idProof;
-//    private String employeePhoto;
-//    private String resume;
-//    private String addressProof;
-//    private String experienceLetter;
+
+    private String systemName;
+
+
 
     //extra Felid
     private int osen;
