@@ -80,9 +80,6 @@ public class Employee {
 
     private String systemName;
 
-
-
-    //extra Felid
     private int osen;
 
     private String toMail;

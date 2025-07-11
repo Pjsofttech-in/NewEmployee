@@ -1,6 +1,7 @@
 package com.NewEmployeeManagement.Controller;
 
 import com.NewEmployeeManagement.DTO.EmployeeCreateDTO;
+import com.NewEmployeeManagement.DTO.EmployeeResponseDTO;
 import com.NewEmployeeManagement.Entity.Employee;
 import com.NewEmployeeManagement.Pageination.SpecializationService;
 import com.NewEmployeeManagement.Service.EmployeeService;
@@ -83,9 +84,9 @@ public class EmployeeController {
     }
 
     @GetMapping("/getEmployeeById/{id}")
-    public ResponseEntity<Employee> getById(@PathVariable int id,
-                                            @RequestParam String role,
-                                            @RequestParam String email) {
+    public ResponseEntity<EmployeeResponseDTO> getById(@PathVariable int id,
+                                                       @RequestParam String role,
+                                                       @RequestParam String email) {
         return ResponseEntity.ok(service.getEmployeeById(id, role, email));
     }
 

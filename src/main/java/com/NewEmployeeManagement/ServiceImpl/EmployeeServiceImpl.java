@@ -1,7 +1,9 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
 import com.NewEmployeeManagement.DTO.EmployeeCreateDTO;
+import com.NewEmployeeManagement.DTO.EmployeeResponseDTO;
 import com.NewEmployeeManagement.Entity.*;
+import com.NewEmployeeManagement.Mapper.EmployeeMapper;
 import com.NewEmployeeManagement.Repository.DepartmentRepository;
 import com.NewEmployeeManagement.Repository.EmployeeCategoryRepository;
 import com.NewEmployeeManagement.Repository.EmployeeRepository;
@@ -46,6 +48,9 @@ public class EmployeeServiceImpl implements EmployeeService {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private S3Service s3Service;
+
+    @Autowired
+     EmployeeMapper employeeMapper;
 
     private static final Logger logger = LoggerFactory.getLogger(EmployeeServiceImpl.class);
 
@@ -163,26 +168,21 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
-    public Employee getEmployeeById(int id, String role, String email) {
-        if (!permissionService.hasPermission(role, email, "GET")) throw new AccessDeniedException("No permission");
-        return repository.findByIdAndIsDeletedFalse(id)
+    public EmployeeResponseDTO getEmployeeById(int id, String role, String email) {
+        if (!permissionService.hasPermission(role, email, "GET"))
+            throw new AccessDeniedException("No permission");
+
+        Employee employee = repository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found or has been deleted"));
+
+        return employeeMapper.mapToDto(employee); // 👈 Single method call
     }
+
 
     @Override
     public Employee updateEmployee(
-            int id,
-            EmployeeCreateDTO dto,
-            String role,
-            String email,
-            int departmentId,
-            Long categoryId,
-            MultipartFile idProof,
-            MultipartFile employeePhoto,
-            MultipartFile resume,
-            MultipartFile addressProof,
-            MultipartFile experienceLetter
-    ) {
+            int id, EmployeeCreateDTO dto, String role, String email, int departmentId, Long categoryId,
+            MultipartFile idProof, MultipartFile employeePhoto, MultipartFile resume, MultipartFile addressProof, MultipartFile experienceLetter) {
         if (!permissionService.hasPermission(role, email, "PUT")) {
             throw new AccessDeniedException("No permission");
         }

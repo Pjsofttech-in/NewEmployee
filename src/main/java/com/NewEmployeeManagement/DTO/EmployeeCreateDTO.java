@@ -45,15 +45,10 @@ public class EmployeeCreateDTO {
     private boolean candPut;
     private boolean candDelete;
     private String systemName;
-
     private String toMail;
     private String subject;
     private String body;
-
-
     private LocalDateTime createAt;
-
-    // Leave information
     private Double paidleaves;
     private Double carryForwardedLeaves =0.0;
     private Double unpaidleaves;
