@@ -31,4 +31,5 @@ public interface EmployeeService {
 
     Map<String, Object> getCrudPermissionForEmployeeByEmail(String empEmail);
 
+    Employee updateStatus(Integer id, String status);
 }

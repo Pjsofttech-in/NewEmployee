@@ -330,4 +330,11 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
         throw new EntityNotFoundException("Employee not found with email: " + empEmail);
     }
+
+    @Override
+    public Employee updateStatus(Integer id, String status){
+        Employee employee=repository.findById(id).get();
+        employee.setStatus(status);
+        return repository.save(employee);
+    }
 }

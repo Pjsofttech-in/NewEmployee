@@ -143,4 +143,9 @@ public class EmployeeController {
         Map<String, Object> permissions = service.getCrudPermissionForEmployeeByEmail(email);
         return ResponseEntity.ok(permissions);
     }
+    @PutMapping("updateStatus/{id}")
+    public ResponseEntity<Employee> updateStus(@PathVariable Integer id,
+                                               @RequestParam String Status){
+        return ResponseEntity.ok(service.updateStatus(id, Status));
+    }
 }
