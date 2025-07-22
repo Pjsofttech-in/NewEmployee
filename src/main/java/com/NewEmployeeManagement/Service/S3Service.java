@@ -75,6 +75,10 @@ public class S3Service {
 
         return String.format("https://%s.s3.amazonaws.com/%s", bucketName, key);
     }
+    public Void deleteFile(String filename){
+        s3Client.deleteObject(bucketName,filename);
+        return null;
+    }
 
     // ✅ Upload face image directly to attendance_faces/
     public String uploadEmployeeFaceImage(MultipartFile file, String branchCode, Long employeeId) throws IOException {

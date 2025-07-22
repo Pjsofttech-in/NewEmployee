@@ -257,7 +257,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
 
         try {
-            if (dto.getDocument() != null) {
+//            if (dto.getDocument() != null ) {
                 EmployeeDocument document = existing.getEmployeeDocument() != null
                         ? existing.getEmployeeDocument()
                         : new EmployeeDocument();
@@ -266,34 +266,40 @@ public class EmployeeServiceImpl implements EmployeeService {
                 String systemName = String.valueOf(existing.getId());
 
                 if (idProof != null && !idProof.isEmpty()) {
+                    s3Service.deleteFile(idProof.getName());
                     String idProofUrl = s3Service.uploadEmployeeDocument(idProof, branchCode, systemName);
                     document.setIdProof(idProofUrl);
                 }
 
                 if (employeePhoto != null && !employeePhoto.isEmpty()) {
+                    s3Service.deleteFile(employeePhoto.getName());
                     String photoUrl = s3Service.uploadEmployeeFaceImage(employeePhoto, branchCode, existing.getId());
                     document.setEmployeePhoto(photoUrl);
                     existing.setFaceEncoding(photoUrl); // optional
                 }
 
                 if (resume != null && !resume.isEmpty()) {
+                    s3Service.deleteFile(resume.getName());
                     String resumeUrl = s3Service.uploadEmployeeDocument(resume, branchCode, systemName);
                     document.setResume(resumeUrl);
                 }
 
                 if (addressProof != null && !addressProof.isEmpty()) {
+                    s3Service.deleteFile(addressProof.getName());
                     String addressProofUrl = s3Service.uploadEmployeeDocument(addressProof, branchCode, systemName);
                     document.setAddressProof(addressProofUrl);
                 }
 
                 if (experienceLetter != null && !experienceLetter.isEmpty()) {
+                    s3Service.deleteFile(experienceLetter.getName());
                     String experienceLetterUrl = s3Service.uploadEmployeeDocument(experienceLetter, branchCode, systemName);
                     document.setExperienceLetter(experienceLetterUrl);
                 }
 
                 document.setEmployee(existing);
                 existing.setEmployeeDocument(document);
-            }
+
+//            }
         } catch (IOException e) {
             throw new RuntimeException("File upload failed: " + e.getMessage(), e);
         }
