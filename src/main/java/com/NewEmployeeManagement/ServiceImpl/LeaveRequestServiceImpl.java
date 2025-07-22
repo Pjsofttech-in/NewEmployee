@@ -3,7 +3,7 @@ package com.NewEmployeeManagement.ServiceImpl;
 import com.NewEmployeeManagement.DTO.EmployeeLeaveSummaryDTO;
 import com.NewEmployeeManagement.Entity.Employee;
 import com.NewEmployeeManagement.Entity.EmployeeCategory;
-import com.NewEmployeeManagement.Entity.LeaveRequest;
+import com.NewEmployeeManagement.Entity.EmployeeLeaveRequest;
 import com.NewEmployeeManagement.Repository.EmployeeRepository;
 import com.NewEmployeeManagement.Repository.LeaveRequestRepository;
 import com.NewEmployeeManagement.Service.LeaveRequestService;
@@ -29,7 +29,7 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
 
 
     @Override
-    public LeaveRequest createLeaveRequest(LeaveRequest leaveRequest, int employeeId, String role, String email) {
+    public EmployeeLeaveRequest createLeaveRequest(EmployeeLeaveRequest employeeLeaveRequest, Long employeeId, String role, String email) {
         if (!permissionService.hasPermission(role, email, "POST")) {
             throw new AccessDeniedException("No permission to create leave request");
         }
@@ -41,24 +41,24 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
             throw new RuntimeException("Employee not present (soft deleted), cannot create leave request");
         }
 
-        leaveRequest.setEmployee(employee);
+        employeeLeaveRequest.setEmployee(employee);
 
-        leaveRequest.setEmpID(employee.getId());
-        leaveRequest.setFullName(employee.getFullName());
-        leaveRequest.setCategoryName(employee.getCategoryName());
+        employeeLeaveRequest.setEmpID(employee.getId());
+        employeeLeaveRequest.setFullName(employee.getFullName());
+        employeeLeaveRequest.setCategoryName(employee.getCategoryName());
 
         String branchCode = permissionService.fetchBranchCode(role, email);
-        leaveRequest.setRole(role);
-        leaveRequest.setCreatedByEmail(email);
-        leaveRequest.setBranchCode(branchCode);
+        employeeLeaveRequest.setRole(role);
+        employeeLeaveRequest.setCreatedByEmail(email);
+        employeeLeaveRequest.setBranchCode(branchCode);
 
-        leaveRequest.calculateToDateAndLeaveRequestDate();
+        employeeLeaveRequest.calculateToDateAndLeaveRequestDate();
 
         // Save the leave request
-        LeaveRequest savedRequest = repository.save(leaveRequest);
+        EmployeeLeaveRequest savedRequest = repository.save(employeeLeaveRequest);
 
         // Determine leave duration (0.5 for half-day, 1.0 for full-day)
-        double days = "half-day".equalsIgnoreCase(leaveRequest.getDuration()) ? 0.5 : 1.0;
+        double days = "half-day".equalsIgnoreCase(employeeLeaveRequest.getDuration()) ? 0.5 : 1.0;
 
         return savedRequest;
     }
@@ -67,7 +67,7 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
 
 
     @Override
-    public List<LeaveRequest> getAllLeaveRequests(String role, String email) {
+    public List<EmployeeLeaveRequest> getAllLeaveRequests(String role, String email) {
         if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to view leave requests");
         }
@@ -76,25 +76,25 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
     }
 
     @Override
-    public LeaveRequest updateLeaveRequest(Long id, LeaveRequest leaveRequest, String role, String email) {
+    public EmployeeLeaveRequest updateLeaveRequest(Long id, EmployeeLeaveRequest employeeLeaveRequest, String role, String email) {
         if (!permissionService.hasPermission(role, email, "PUT")) {
             throw new AccessDeniedException("No permission to update leave request");
         }
 
-        LeaveRequest existing = repository.findById(id)
+        EmployeeLeaveRequest existing = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("LeaveRequest not found"));
 
-        existing.setFromDate(leaveRequest.getFromDate() != null ? leaveRequest.getFromDate() : existing.getFromDate());
-        existing.setToDate(leaveRequest.getToDate() != null ? leaveRequest.getToDate() : existing.getToDate());
-        existing.setCategoryName(leaveRequest.getCategoryName() != null ? leaveRequest.getCategoryName() : existing.getCategoryName());
-        existing.setReasondescription(leaveRequest.getReasondescription() != null ? leaveRequest.getReasondescription() : existing.getReasondescription());
-        existing.setPaidleave(leaveRequest.getPaidleave() != null ? leaveRequest.getPaidleave() : existing.getPaidleave());
-        existing.setUnpaidleave(leaveRequest.getUnpaidleave() != null ? leaveRequest.getUnpaidleave() : existing.getUnpaidleave());
-        existing.setLeaveRequired(leaveRequest.getLeaveRequired() != null ? leaveRequest.getLeaveRequired() : existing.getLeaveRequired());
-        existing.setAppliedPaidLeaves(leaveRequest.getAppliedPaidLeaves() != null ? leaveRequest.getAppliedPaidLeaves() : existing.getAppliedPaidLeaves());
-        existing.setStatus(leaveRequest.getStatus() != null ? leaveRequest.getStatus() : existing.getStatus());
-        existing.setLeaveType(leaveRequest.getLeaveType() !=null ? leaveRequest.getLeaveType():existing.getLeaveType());
-        existing.setDuration(leaveRequest.getDuration() !=null ? leaveRequest.getDuration():existing.getDuration());
+        existing.setFromDate(employeeLeaveRequest.getFromDate() != null ? employeeLeaveRequest.getFromDate() : existing.getFromDate());
+        existing.setToDate(employeeLeaveRequest.getToDate() != null ? employeeLeaveRequest.getToDate() : existing.getToDate());
+        existing.setCategoryName(employeeLeaveRequest.getCategoryName() != null ? employeeLeaveRequest.getCategoryName() : existing.getCategoryName());
+        existing.setReasondescription(employeeLeaveRequest.getReasondescription() != null ? employeeLeaveRequest.getReasondescription() : existing.getReasondescription());
+        existing.setPaidleave(employeeLeaveRequest.getPaidleave() != null ? employeeLeaveRequest.getPaidleave() : existing.getPaidleave());
+        existing.setUnpaidleave(employeeLeaveRequest.getUnpaidleave() != null ? employeeLeaveRequest.getUnpaidleave() : existing.getUnpaidleave());
+        existing.setLeaveRequired(employeeLeaveRequest.getLeaveRequired() != null ? employeeLeaveRequest.getLeaveRequired() : existing.getLeaveRequired());
+        existing.setAppliedPaidLeaves(employeeLeaveRequest.getAppliedPaidLeaves() != null ? employeeLeaveRequest.getAppliedPaidLeaves() : existing.getAppliedPaidLeaves());
+        existing.setStatus(employeeLeaveRequest.getStatus() != null ? employeeLeaveRequest.getStatus() : existing.getStatus());
+        existing.setLeaveType(employeeLeaveRequest.getLeaveType() !=null ? employeeLeaveRequest.getLeaveType():existing.getLeaveType());
+        existing.setDuration(employeeLeaveRequest.getDuration() !=null ? employeeLeaveRequest.getDuration():existing.getDuration());
         existing.calculateToDateAndLeaveRequestDate();
 
         return repository.save(existing);
@@ -114,7 +114,7 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
     }
 
     @Override
-    public LeaveRequest getLeaveRequestById(Long id, String role, String email) {
+    public EmployeeLeaveRequest getLeaveRequestById(Long id, String role, String email) {
         if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to view leave request");
         }
@@ -124,12 +124,12 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
     }
 
     @Override
-    public LeaveRequest approveOrRejectLeave(Long leaveRequestId, String action, String role, String email) {
+    public EmployeeLeaveRequest approveOrRejectLeave(Long leaveRequestId, String action, String role, String email) {
         if (!permissionService.hasPermission(role, email, "POST")) {
             throw new AccessDeniedException("No permission to approve/reject leave");
         }
 
-        LeaveRequest leaveRequest = repository.findById(leaveRequestId)
+        EmployeeLeaveRequest employeeLeaveRequest = repository.findById(leaveRequestId)
                 .orElseThrow(() -> new RuntimeException("LeaveRequest not found"));
 
         String normalizedAction = action.trim().toLowerCase();
@@ -137,14 +137,14 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
             throw new IllegalArgumentException("Invalid action. Must be 'approve' or 'reject'");
         }
 
-        Employee employee = leaveRequest.getEmployee();
+        Employee employee = employeeLeaveRequest.getEmployee();
 
         // Determine leave days: 0.5 for half-day, otherwise full leaveRequired or default 1.0
-        double leaveDays = "half-day".equalsIgnoreCase(leaveRequest.getDuration()) ? 0.5 :
-                leaveRequest.getLeaveRequired() != null ? leaveRequest.getLeaveRequired() : 1.0;
+        double leaveDays = "half-day".equalsIgnoreCase(employeeLeaveRequest.getDuration()) ? 0.5 :
+                employeeLeaveRequest.getLeaveRequired() != null ? employeeLeaveRequest.getLeaveRequired() : 1.0;
 
         if ("approve".equals(normalizedAction)) {
-            if ("Paid".equalsIgnoreCase(leaveRequest.getLeaveType())) {
+            if ("Paid".equalsIgnoreCase(employeeLeaveRequest.getLeaveType())) {
                 double availablePaidLeave = employee.getPaidleaves() != null ? employee.getPaidleaves() : 0.0;
 
                 if (availablePaidLeave < leaveDays) {
@@ -152,10 +152,10 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
                 }
 
                 employee.setPaidleaves(availablePaidLeave - leaveDays);
-                leaveRequest.setPaidleave(leaveDays);
-                leaveRequest.setUnpaidleave(0.0);
+                employeeLeaveRequest.setPaidleave(leaveDays);
+                employeeLeaveRequest.setUnpaidleave(0.0);
 
-            } else if ("Unpaid".equalsIgnoreCase(leaveRequest.getLeaveType())) {
+            } else if ("Unpaid".equalsIgnoreCase(employeeLeaveRequest.getLeaveType())) {
                 double availableUnpaidLeave = employee.getUnpaidleaves() != null ? employee.getUnpaidleaves() : 0.0;
 
                 if (availableUnpaidLeave < leaveDays) {
@@ -163,32 +163,32 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
                 }
 
                 employee.setUnpaidleaves(availableUnpaidLeave - leaveDays);
-                leaveRequest.setUnpaidleave(leaveDays);
-                leaveRequest.setPaidleave(0.0);
+                employeeLeaveRequest.setUnpaidleave(leaveDays);
+                employeeLeaveRequest.setPaidleave(0.0);
 
             } else {
                 throw new IllegalArgumentException("Invalid leave type");
             }
 
-            leaveRequest.setLeaveRequired(leaveDays);
-            leaveRequest.setStatus("Approved");
-            leaveRequest.setTotalleavecount(leaveDays);
-            leaveRequest.calculateToDateAndLeaveRequestDate();
+            employeeLeaveRequest.setLeaveRequired(leaveDays);
+            employeeLeaveRequest.setStatus("Approved");
+            employeeLeaveRequest.setTotalleavecount(leaveDays);
+            employeeLeaveRequest.calculateToDateAndLeaveRequestDate();
 
         } else {
-            leaveRequest.setStatus("Rejected");
-            leaveRequest.setPaidleave(0.0);
-            leaveRequest.setUnpaidleave(0.0);
-            leaveRequest.setTotalleavecount(0.0);
+            employeeLeaveRequest.setStatus("Rejected");
+            employeeLeaveRequest.setPaidleave(0.0);
+            employeeLeaveRequest.setUnpaidleave(0.0);
+            employeeLeaveRequest.setTotalleavecount(0.0);
         }
 
         employeeRepository.save(employee);
-        return repository.save(leaveRequest);
+        return repository.save(employeeLeaveRequest);
     }
 
 
     @Override
-    public EmployeeLeaveSummaryDTO getLeaveSummary(int employeeId) {
+    public EmployeeLeaveSummaryDTO getLeaveSummary(Long employeeId) {
         Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + employeeId));
 
@@ -200,8 +200,8 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
         Double unpaidLeave = 0.0;
         Double totalLeaveRequired = 0.0;
 
-        List<LeaveRequest> leaveRequests = repository.findByEmployeeIdAndIsDeletedFalse(employeeId);
-        for (LeaveRequest request : leaveRequests) {
+        List<EmployeeLeaveRequest> employeeLeaveRequests = repository.findByEmployeeIdAndIsDeletedFalse(employeeId);
+        for (EmployeeLeaveRequest request : employeeLeaveRequests) {
             paidLeave += request.getPaidleave() != null ? request.getPaidleave() : 0.0;
             unpaidLeave += request.getUnpaidleave() != null ? request.getUnpaidleave() : 0.0;
             totalLeaveRequired += request.getLeaveRequired() != null ? request.getLeaveRequired() : 0.0;

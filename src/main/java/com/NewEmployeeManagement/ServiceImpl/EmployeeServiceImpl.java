@@ -65,7 +65,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional(rollbackOn = Exception.class) // ensures atomic save or rollback
     public Employee createEmployee(EmployeeCreateDTO dto, String role, String email,
-                                   int departmentId, Long categoryId,
+                                   Long departmentId, Long categoryId,
                                    MultipartFile idProof,
                                    MultipartFile employeePhoto,
                                    MultipartFile resume,
@@ -84,7 +84,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         Employee employee = new Employee();
         BeanUtils.copyProperties(dto, employee);
 
-        Department department = departmentRepository.findById(departmentId)
+        EmployeeDepartment employeeDepartment = departmentRepository.findById(departmentId)
                 .orElseThrow(() -> new RuntimeException("Department not found with ID: " + departmentId));
 
         EmployeeCategory category = employeeCategoryRepository.findById(categoryId)
@@ -99,8 +99,8 @@ public class EmployeeServiceImpl implements EmployeeService {
         employee.setBranchCode(branchCode);
         employee.setRole(role);
         employee.setCreatedByEmail(email);
-        employee.setDepartmentEntity(department);
-        employee.setDepartment(department.getDepartment());
+        employee.setEmployeeDepartment(employeeDepartment);
+        employee.setDepartment(employeeDepartment.getDepartment());
         employee.setEmployeeCategory(category);
         employee.setCategoryName(category.getCategoryName());
         employee.setPaidleaves(category.getTotalPaidLeave());
@@ -168,7 +168,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
-    public EmployeeResponseDTO getEmployeeById(int id, String role, String email) {
+    public EmployeeResponseDTO getEmployeeById(Long id, String role, String email) {
         if (!permissionService.hasPermission(role, email, "GET"))
             throw new AccessDeniedException("No permission");
 
@@ -181,7 +181,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public Employee updateEmployee(
-            int id, EmployeeCreateDTO dto, String role, String email, int departmentId, Long categoryId,
+            Long id, EmployeeCreateDTO dto, String role, String email, Long departmentId, Long categoryId,
             MultipartFile idProof, MultipartFile employeePhoto, MultipartFile resume, MultipartFile addressProof, MultipartFile experienceLetter) {
         if (!permissionService.hasPermission(role, email, "PUT")) {
             throw new AccessDeniedException("No permission");
@@ -256,22 +256,48 @@ public class EmployeeServiceImpl implements EmployeeService {
             existing.setEmployeeAddress(address);
         }
 
-        // Update Document
-        if (dto.getDocument() != null) {
-            EmployeeDocument document = existing.getEmployeeDocument() != null ? existing.getEmployeeDocument() : new EmployeeDocument();
-            EmployeeCreateDTO.DocumentDTO dtoDoc = dto.getDocument();
+        try {
+            if (dto.getDocument() != null) {
+                EmployeeDocument document = existing.getEmployeeDocument() != null
+                        ? existing.getEmployeeDocument()
+                        : new EmployeeDocument();
 
-            updateIfNotNull(document::setIdProof, dtoDoc.getIdProof());
-            updateIfNotNull(document::setEmployeePhoto, dtoDoc.getEmployeePhoto());
-            updateIfNotNull(document::setResume, dtoDoc.getResume());
-            updateIfNotNull(document::setAddressProof, dtoDoc.getAddressProof());
-            updateIfNotNull(document::setExperienceLetter, dtoDoc.getExperienceLetter());
+                String branchCode = existing.getBranchCode();
+                String systemName = String.valueOf(existing.getId());
 
-            document.setEmployee(existing);
-            existing.setEmployeeDocument(document);
+                if (idProof != null && !idProof.isEmpty()) {
+                    String idProofUrl = s3Service.uploadEmployeeDocument(idProof, branchCode, systemName);
+                    document.setIdProof(idProofUrl);
+                }
+
+                if (employeePhoto != null && !employeePhoto.isEmpty()) {
+                    String photoUrl = s3Service.uploadEmployeeFaceImage(employeePhoto, branchCode, existing.getId());
+                    document.setEmployeePhoto(photoUrl);
+                    existing.setFaceEncoding(photoUrl); // optional
+                }
+
+                if (resume != null && !resume.isEmpty()) {
+                    String resumeUrl = s3Service.uploadEmployeeDocument(resume, branchCode, systemName);
+                    document.setResume(resumeUrl);
+                }
+
+                if (addressProof != null && !addressProof.isEmpty()) {
+                    String addressProofUrl = s3Service.uploadEmployeeDocument(addressProof, branchCode, systemName);
+                    document.setAddressProof(addressProofUrl);
+                }
+
+                if (experienceLetter != null && !experienceLetter.isEmpty()) {
+                    String experienceLetterUrl = s3Service.uploadEmployeeDocument(experienceLetter, branchCode, systemName);
+                    document.setExperienceLetter(experienceLetterUrl);
+                }
+
+                document.setEmployee(existing);
+                existing.setEmployeeDocument(document);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("File upload failed: " + e.getMessage(), e);
         }
-
-        return repository.save(existing);
+     return repository.save(existing);
     }
 
     private <T> void updateIfNotNull(Consumer<T> setter, T value) {
@@ -282,7 +308,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
 
     @Override
-    public void deleteEmployee(int id, String role, String email) {
+    public void deleteEmployee(Long id, String role, String email) {
         if (!permissionService.hasPermission(role, email, "DELETE")) throw new AccessDeniedException("No permission");
         Employee emp = repository.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
         emp.setDeleted(true);
@@ -332,7 +358,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
-    public Employee updateStatus(Integer id, String status){
+    public Employee updateStatus(Long id, String status){
         Employee employee=repository.findById(id).get();
         employee.setStatus(status);
         return repository.save(employee);

@@ -1,7 +1,7 @@
 package com.NewEmployeeManagement.Pageination;
 
 
-import com.NewEmployeeManagement.Entity.Attendence;
+import com.NewEmployeeManagement.Entity.EmployeeAttendence;
 import com.NewEmployeeManagement.Entity.Employee;
 import com.NewEmployeeManagement.Repository.AttendenceRepository;
 import com.NewEmployeeManagement.Repository.EmployeeRepository;
@@ -19,11 +19,9 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.sql.Date;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -52,7 +50,6 @@ public class SpecializationService {
 
             // Only employees who are not deleted and are currently joined
             predicates.add(cb.isFalse(root.get("isDeleted")));
-            predicates.add(cb.equal(root.get("status"), "Joined"));
 
             // Filter by branchCode, department, etc.
             if (branchCode != null) predicates.add(cb.equal(root.get("branchCode"), branchCode));
@@ -89,13 +86,13 @@ public class SpecializationService {
         return employeeRepository.findAll(spec, pageable);
     }
 
-    public Page<Attendence> filterAttendence(String status,
-                                             String todaysDateFilter,
-                                             LocalDate startDate,
-                                             LocalDate endDate,
-                                             String branchCode,
-                                             int page,
-                                             int size) {
+    public Page<EmployeeAttendence> filterAttendence(String status,
+                                                     String todaysDateFilter,
+                                                     LocalDate startDate,
+                                                     LocalDate endDate,
+                                                     String branchCode,
+                                                     int page,
+                                                     int size) {
 
         LocalDate today = LocalDate.now();
         final LocalDate fromDate;
@@ -146,7 +143,7 @@ public class SpecializationService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "todaysDate"));
 
         if ("present".equalsIgnoreCase(status)) {
-            Specification<Attendence> spec = (root, query, cb) -> {
+            Specification<EmployeeAttendence> spec = (root, query, cb) -> {
                 List<Predicate> predicates = new ArrayList<>();
                 predicates.add(cb.between(root.get("todaysDate"), fromDate, toDate));
                 predicates.add(cb.equal(root.get("branchCode"), branchCode));
@@ -164,10 +161,10 @@ public class SpecializationService {
             final List<Employee> joinedEmployees = employeeRepository.findByBranchCodeAndStatus(branchCode, "Joined");
             final List<String> presentEmails = attendenceRepository.findEmailsByBranchCodeAndDate(fromDate, branchCode);
 
-            List<Attendence> absentRecords = joinedEmployees.stream()
+            List<EmployeeAttendence> absentRecords = joinedEmployees.stream()
                     .filter(emp -> !presentEmails.contains(emp.getEmpEmail()))
                     .map(emp -> {
-                        Attendence att = new Attendence();
+                        EmployeeAttendence att = new EmployeeAttendence();
                         att.setEmail(emp.getEmpEmail());
                         att.setName(emp.getFullName());
                         att.setTodaysDate(fromDate);
@@ -180,12 +177,12 @@ public class SpecializationService {
 
             int start = Math.min(page * size, absentRecords.size());
             int end = Math.min(start + size, absentRecords.size());
-            List<Attendence> pageContent = absentRecords.subList(start, end);
+            List<EmployeeAttendence> pageContent = absentRecords.subList(start, end);
 
             return new org.springframework.data.domain.PageImpl<>(pageContent, pageable, absentRecords.size());
         }
 
-        Specification<Attendence> spec = (root, query, cb) -> {
+        Specification<EmployeeAttendence> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (status != null) predicates.add(cb.equal(root.get("status"), status));
             if (branchCode != null) predicates.add(cb.equal(root.get("branchCode"), branchCode));

@@ -13,11 +13,11 @@ import java.time.LocalDate;
 @Entity
 @Getter
 @Setter
-public class Notice {
+public class EmployeeNotice {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Long id;
 
     private String noticeName;
     private String noticeDescription;

@@ -16,7 +16,7 @@ import java.util.Date;
 @AllArgsConstructor
 public class EmployeeDTO
 {
-    private int id;
+    private Long id;
 
     private String fullName;
     private String bloodGroup;

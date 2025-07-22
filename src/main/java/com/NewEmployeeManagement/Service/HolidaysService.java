@@ -1,13 +1,13 @@
 package com.NewEmployeeManagement.Service;
 
-import com.NewEmployeeManagement.Entity.Holidays;
+import com.NewEmployeeManagement.Entity.EmployeeHolidays;
 
 import java.util.List;
 
 public interface HolidaysService {
-    Holidays createHoliday(Holidays holiday, int employeeId, String role, String email);
-    List<Holidays> getAllHolidays(String role, String email);
-    Holidays updateHoliday(Long id, Holidays holiday, String role, String email);
+    EmployeeHolidays createHoliday(EmployeeHolidays holiday, String role, String email);
+    List<EmployeeHolidays> getAllHolidays(String role, String email);
+    EmployeeHolidays updateHoliday(Long id, EmployeeHolidays holiday, String role, String email);
     void deleteHoliday(Long id, String role, String email);
-    Holidays getHolidayById(Long id, String role, String email);
+    EmployeeHolidays getHolidayById(Long id, String role, String email);
 }

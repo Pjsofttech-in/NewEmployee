@@ -1,13 +1,13 @@
 package com.NewEmployeeManagement.Repository;
 
-import com.NewEmployeeManagement.Entity.Holidays;
+import com.NewEmployeeManagement.Entity.EmployeeHolidays;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface HolidaysRepository extends JpaRepository<Holidays, Long> {
-    @Query("SELECT h FROM Holidays h WHERE h.branchCode = :branchCode ORDER BY h.id DESC")
-    List<Holidays> findAllByBranchCode(@Param("branchCode") String branchCode);
+public interface HolidaysRepository extends JpaRepository<EmployeeHolidays, Long> {
+    @Query("SELECT h FROM EmployeeHolidays h WHERE h.branchCode = :branchCode ORDER BY h.id DESC")
+    List<EmployeeHolidays> findAllByBranchCode(@Param("branchCode") String branchCode);
 }

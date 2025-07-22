@@ -27,7 +27,7 @@ public class Employee {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Long id;
 
     //1st page form
     private String fullName;
@@ -106,7 +106,7 @@ public class Employee {
     @ManyToOne
     @JoinColumn(name = "department_id")
     @JsonIgnore
-    private Department departmentEntity;
+    private EmployeeDepartment employeeDepartment;
 
     @ManyToOne
     @JoinColumn(name = "category_id")
@@ -115,11 +115,11 @@ public class Employee {
 
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
-    private List<EmpQuery> empQueries;
+    private List<EmployeeQuery> empQueries;
 
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
-    private List<LeaveRequest> leaveRequests = new ArrayList<>();
+    private List<EmployeeLeaveRequest> employeeLeaveRequests = new ArrayList<>();
 
     @OneToOne(mappedBy = "employee", cascade = CascadeType.ALL)
     @JsonIgnore
@@ -131,11 +131,11 @@ public class Employee {
 
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
-    private List<Attendence> attendences = new ArrayList<>();
+    private List<EmployeeAttendence> employeeAttendences = new ArrayList<>();
 
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
-    private List<Holidays> holidays = new ArrayList<>();
+    private List<EmployeeHolidays> holidays = new ArrayList<>();
 
     private boolean candGet;
     private boolean candPost;

@@ -1,6 +1,5 @@
 package com.NewEmployeeManagement.Entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import lombok.AllArgsConstructor;
@@ -11,29 +10,27 @@ import lombok.Setter;
 import java.time.LocalDate;
 
 @Entity
-@Getter
-@Setter
 @AllArgsConstructor
 @NoArgsConstructor
-
-public class EmpQuery
+@Getter
+@Setter
+public class EmployeeMemo
 {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Long id;
 
+    private String memoName;
+    @Column(name = "memo_description", length = 5000)
+    private String memoDescription;
+    private LocalDate createdAt;
     @Email
     private String email;
-    private String query;
-    private LocalDate Date;
+    private String fullName;
+    private boolean isDeleted = false;
+
     @Email
     private String createdByEmail;
     private String role;
     private String branchCode;
-
-    @ManyToOne
-    @JoinColumn(name = "employee_id")
-    @JsonIgnore
-    private Employee employee;
 }

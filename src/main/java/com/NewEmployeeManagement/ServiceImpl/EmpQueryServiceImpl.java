@@ -1,6 +1,6 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
-import com.NewEmployeeManagement.Entity.EmpQuery;
+import com.NewEmployeeManagement.Entity.EmployeeQuery;
 import com.NewEmployeeManagement.Entity.Employee;
 import com.NewEmployeeManagement.Repository.EmpQueryRepository;
 import com.NewEmployeeManagement.Repository.EmployeeRepository;
@@ -26,7 +26,7 @@ public class EmpQueryServiceImpl implements EmpQueryService {
     private PermissionService permissionService;
 
     @Override
-    public EmpQuery createQuery(EmpQuery query, String role, String email) {
+    public EmployeeQuery createQuery(EmployeeQuery query, String role, String email) {
         if (!permissionService.hasPermission(role, email, "POST")) {
             throw new AccessDeniedException("No permission to create query");
         }
@@ -52,7 +52,7 @@ public class EmpQueryServiceImpl implements EmpQueryService {
 
 
     @Override
-    public List<EmpQuery> getAllQueries(String role, String email) {
+    public List<EmployeeQuery> getAllQueries(String role, String email) {
         if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to view queries");
         }
@@ -61,12 +61,12 @@ public class EmpQueryServiceImpl implements EmpQueryService {
     }
 
     @Override
-    public EmpQuery updateQuery(int id, EmpQuery query, String role, String email) {
+    public EmployeeQuery updateQuery(Long id, EmployeeQuery query, String role, String email) {
         if (!permissionService.hasPermission(role, email, "PUT")) {
             throw new AccessDeniedException("No permission to update query");
         }
 
-        EmpQuery existing = repository.findById(id)
+        EmployeeQuery existing = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Query not found"));
 
         existing.setEmail(query.getEmail() != null ? query.getEmail() : existing.getEmail());
@@ -77,7 +77,7 @@ public class EmpQueryServiceImpl implements EmpQueryService {
 
 
     @Override
-    public void deleteQuery(int id, String role, String email) {
+    public void deleteQuery(Long id, String role, String email) {
         if (!permissionService.hasPermission(role, email, "DELETE")) {
             throw new AccessDeniedException("No permission to delete query");
         }
@@ -89,7 +89,7 @@ public class EmpQueryServiceImpl implements EmpQueryService {
     }
 
     @Override
-    public EmpQuery getQueryById(int id, String role, String email) {
+    public EmployeeQuery getQueryById(Long id, String role, String email) {
         if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to view query");
         }

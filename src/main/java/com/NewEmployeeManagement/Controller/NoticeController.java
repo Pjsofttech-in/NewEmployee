@@ -1,6 +1,6 @@
 package com.NewEmployeeManagement.Controller;
 
-import com.NewEmployeeManagement.Entity.Notice;
+import com.NewEmployeeManagement.Entity.EmployeeNotice;
 import com.NewEmployeeManagement.Service.NoticeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,35 +16,35 @@ public class NoticeController {
     private NoticeService service;
 
     @PostMapping("/createNotice")
-    public ResponseEntity<Notice> createNotice(@RequestBody Notice notice,
-                                               @RequestParam String role,
-                                               @RequestParam String email) {
-        return ResponseEntity.ok(service.createNotice(notice, role, email));
+    public ResponseEntity<EmployeeNotice> createNotice(@RequestBody EmployeeNotice employeeNotice,
+                                                       @RequestParam String role,
+                                                       @RequestParam String email) {
+        return ResponseEntity.ok(service.createNotice(employeeNotice, role, email));
     }
 
     @GetMapping("/getAllNotices")
-    public ResponseEntity<List<Notice>> getAllNotices(@RequestParam String role,
-                                                      @RequestParam String email) {
+    public ResponseEntity<List<EmployeeNotice>> getAllNotices(@RequestParam String role,
+                                                              @RequestParam String email) {
         return ResponseEntity.ok(service.getAllNotices(role, email));
     }
 
     @GetMapping("/getNoticeById/{id}")
-    public ResponseEntity<Notice> getNoticeById(@PathVariable int id,
-                                                @RequestParam String role,
-                                                @RequestParam String email) {
+    public ResponseEntity<EmployeeNotice> getNoticeById(@PathVariable Long id,
+                                                        @RequestParam String role,
+                                                        @RequestParam String email) {
         return ResponseEntity.ok(service.getNoticeById(id, role, email));
     }
 
     @PutMapping("/updateNotice/{id}")
-    public ResponseEntity<Notice> updateNotice(@PathVariable int id,
-                                               @RequestBody Notice notice,
-                                               @RequestParam String role,
-                                               @RequestParam String email) {
-        return ResponseEntity.ok(service.updateNotice(id, notice, role, email));
+    public ResponseEntity<EmployeeNotice> updateNotice(@PathVariable Long id,
+                                                       @RequestBody EmployeeNotice employeeNotice,
+                                                       @RequestParam String role,
+                                                       @RequestParam String email) {
+        return ResponseEntity.ok(service.updateNotice(id, employeeNotice, role, email));
     }
 
     @DeleteMapping("/deleteNotice/{id}")
-    public ResponseEntity<String> deleteNotice(@PathVariable int id,
+    public ResponseEntity<String> deleteNotice(@PathVariable Long id,
                                                @RequestParam String role,
                                                @RequestParam String email) {
         service.deleteNotice(id, role, email);

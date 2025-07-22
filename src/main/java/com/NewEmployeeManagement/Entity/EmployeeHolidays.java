@@ -5,29 +5,33 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import lombok.*;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.time.LocalDate;
 
 @Entity
-@AllArgsConstructor
-@NoArgsConstructor
-@ToString
 @Getter
 @Setter
-public class Department {
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString
+public class EmployeeHolidays {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
-    private String department;
-    private  boolean isDeleted = false;
+    private Long id;
+    private String holidayName;
+    private String day;
+    private LocalDate date;
+    private boolean paidHoliday = true;
 
     @Email
     private String createdByEmail;
     private String role;
     private String branchCode;
 
-    @OneToMany(mappedBy = "departmentEntity", cascade = CascadeType.ALL)
+    @ManyToOne
+    @JoinColumn(name = "empid",nullable = true)
     @JsonIgnore
-    private List<Employee> employees = new ArrayList<>();
+    private Employee employee;
+
+
 }

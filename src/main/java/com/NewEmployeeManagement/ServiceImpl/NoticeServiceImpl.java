@@ -1,6 +1,6 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
-import com.NewEmployeeManagement.Entity.Notice;
+import com.NewEmployeeManagement.Entity.EmployeeNotice;
 import com.NewEmployeeManagement.Repository.NoticeRepository;
 import com.NewEmployeeManagement.Service.NoticeService;
 import com.NewEmployeeManagement.Service.PermissionService;
@@ -21,20 +21,20 @@ public class NoticeServiceImpl implements NoticeService {
 
 
     @Override
-    public Notice createNotice(Notice notice, String role, String email) {
+    public EmployeeNotice createNotice(EmployeeNotice employeeNotice, String role, String email) {
         if (!permissionService.hasPermission(role, email, "POST")) {
             throw new AccessDeniedException("No permission to create notice");
         }
 
         String branchCode = permissionService.fetchBranchCode(role, email);
-        notice.setBranchCode(branchCode);
-        notice.setRole(role);
-        notice.setCreatedByEmail(email);
-        return repository.save(notice);
+        employeeNotice.setBranchCode(branchCode);
+        employeeNotice.setRole(role);
+        employeeNotice.setCreatedByEmail(email);
+        return repository.save(employeeNotice);
     }
 
     @Override
-    public List<Notice> getAllNotices(String role, String email) {
+    public List<EmployeeNotice> getAllNotices(String role, String email) {
         if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to view notices");
         }
@@ -43,23 +43,23 @@ public class NoticeServiceImpl implements NoticeService {
     }
 
     @Override
-    public Notice updateNotice(int id, Notice notice, String role, String email) {
+    public EmployeeNotice updateNotice(Long id, EmployeeNotice employeeNotice, String role, String email) {
         if (!permissionService.hasPermission(role, email, "PUT")) {
             throw new AccessDeniedException("No permission to update notice");
         }
 
-        Notice existing = repository.findById(id)
+        EmployeeNotice existing = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Notice not found"));
 
         existing.setNoticeName(
-                notice.getNoticeName() != null && !notice.getNoticeName().isBlank()
-                        ? notice.getNoticeName()
+                employeeNotice.getNoticeName() != null && !employeeNotice.getNoticeName().isBlank()
+                        ? employeeNotice.getNoticeName()
                         : existing.getNoticeName()
         );
 
         existing.setNoticeDescription(
-                notice.getNoticeDescription() != null && !notice.getNoticeDescription().isBlank()
-                        ? notice.getNoticeDescription()
+                employeeNotice.getNoticeDescription() != null && !employeeNotice.getNoticeDescription().isBlank()
+                        ? employeeNotice.getNoticeDescription()
                         : existing.getNoticeDescription()
         );
 
@@ -68,20 +68,20 @@ public class NoticeServiceImpl implements NoticeService {
 
 
     @Override
-    public void deleteNotice(int id, String role, String email) {
+    public void deleteNotice(Long id, String role, String email) {
         if (!permissionService.hasPermission(role, email, "DELETE")) {
             throw new AccessDeniedException("No permission to delete notice");
         }
 
-        Notice notice = repository.findById(id)
+        EmployeeNotice employeeNotice = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Notice not found"));
 
-        notice.setDeleted(true);
+        employeeNotice.setDeleted(true);
         repository.deleteById(id);
     }
 
     @Override
-    public Notice getNoticeById(int id, String role, String email) {
+    public EmployeeNotice getNoticeById(Long id, String role, String email) {
         if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to view notice");
         }

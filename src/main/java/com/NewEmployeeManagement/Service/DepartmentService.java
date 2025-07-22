@@ -1,13 +1,13 @@
 package com.NewEmployeeManagement.Service;
 
-import com.NewEmployeeManagement.Entity.Department;
+import com.NewEmployeeManagement.Entity.EmployeeDepartment;
 
 import java.util.List;
 
 public interface DepartmentService {
-    Department createDepartment(Department department, String role, String email);
-    List<Department> getAllDepartments(String role, String email);
-    Department updateDepartment(int id, Department department, String role, String email);
-    void deleteDepartment(int id, String role, String email);
-    Department getDepartmentById(int id, String role, String email);
+    EmployeeDepartment createDepartment(EmployeeDepartment employeeDepartment, String role, String email);
+    List<EmployeeDepartment> getAllDepartments(String role, String email);
+    EmployeeDepartment updateDepartment(Long id, EmployeeDepartment employeeDepartment, String role, String email);
+    void deleteDepartment(Long id, String role, String email);
+    EmployeeDepartment getDepartmentById(Long id, String role, String email);
 }

@@ -1,13 +1,13 @@
 package com.NewEmployeeManagement.Service;
 
-import com.NewEmployeeManagement.Entity.Notice;
+import com.NewEmployeeManagement.Entity.EmployeeNotice;
 
 import java.util.List;
 
 public interface NoticeService {
-    Notice createNotice(Notice notice, String role, String email);
-    List<Notice> getAllNotices(String role, String email);
-    Notice updateNotice(int id, Notice notice, String role, String email);
-    void deleteNotice(int id, String role, String email);
-    Notice getNoticeById(int id, String role, String email);
+    EmployeeNotice createNotice(EmployeeNotice employeeNotice, String role, String email);
+    List<EmployeeNotice> getAllNotices(String role, String email);
+    EmployeeNotice updateNotice(Long id, EmployeeNotice employeeNotice, String role, String email);
+    void deleteNotice(Long id, String role, String email);
+    EmployeeNotice getNoticeById(Long id, String role, String email);
 }

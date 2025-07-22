@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AttendanceLoginRequestDTO {
-    private int employeeId;
+    private Long employeeId;
     private String systemIP;
     private String wifiIP;
 }

@@ -33,7 +33,7 @@ public class S3Service {
         this.employeeRepository = employeeRepository;
     }
 
-    // ✅ Upload document to doct/
+
     public String uploadEmployeeDocument(MultipartFile file, String branchCode, String systemName) throws IOException {
         if (branchCode == null || branchCode.isEmpty()) {
             logger.error("BranchCode is required");
@@ -77,7 +77,7 @@ public class S3Service {
     }
 
     // ✅ Upload face image directly to attendance_faces/
-    public String uploadEmployeeFaceImage(MultipartFile file, String branchCode, int employeeId) throws IOException {
+    public String uploadEmployeeFaceImage(MultipartFile file, String branchCode, Long employeeId) throws IOException {
         if (branchCode == null || branchCode.isEmpty()) {
             logger.error("BranchCode is required");
             throw new IllegalArgumentException("BranchCode is required");

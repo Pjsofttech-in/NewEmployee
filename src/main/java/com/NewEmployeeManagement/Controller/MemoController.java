@@ -1,6 +1,6 @@
 package com.NewEmployeeManagement.Controller;
 
-import com.NewEmployeeManagement.Entity.Memo;
+import com.NewEmployeeManagement.Entity.EmployeeMemo;
 import com.NewEmployeeManagement.Service.MemoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,35 +16,35 @@ public class MemoController {
     private MemoService service;
 
     @PostMapping("/createMemo")
-    public ResponseEntity<Memo> createMemo(@RequestBody Memo memo,
-                                           @RequestParam String role,
-                                           @RequestParam String email) {
-        return ResponseEntity.ok(service.createMemo(memo, role, email));
+    public ResponseEntity<EmployeeMemo> createMemo(@RequestBody EmployeeMemo employeeMemo,
+                                                   @RequestParam String role,
+                                                   @RequestParam String email) {
+        return ResponseEntity.ok(service.createMemo(employeeMemo, role, email));
     }
 
     @GetMapping("/getAllMemos")
-    public ResponseEntity<List<Memo>> getAllMemos(@RequestParam String role,
-                                                  @RequestParam String email) {
+    public ResponseEntity<List<EmployeeMemo>> getAllMemos(@RequestParam String role,
+                                                          @RequestParam String email) {
         return ResponseEntity.ok(service.getAllMemos(role, email));
     }
 
     @GetMapping("/getMemoById/{id}")
-    public ResponseEntity<Memo> getMemoById(@PathVariable int id,
-                                            @RequestParam String role,
-                                            @RequestParam String email) {
+    public ResponseEntity<EmployeeMemo> getMemoById(@PathVariable Long id,
+                                                    @RequestParam String role,
+                                                    @RequestParam String email) {
         return ResponseEntity.ok(service.getMemoById(id, role, email));
     }
 
     @PutMapping("/updateMemo/{id}")
-    public ResponseEntity<Memo> updateMemo(@PathVariable int id,
-                                           @RequestBody Memo memo,
-                                           @RequestParam String role,
-                                           @RequestParam String email) {
-        return ResponseEntity.ok(service.updateMemo(id, memo, role, email));
+    public ResponseEntity<EmployeeMemo> updateMemo(@PathVariable Long id,
+                                                   @RequestBody EmployeeMemo employeeMemo,
+                                                   @RequestParam String role,
+                                                   @RequestParam String email) {
+        return ResponseEntity.ok(service.updateMemo(id, employeeMemo, role, email));
     }
 
     @DeleteMapping("/deleteMemo/{id}")
-    public ResponseEntity<String> deleteMemo(@PathVariable int id,
+    public ResponseEntity<String> deleteMemo(@PathVariable Long id,
                                              @RequestParam String role,
                                              @RequestParam String email) {
         service.deleteMemo(id, role, email);

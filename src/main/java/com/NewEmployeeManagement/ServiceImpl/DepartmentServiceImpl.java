@@ -1,6 +1,6 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
-import com.NewEmployeeManagement.Entity.Department;
+import com.NewEmployeeManagement.Entity.EmployeeDepartment;
 import com.NewEmployeeManagement.Repository.DepartmentRepository;
 import com.NewEmployeeManagement.Service.DepartmentService;
 import com.NewEmployeeManagement.Service.PermissionService;
@@ -20,21 +20,21 @@ public class DepartmentServiceImpl implements DepartmentService {
     private PermissionService permissionService;
 
     @Override
-    public Department createDepartment(Department department, String role, String email) {
+    public EmployeeDepartment createDepartment(EmployeeDepartment employeeDepartment, String role, String email) {
         if (!permissionService.hasPermission(role, email, "POST")) {
             throw new AccessDeniedException("No permission to create department");
         }
 
         String branchCode = permissionService.fetchBranchCode(role, email);
-        department.setRole(role);
-        department.setCreatedByEmail(email);
-        department.setBranchCode(branchCode);
+        employeeDepartment.setRole(role);
+        employeeDepartment.setCreatedByEmail(email);
+        employeeDepartment.setBranchCode(branchCode);
 
-        return departmentRepository.save(department);
+        return departmentRepository.save(employeeDepartment);
     }
 
     @Override
-    public List<Department> getAllDepartments(String role, String email) {
+    public List<EmployeeDepartment> getAllDepartments(String role, String email) {
         if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to view departments");
         }
@@ -44,33 +44,33 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
 
     @Override
-    public Department updateDepartment(int id, Department department, String role, String email) {
+    public EmployeeDepartment updateDepartment(Long id, EmployeeDepartment employeeDepartment, String role, String email) {
         if (!permissionService.hasPermission(role, email, "PUT")) {
             throw new AccessDeniedException("No permission to update department");
         }
 
-        Department existing = departmentRepository.findById(id)
+        EmployeeDepartment existing = departmentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Department not found"));
 
-        existing.setDepartment(department.getDepartment());
+        existing.setDepartment(employeeDepartment.getDepartment());
 
         return departmentRepository.save(existing);
     }
 
     @Override
-    public void deleteDepartment(int id, String role, String email) {
+    public void deleteDepartment(Long id, String role, String email) {
         if (!permissionService.hasPermission(role, email, "DELETE")) {
             throw new AccessDeniedException("No permission to delete department");
         }
 
-        Department existing = departmentRepository.findById(id)
+        EmployeeDepartment existing = departmentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Department not found"));
 
         departmentRepository.delete(existing); // ❌ No soft delete, directly remove
     }
 
     @Override
-    public Department getDepartmentById(int id, String role, String email) {
+    public EmployeeDepartment getDepartmentById(Long id, String role, String email) {
         if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to view department");
         }

@@ -1,7 +1,7 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
 import com.NewEmployeeManagement.DTO.AttendanceSummaryDTO;
-import com.NewEmployeeManagement.Entity.Attendence;
+import com.NewEmployeeManagement.Entity.EmployeeAttendence;
 import com.NewEmployeeManagement.Entity.Employee;
 import com.NewEmployeeManagement.Repository.AttendenceRepository;
 import com.NewEmployeeManagement.Repository.EmployeeRepository;
@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -95,7 +94,7 @@ public class AttendenceServiceImpl implements AttendenceService {
                         .body("Face not recognized or missing employee ID.");
             }
 
-            int empId = Integer.parseInt(empIdStr);
+            Long empId = Long.parseLong(empIdStr);
             Optional<Employee> employeeOpt = employeeRepository.findById(empId);
             if (employeeOpt.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -115,7 +114,7 @@ public class AttendenceServiceImpl implements AttendenceService {
 
             LocalTime loginTime = LocalTime.now(ZoneId.of("Asia/Kolkata"));
 
-            Attendence attendance = new Attendence();
+            EmployeeAttendence attendance = new EmployeeAttendence();
             attendance.setName(employee.getFullName());
             attendance.setTodaysDate(LocalDate.now());
             attendance.setLoginTime(loginTime);
@@ -160,7 +159,7 @@ public class AttendenceServiceImpl implements AttendenceService {
 
 
     @Override
-    public Attendence markLogout(MultipartFile image, String branchCode, String systemName, HttpServletRequest request) {
+    public EmployeeAttendence markLogout(MultipartFile image, String branchCode, String systemName, HttpServletRequest request) {
         try {
             // Call Python API
             HttpHeaders headers = new HttpHeaders();
@@ -194,7 +193,7 @@ public class AttendenceServiceImpl implements AttendenceService {
                 throw new RuntimeException("Logout failed: Face not recognized or missing employee ID.");
             }
 
-            int empId = Integer.parseInt(empIdStr);
+            Long empId = Long.parseLong(empIdStr);
             Optional<Employee> employeeOpt = employeeRepository.findById(empId);
             if (employeeOpt.isEmpty()) {
                 throw new RuntimeException("Employee not found for ID: " + empId);
@@ -203,7 +202,7 @@ public class AttendenceServiceImpl implements AttendenceService {
             Employee employee = employeeOpt.get();
 
             // Fetch today's attendance record by employee ID and date
-            Attendence attendance = attendenceRepository.findByEmailAndTodaysDate(employee.getEmpEmail(), LocalDate.now())
+            EmployeeAttendence attendance = attendenceRepository.findByEmailAndTodaysDate(employee.getEmpEmail(), LocalDate.now())
                     .orElseThrow(() -> new RuntimeException("Attendance not found for today."));
 
             if (attendance.getLogoutTime() != null) {
@@ -311,7 +310,7 @@ public class AttendenceServiceImpl implements AttendenceService {
                         .body("Break-In failed: Face not recognized or employee ID missing.");
             }
 
-            int empId = Integer.parseInt(empIdStr);
+            Long empId = Long.parseLong(empIdStr);
             Optional<Employee> employeeOpt = employeeRepository.findById(empId);
             if (employeeOpt.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -320,7 +319,7 @@ public class AttendenceServiceImpl implements AttendenceService {
 
             Employee employee = employeeOpt.get();
 
-            Attendence attendance = attendenceRepository.findByEmailAndTodaysDate(employee.getEmpEmail(), LocalDate.now())
+            EmployeeAttendence attendance = attendenceRepository.findByEmailAndTodaysDate(employee.getEmpEmail(), LocalDate.now())
                     .orElseThrow(() -> new RuntimeException("Attendance record not found for today."));
 
             if (attendance.getBreakIn() != null) {
@@ -378,14 +377,15 @@ public class AttendenceServiceImpl implements AttendenceService {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Face not recognized or employee ID missing.");
             }
 
-            int empId = Integer.parseInt(empIdStr);
+            Long empId = Long.parseLong(empIdStr);
+
             Optional<Employee> employeeOpt = employeeRepository.findById(empId);
             if (employeeOpt.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Employee not found for ID: " + empId);
             }
 
             Employee employee = employeeOpt.get();
-            Attendence attendance = attendenceRepository.findByEmailAndTodaysDate(employee.getEmpEmail(), LocalDate.now())
+            EmployeeAttendence attendance = attendenceRepository.findByEmailAndTodaysDate(employee.getEmpEmail(), LocalDate.now())
                     .orElseThrow(() -> new RuntimeException("Attendance record not found for today."));
 
             if (attendance.getBreakIn() == null) {
@@ -418,7 +418,7 @@ public class AttendenceServiceImpl implements AttendenceService {
         LocalDate today = LocalDate.now();
 
         // Fetch only present attendances (Late or On Time)
-        List<Attendence> presentAttendances = attendenceRepository.findPresentAttendances(today);
+        List<EmployeeAttendence> presentAttendances = attendenceRepository.findPresentAttendances(today);
 
         List<String> presentNames = presentAttendances.stream()
                 .filter(att -> att.getEmployee() != null

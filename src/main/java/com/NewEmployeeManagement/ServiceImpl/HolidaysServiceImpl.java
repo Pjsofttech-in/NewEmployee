@@ -1,7 +1,7 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
 import com.NewEmployeeManagement.Entity.Employee;
-import com.NewEmployeeManagement.Entity.Holidays;
+import com.NewEmployeeManagement.Entity.EmployeeHolidays;
 import com.NewEmployeeManagement.Repository.EmployeeRepository;
 import com.NewEmployeeManagement.Repository.HolidaysRepository;
 import com.NewEmployeeManagement.Service.HolidaysService;
@@ -24,7 +24,7 @@ public class HolidaysServiceImpl implements HolidaysService {
     private PermissionService permissionService;
 
     @Override
-    public Holidays createHoliday(Holidays holiday, int employeeId, String role, String email) {
+    public EmployeeHolidays createHoliday(EmployeeHolidays holiday, String role, String email) {
         if (!permissionService.hasPermission(role, email, "POST")) {
             throw new AccessDeniedException("No permission to create holiday");
         }
@@ -35,15 +35,14 @@ public class HolidaysServiceImpl implements HolidaysService {
         holiday.setRole(role);
 
         // Fetch employee and set to holiday
-        Employee employee = employeeRepository.findById(employeeId).orElseThrow(()-> new RuntimeException("employee not found by id:"+employeeId));
-        holiday.setEmployee(employee);
+        holiday.setEmployee(null);
 
         return repository.save(holiday);
     }
 
 
     @Override
-    public List<Holidays> getAllHolidays(String role, String email) {
+    public List<EmployeeHolidays> getAllHolidays(String role, String email) {
         if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to view holidays");
         }
@@ -52,12 +51,12 @@ public class HolidaysServiceImpl implements HolidaysService {
     }
 
     @Override
-    public Holidays updateHoliday(Long id, Holidays holiday, String role, String email) {
+    public EmployeeHolidays updateHoliday(Long id, EmployeeHolidays holiday, String role, String email) {
         if (!permissionService.hasPermission(role, email, "PUT")) {
             throw new AccessDeniedException("No permission to update holiday");
         }
 
-        Holidays existing = repository.findById(id)
+        EmployeeHolidays existing = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Holiday not found"));
 
         existing.setHolidayName(holiday.getHolidayName() != null ? holiday.getHolidayName() : existing.getHolidayName());
@@ -80,7 +79,7 @@ public class HolidaysServiceImpl implements HolidaysService {
     }
 
     @Override
-    public Holidays getHolidayById(Long id, String role, String email) {
+    public EmployeeHolidays getHolidayById(Long id, String role, String email) {
         if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to view holiday");
         }

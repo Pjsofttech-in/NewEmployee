@@ -1,7 +1,7 @@
 package com.NewEmployeeManagement.Controller;
 
 import com.NewEmployeeManagement.DTO.AttendanceSummaryDTO;
-import com.NewEmployeeManagement.Entity.Attendence;
+import com.NewEmployeeManagement.Entity.EmployeeAttendence;
 import com.NewEmployeeManagement.Pageination.SpecializationService;
 import com.NewEmployeeManagement.Service.AttendenceService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,12 +15,11 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
 
 
 @RestController
-@RequestMapping("/attendance")
+//@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "https://pjsofttech.in")
 public class AttendenceController {
 
     @Autowired
@@ -29,7 +28,7 @@ public class AttendenceController {
     @Autowired
     private SpecializationService specializationService;
 
-    @PostMapping(value = "/login", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/markAttendanceForEmployee", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> markAttendance(
             @RequestParam("image") MultipartFile image,
             @RequestParam("branch_code") String branchCode,
@@ -40,7 +39,7 @@ public class AttendenceController {
         return attendenceService.markAttendance(image, branchCode, systemName, request,workType);
     }
 
-    @PostMapping(value = "/logout", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/employeeLogout", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> markLogout(
             @RequestParam("image") MultipartFile image,
             @RequestParam("branch_code") String branchCode,
@@ -48,14 +47,14 @@ public class AttendenceController {
             HttpServletRequest request) {
 
         try {
-            Attendence attendance = attendenceService.markLogout(image, branchCode, systemName, request);
+            EmployeeAttendence attendance = attendenceService.markLogout(image, branchCode, systemName, request);
             return ResponseEntity.ok("Logout successfully of id:"+attendance.getEmployee().getId());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Logout failed: " + e.getMessage());
         }
     }
 
-    @PostMapping(value = "/break-in", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/employeeBreakIn", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> markBreakIn(
             @RequestParam("image") MultipartFile image,
             @RequestParam("branch_code") String branchCode,
@@ -65,7 +64,7 @@ public class AttendenceController {
         return attendenceService.markBreakIn(image, branchCode, systemName, request);
     }
 
-    @PostMapping(value = "/break-out", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/employeeBreakOut", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> markBreakOut(
             @RequestParam("image") MultipartFile image,
             @RequestParam("branch_code") String branchCode,
@@ -76,7 +75,7 @@ public class AttendenceController {
     }
 
     @PostMapping("/AttendanceFilter")
-    public Page<Attendence> filterAttendence(
+    public Page<EmployeeAttendence> filterAttendence(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String todaysDateFilter,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
@@ -89,7 +88,7 @@ public class AttendenceController {
                 branchCode, page, size);
     }
 
-    @GetMapping("/today-summary")
+    @GetMapping("/TodayAttendaceSummary")
     public ResponseEntity<AttendanceSummaryDTO> getTodayAttendanceSummary(
             @RequestParam("branch_code") String branchCode) {
         AttendanceSummaryDTO summary = attendenceService.getTodayAttendanceSummary(branchCode);

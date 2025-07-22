@@ -1,13 +1,13 @@
 package com.NewEmployeeManagement.Service;
 
-import com.NewEmployeeManagement.Entity.Memo;
+import com.NewEmployeeManagement.Entity.EmployeeMemo;
 
 import java.util.List;
 
 public interface MemoService {
-    Memo createMemo(Memo memo, String role, String email);
-    List<Memo> getAllMemos(String role, String email);
-    Memo getMemoById(int id, String role, String email);
-    Memo updateMemo(int id, Memo memo, String role, String email);
-    void deleteMemo(int id, String role, String email);
+    EmployeeMemo createMemo(EmployeeMemo employeeMemo, String role, String email);
+    List<EmployeeMemo> getAllMemos(String role, String email);
+    EmployeeMemo getMemoById(Long id, String role, String email);
+    EmployeeMemo updateMemo(Long id, EmployeeMemo employeeMemo, String role, String email);
+    void deleteMemo(Long id, String role, String email);
 }

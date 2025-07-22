@@ -11,13 +11,15 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface EmployeeRepository extends JpaRepository<Employee, Integer>, JpaSpecificationExecutor<Employee> {
+public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSpecificationExecutor<Employee> {
 
     @Query("SELECT e FROM Employee e WHERE e.branchCode = :branchCode AND e.isDeleted = false ORDER BY e.id DESC")
     List<Employee> findAllByBranchCode(@Param("branchCode")String branchCode);
+
+    @Query("SELECT e FROM Employee e WHERE e.branchCode = :branchCode AND e.isDeleted = false")
     List<Employee> findAllByBranchCodeAndIsDeletedFalse(String branchCode);
 
-    Optional<Employee> findByIdAndIsDeletedFalse(int id);
+    Optional<Employee> findByIdAndIsDeletedFalse(Long id);
 
     List<Employee> findByIsDeletedFalse();
 

@@ -1,7 +1,6 @@
 package com.NewEmployeeManagement.Controller;
 
-import com.NewEmployeeManagement.Entity.Holidays;
-import com.NewEmployeeManagement.Repository.EmployeeRepository;
+import com.NewEmployeeManagement.Entity.EmployeeHolidays;
 import com.NewEmployeeManagement.Service.HolidaysService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -19,31 +18,30 @@ public class HolidaysController {
 
 
     @PostMapping("/createHoliday")
-    public ResponseEntity<Holidays> createHoliday(@RequestBody Holidays holiday,
-                                                  @RequestParam int employeeId,
-                                                  @RequestParam String role,
-                                                  @RequestParam String email) {
-        return ResponseEntity.ok(service.createHoliday(holiday, employeeId, role, email));
+    public ResponseEntity<EmployeeHolidays> createHoliday(@RequestBody EmployeeHolidays holiday,
+                                                          @RequestParam String role,
+                                                          @RequestParam String email) {
+        return ResponseEntity.ok(service.createHoliday(holiday, role, email));
     }
 
     @GetMapping("/getAllHolidays")
-    public ResponseEntity<List<Holidays>> getAllHolidays(@RequestParam String role,
-                                                         @RequestParam String email) {
+    public ResponseEntity<List<EmployeeHolidays>> getAllHolidays(@RequestParam String role,
+                                                                 @RequestParam String email) {
         return ResponseEntity.ok(service.getAllHolidays(role, email));
     }
 
     @GetMapping("/getHolidayById/{id}")
-    public ResponseEntity<Holidays> getHolidayById(@PathVariable Long id,
-                                                   @RequestParam String role,
-                                                   @RequestParam String email) {
+    public ResponseEntity<EmployeeHolidays> getHolidayById(@PathVariable Long id,
+                                                           @RequestParam String role,
+                                                           @RequestParam String email) {
         return ResponseEntity.ok(service.getHolidayById(id, role, email));
     }
 
     @PutMapping("/updateHoliday/{id}")
-    public ResponseEntity<Holidays> updateHoliday(@PathVariable Long id,
-                                                  @RequestBody Holidays holiday,
-                                                  @RequestParam String role,
-                                                  @RequestParam String email) {
+    public ResponseEntity<EmployeeHolidays> updateHoliday(@PathVariable Long id,
+                                                          @RequestBody EmployeeHolidays holiday,
+                                                          @RequestParam String role,
+                                                          @RequestParam String email) {
         return ResponseEntity.ok(service.updateHoliday(id, holiday, role, email));
     }
 

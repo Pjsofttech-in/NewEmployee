@@ -36,7 +36,7 @@ public class EmployeeController {
             @RequestPart("employeeDTO") String employeeDTOJson,
             @RequestParam("role") String role,
             @RequestParam("email") String email,
-            @RequestParam("departmentId") int departmentId,
+            @RequestParam("departmentId") Long departmentId,
             @RequestParam("categoryId") Long categoryId,
             @RequestParam(value = "idProof", required = false) MultipartFile idProof,
             @RequestParam(value = "employeePhoto", required = false) MultipartFile employeePhoto,
@@ -84,7 +84,7 @@ public class EmployeeController {
     }
 
     @GetMapping("/getEmployeeById/{id}")
-    public ResponseEntity<EmployeeResponseDTO> getById(@PathVariable int id,
+    public ResponseEntity<EmployeeResponseDTO> getById(@PathVariable Long id,
                                                        @RequestParam String role,
                                                        @RequestParam String email) {
         return ResponseEntity.ok(service.getEmployeeById(id, role, email));
@@ -92,11 +92,11 @@ public class EmployeeController {
 
     @PutMapping(value = "/updateEmployee/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Employee> updateEmployee(
-            @PathVariable int id,
+            @PathVariable Long id,
             @RequestPart("employeeDTO") String employeeDTOJson,
             @RequestParam("role") String role,
             @RequestParam("email") String email,
-            @RequestParam(value = "departmentId",required = false) int departmentId,
+            @RequestParam(value = "departmentId",required = false) Long departmentId,
             @RequestParam(value = "categoryId",required = false) Long categoryId,
 
             @RequestParam(value = "idProof", required = false) MultipartFile idProof,
@@ -125,7 +125,7 @@ public class EmployeeController {
 
 
     @DeleteMapping("/deleteEmployee/{id}")
-    public ResponseEntity<String> deleteEmployee(@PathVariable int id,
+    public ResponseEntity<String> deleteEmployee(@PathVariable Long id,
                                          @RequestParam String role,
                                          @RequestParam String email) {
         service.deleteEmployee(id, role, email);
@@ -144,7 +144,7 @@ public class EmployeeController {
         return ResponseEntity.ok(permissions);
     }
     @PutMapping("updateStatus/{id}")
-    public ResponseEntity<Employee> updateStus(@PathVariable Integer id,
+    public ResponseEntity<Employee> updateStus(@PathVariable Long id,
                                                @RequestParam String Status){
         return ResponseEntity.ok(service.updateStatus(id, Status));
     }
