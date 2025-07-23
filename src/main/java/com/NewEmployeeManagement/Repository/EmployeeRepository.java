@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,13 +27,18 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
 
     Optional<Employee> findByEmpEmail(String empEmail);
 
-    Optional<Employee> findBySystemName(String systemName);
-
-    Optional<Employee> findByFullName(String fullName);
-
     @Query("SELECT e FROM Employee e JOIN e.employeeDocument d WHERE d.employeePhoto = :photo")
     Optional<Employee> findByEmployeePhoto(@Param("photo") String photo);
 
     List<Employee> findByBranchCodeAndStatus(String branchCode, String status);
+
+    @Query("SELECT e.status, COUNT(e) FROM Employee e WHERE e.isDeleted = false AND e.createAt BETWEEN :startDate AND :endDate GROUP BY e.status")
+    List<Object[]> countByStatusBetweenDates(LocalDateTime startDate, LocalDateTime endDate);
+
+    @Query("SELECT e.department, COUNT(e) FROM Employee e WHERE e.status = 'Joined' AND e.isDeleted = false AND e.createAt BETWEEN :startDate AND :endDate GROUP BY e.department")
+    List<Object[]> countByDepartmentJoinedBetweenDates(LocalDateTime startDate, LocalDateTime endDate);
+
+    @Query("SELECT e.categoryName, COUNT(e) FROM Employee e WHERE e.status = 'Joined' AND e.isDeleted = false AND e.createAt BETWEEN :startDate AND :endDate GROUP BY e.categoryName")
+    List<Object[]> countByCategoryJoinedBetweenDates(LocalDateTime startDate, LocalDateTime endDate);
 
 }
