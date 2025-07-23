@@ -23,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
@@ -52,7 +53,6 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Autowired
      EmployeeMapper employeeMapper;
 
-    private static final Logger logger = LoggerFactory.getLogger(EmployeeServiceImpl.class);
 
     private String saveFileToStorageOrReturnName(MultipartFile file) {
         if (file != null && !file.isEmpty()) {
@@ -99,6 +99,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         employee.setBranchCode(branchCode);
         employee.setRole(role);
         employee.setCreatedByEmail(email);
+        employee.setCreateAt(LocalDateTime.now());
         employee.setEmployeeDepartment(employeeDepartment);
         employee.setDepartment(employeeDepartment.getDepartment());
         employee.setEmployeeCategory(category);
