@@ -32,13 +32,36 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
 
     List<Employee> findByBranchCodeAndStatus(String branchCode, String status);
 
-    @Query("SELECT e.status, COUNT(e) FROM Employee e WHERE e.isDeleted = false AND e.createAt BETWEEN :startDate AND :endDate GROUP BY e.status")
-    List<Object[]> countByStatusBetweenDates(LocalDateTime startDate, LocalDateTime endDate);
+    @Query("SELECT e.status, COUNT(e) " +
+            "FROM Employee e " +
+            "WHERE e.isDeleted = false " +
+            "AND e.createAt BETWEEN :startDate AND :endDate " +
+            "AND e.branchCode = :branchCode " +
+            "GROUP BY e.status")
+    List<Object[]> countByStatusBetweenDatesAndBranchCode(LocalDateTime startDate, LocalDateTime endDate, String branchCode);
 
-    @Query("SELECT e.department, COUNT(e) FROM Employee e WHERE e.status = 'Joined' AND e.isDeleted = false AND e.createAt BETWEEN :startDate AND :endDate GROUP BY e.department")
-    List<Object[]> countByDepartmentJoinedBetweenDates(LocalDateTime startDate, LocalDateTime endDate);
 
-    @Query("SELECT e.categoryName, COUNT(e) FROM Employee e WHERE e.status = 'Joined' AND e.isDeleted = false AND e.createAt BETWEEN :startDate AND :endDate GROUP BY e.categoryName")
-    List<Object[]> countByCategoryJoinedBetweenDates(LocalDateTime startDate, LocalDateTime endDate);
+    @Query("SELECT e.department, COUNT(e) " +
+            "FROM Employee e " +
+            "WHERE e.status = 'Joined' " +
+            "AND e.isDeleted = false " +
+            "AND e.createAt BETWEEN :startDate AND :endDate " +
+            "AND e.branchCode = :branchCode " +
+            "GROUP BY e.department")
+    List<Object[]> countByDepartmentJoinedBetweenDatesAndBranchCode(LocalDateTime startDate, LocalDateTime endDate, String branchCode);
+
+
+    @Query("SELECT e.categoryName, COUNT(e) " +
+            "FROM Employee e " +
+            "WHERE e.status = 'Joined' " +
+            "AND e.isDeleted = false " +
+            "AND e.createAt BETWEEN :startDate AND :endDate " +
+            "AND e.branchCode = :branchCode " +
+            "GROUP BY e.categoryName")
+    List<Object[]> countByCategoryJoinedBetweenDatesAndBranchCode(LocalDateTime startDate, LocalDateTime endDate, String branchCode);
+
+
+    @Query("SELECT COUNT(e) FROM Employee e WHERE e.isDeleted = false AND e.createAt BETWEEN :startDate AND :endDate AND e.branchCode = :branchCode")
+    Long countTotalEmployeesBetweenDatesAndBranchCode(LocalDateTime startDate, LocalDateTime endDate, String branchCode);
 
 }

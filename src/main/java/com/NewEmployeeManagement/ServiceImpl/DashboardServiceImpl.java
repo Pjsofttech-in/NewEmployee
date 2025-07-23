@@ -3,7 +3,9 @@ package com.NewEmployeeManagement.ServiceImpl;
 import com.NewEmployeeManagement.DTO.EmployeeCountResponse;
 import com.NewEmployeeManagement.Repository.EmployeeRepository;
 import com.NewEmployeeManagement.Service.DashboardService;
+import com.NewEmployeeManagement.Service.PermissionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -19,8 +21,16 @@ public class DashboardServiceImpl implements DashboardService
     @Autowired
     EmployeeRepository employeeRepository;
 
+    @Autowired
+    PermissionService permissionService;
+
     @Override
-    public EmployeeCountResponse getEmployeeCounts(String filter, LocalDate startDate, LocalDate endDate) {
+    public EmployeeCountResponse getEmployeeCounts(String role, String email,String filter, LocalDate startDate, LocalDate endDate)
+    {
+        if (!permissionService.hasPermission(role, email, "GET")) {
+            throw new AccessDeniedException("No permission to view Get Count");
+        }
+        String branchCode = permissionService.fetchBranchCode(role, email);
         LocalDate now = LocalDate.now();
         switch (filter.toLowerCase()) {
             case "today" -> {
@@ -54,12 +64,27 @@ public class DashboardServiceImpl implements DashboardService
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
 
+        Long total = employeeRepository.countTotalEmployeesBetweenDatesAndBranchCode(startDateTime, endDateTime, branchCode);
+
         // Call updated methods
-        List<Object[]> statusList = employeeRepository.countByStatusBetweenDates(startDateTime, endDateTime);
-        List<Object[]> deptList = employeeRepository.countByDepartmentJoinedBetweenDates(startDateTime, endDateTime);
-        List<Object[]> categoryList = employeeRepository.countByCategoryJoinedBetweenDates(startDateTime, endDateTime);
+        List<Object[]> statusList = employeeRepository.countByStatusBetweenDatesAndBranchCode(startDateTime, endDateTime,branchCode);
+        List<Object[]> deptList = employeeRepository.countByDepartmentJoinedBetweenDatesAndBranchCode(startDateTime, endDateTime,branchCode);
+        List<Object[]> categoryList = employeeRepository.countByCategoryJoinedBetweenDatesAndBranchCode(startDateTime, endDateTime,branchCode);
 
         Map<String, Long> statusMap = new HashMap<>();
+        statusMap.put("Joined", 0L);
+        statusMap.put("Terminated", 0L);
+
+        // Override defaults if present in DB results
+        for (Object[] obj : statusList) {
+            String status = (String) obj[0];
+            Long count = (Long) obj[1];
+            statusMap.put(status, count);
+        }
+
+        // Add total count as "total"
+        statusMap.put("total", total);
+
         Map<String, Long> deptMap = new HashMap<>();
         Map<String, Long> categoryMap = new HashMap<>();
 

@@ -19,11 +19,13 @@ public class DashboardController
 
     @GetMapping("/getEmployeeCountForCardsAndGraph")
     public ResponseEntity<EmployeeCountResponse> getEmployeeCounts(
+           @RequestParam String role,
+           @RequestParam String email,
             @RequestParam String filter,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
 
-        EmployeeCountResponse response = dashboardService.getEmployeeCounts(filter, startDate, endDate);
+        EmployeeCountResponse response = dashboardService.getEmployeeCounts(role, email,filter, startDate, endDate);
         return ResponseEntity.ok(response);
     }
 

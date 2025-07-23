@@ -7,5 +7,5 @@ import java.time.LocalDate;
 
 public interface DashboardService
 {
-    EmployeeCountResponse getEmployeeCounts(String filter, LocalDate startDate, LocalDate endDate);
+    EmployeeCountResponse getEmployeeCounts(String role, String email,String filter, LocalDate startDate, LocalDate endDate);
 }
