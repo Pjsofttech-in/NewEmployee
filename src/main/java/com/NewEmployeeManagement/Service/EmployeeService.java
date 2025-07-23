@@ -1,10 +1,14 @@
 package com.NewEmployeeManagement.Service;
 
 import com.NewEmployeeManagement.DTO.EmployeeCreateDTO;
+import com.NewEmployeeManagement.DTO.EmployeeFilterDTO;
 import com.NewEmployeeManagement.DTO.EmployeeResponseDTO;
 import com.NewEmployeeManagement.Entity.Employee;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -16,8 +20,7 @@ public interface EmployeeService {
                             MultipartFile addressProof,
                             MultipartFile experienceLetter);
 
-    List<Employee> getAllEmployees(String role, String email);
-
+    Page<Employee> getFilteredEmployees(String role, String email, EmployeeFilterDTO filter, String timeFrame, LocalDate startDate, LocalDate endDate, Pageable pageable);
     EmployeeResponseDTO getEmployeeById(Long id, String role, String email);
 
     Employee updateEmployee(

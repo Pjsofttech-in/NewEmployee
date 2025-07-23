@@ -18,11 +18,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-@Entity
+
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Entity
 public class Employee {
 
     @Id

@@ -1,12 +1,15 @@
 package com.NewEmployeeManagement.Controller;
 
 import com.NewEmployeeManagement.DTO.AttendanceSummaryDTO;
+import com.NewEmployeeManagement.DTO.AttendenceFilterDTO;
 import com.NewEmployeeManagement.Entity.EmployeeAttendence;
-import com.NewEmployeeManagement.Pageination.SpecializationService;
 import com.NewEmployeeManagement.Service.AttendenceService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -25,8 +28,6 @@ public class AttendenceController {
     @Autowired
     private AttendenceService attendenceService;
 
-    @Autowired
-    private SpecializationService specializationService;
 
     @PostMapping(value = "/markAttendanceForEmployee", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> markAttendance(
@@ -75,17 +76,21 @@ public class AttendenceController {
     }
 
     @PostMapping("/AttendanceFilter")
-    public Page<EmployeeAttendence> filterAttendence(
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) String todaysDateFilter,
+    public ResponseEntity<Page<EmployeeAttendence>> getAttendanceList(
+            @RequestParam(required = false) String timeFrame,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam String branchCode,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        return specializationService.filterAttendence(status, todaysDateFilter, startDate, endDate,
-                branchCode, page, size);
+            @RequestParam(defaultValue = "10") int size,
+            @RequestBody(required = false) AttendenceFilterDTO filter) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+
+        Page<EmployeeAttendence> result = attendenceService.getFilteredAttendance(
+                filter, timeFrame, startDate, endDate, pageable
+        );
+
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/TodayAttendaceSummary")

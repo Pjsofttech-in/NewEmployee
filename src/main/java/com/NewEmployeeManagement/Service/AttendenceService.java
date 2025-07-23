@@ -1,10 +1,15 @@
 package com.NewEmployeeManagement.Service;
 
 import com.NewEmployeeManagement.DTO.AttendanceSummaryDTO;
+import com.NewEmployeeManagement.DTO.AttendenceFilterDTO;
 import com.NewEmployeeManagement.Entity.EmployeeAttendence;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDate;
 
 public interface AttendenceService {
 
@@ -18,4 +23,5 @@ public interface AttendenceService {
 
     AttendanceSummaryDTO getTodayAttendanceSummary(String branchCode);
 
+    Page<EmployeeAttendence> getFilteredAttendance(AttendenceFilterDTO filter, String timeFrame, LocalDate startDate, LocalDate endDate, Pageable pageable);
 }

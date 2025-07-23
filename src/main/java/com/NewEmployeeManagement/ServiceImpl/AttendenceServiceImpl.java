@@ -1,8 +1,10 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
 import com.NewEmployeeManagement.DTO.AttendanceSummaryDTO;
+import com.NewEmployeeManagement.DTO.AttendenceFilterDTO;
 import com.NewEmployeeManagement.Entity.EmployeeAttendence;
 import com.NewEmployeeManagement.Entity.Employee;
+import com.NewEmployeeManagement.Pageination.AttendanceSpecification;
 import com.NewEmployeeManagement.Repository.AttendenceRepository;
 import com.NewEmployeeManagement.Repository.EmployeeRepository;
 import com.NewEmployeeManagement.Service.AttendenceService;
@@ -12,6 +14,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -411,6 +416,19 @@ public class AttendenceServiceImpl implements AttendenceService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error during Break-Out: " + e.getMessage());
         }
+    }
+
+    @Override
+    public Page<EmployeeAttendence> getFilteredAttendance(AttendenceFilterDTO filter, String timeFrame, LocalDate startDate, LocalDate endDate, Pageable pageable) {
+
+        if (timeFrame == null || timeFrame.isBlank()) {
+            timeFrame = "all";
+        }
+
+        Specification<EmployeeAttendence> spec =
+                AttendanceSpecification.build(filter, timeFrame, startDate, endDate);
+
+        return attendenceRepository.findAll(spec, pageable);
     }
 
     @Override

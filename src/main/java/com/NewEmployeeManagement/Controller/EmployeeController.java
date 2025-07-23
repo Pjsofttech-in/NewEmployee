@@ -1,15 +1,20 @@
 package com.NewEmployeeManagement.Controller;
 
 import com.NewEmployeeManagement.DTO.EmployeeCreateDTO;
+import com.NewEmployeeManagement.DTO.EmployeeFilterDTO;
 import com.NewEmployeeManagement.DTO.EmployeeResponseDTO;
 import com.NewEmployeeManagement.Entity.Employee;
-import com.NewEmployeeManagement.Pageination.SpecializationService;
+import com.NewEmployeeManagement.Pageination.EmployeeSpecification;
 import com.NewEmployeeManagement.Service.EmployeeService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -18,7 +23,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -28,8 +32,6 @@ public class EmployeeController {
     @Autowired
     private EmployeeService service;
 
-    @Autowired
-    private SpecializationService specializationService;
 
     @PostMapping(value = "/createEmployee", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Employee> createEmployee(
@@ -64,24 +66,28 @@ public class EmployeeController {
     }
 
     @PostMapping("/getAllEmployee")
-    public Page<Employee> filterEmployees(
-            @RequestParam(required = false) String department,
-            @RequestParam(required = false) String categoryName,
-            @RequestParam(required = false) String designation,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) String fullName,
-            @RequestParam(required = false) String joiningDateFilter,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam String branchCode,
+    public ResponseEntity<Page<Employee>> getFilteredEmployees(
             @RequestParam String role,
             @RequestParam String email,
+            @RequestParam(required = false) String timeFrame,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        return specializationService.filterEmployees(department, categoryName, designation, status,
-                branchCode, role, email, fullName, joiningDateFilter, startDate, endDate, page, size);
+            @RequestParam(defaultValue = "10") int size,
+            @RequestBody(required = false) EmployeeFilterDTO filter)
+    {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+
+        if (timeFrame == null || timeFrame.isBlank()) {
+            timeFrame = "all";
+        }
+
+        Page<Employee> result = service.getFilteredEmployees(
+                role, email,filter, timeFrame, startDate, endDate, pageable);
+
+        return ResponseEntity.ok(result);
     }
+
 
     @GetMapping("/getEmployeeById/{id}")
     public ResponseEntity<EmployeeResponseDTO> getById(@PathVariable Long id,

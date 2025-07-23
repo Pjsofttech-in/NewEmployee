@@ -1,9 +1,11 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
 import com.NewEmployeeManagement.DTO.EmployeeCreateDTO;
+import com.NewEmployeeManagement.DTO.EmployeeFilterDTO;
 import com.NewEmployeeManagement.DTO.EmployeeResponseDTO;
 import com.NewEmployeeManagement.Entity.*;
 import com.NewEmployeeManagement.Mapper.EmployeeMapper;
+import com.NewEmployeeManagement.Pageination.EmployeeSpecification;
 import com.NewEmployeeManagement.Repository.DepartmentRepository;
 import com.NewEmployeeManagement.Repository.EmployeeCategoryRepository;
 import com.NewEmployeeManagement.Repository.EmployeeRepository;
@@ -12,10 +14,13 @@ import com.NewEmployeeManagement.Service.PermissionService;
 import com.NewEmployeeManagement.Service.S3Service;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -161,12 +166,19 @@ public class EmployeeServiceImpl implements EmployeeService {
         return savedEmployee;
     }
 
+
     @Override
-    public List<Employee> getAllEmployees(String role, String email) {
-        if (!permissionService.hasPermission(role, email, "GET")) throw new AccessDeniedException("No permission");
-       String branchCode = permissionService.fetchBranchCode(role, email);
-        return repository.findAllByBranchCodeAndIsDeletedFalse(branchCode);
+    public Page<Employee> getFilteredEmployees(String role, String email, EmployeeFilterDTO filter, String timeFrame,
+                                               LocalDate startDate, LocalDate endDate,Pageable pageable)
+    {
+        if (!permissionService.hasPermission(role, email, "POST")) {
+            throw new AccessDeniedException("No permission");
+        }
+        String branchCode = permissionService.fetchBranchCode(role, email);
+        Specification<Employee> spec = EmployeeSpecification.build(filter, branchCode, timeFrame, startDate, endDate);
+        return repository.findAll(spec, pageable);
     }
+
 
     @Override
     public EmployeeResponseDTO getEmployeeById(Long id, String role, String email) {
