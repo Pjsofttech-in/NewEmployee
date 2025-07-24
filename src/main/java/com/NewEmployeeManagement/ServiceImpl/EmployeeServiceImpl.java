@@ -383,4 +383,16 @@ public class EmployeeServiceImpl implements EmployeeService {
         employee.setStatus(status);
         return repository.save(employee);
     }
+
+    @Override
+    public String getBranchCodeByEmail(String email) {
+        Employee employee = repository.findByEmpEmail(email)
+                .orElseThrow(() -> new RuntimeException("Employee not found with email: " + email));
+
+        if (employee.isDeleted()) {
+            throw new RuntimeException("Employee is deleted with email: " + email);
+        }
+        return employee.getBranchCode();
+    }
+
 }

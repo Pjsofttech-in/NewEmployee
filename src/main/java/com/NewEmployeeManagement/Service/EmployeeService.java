@@ -33,6 +33,6 @@ public interface EmployeeService {
     void carryForwardLeavesForEligibleEmployees();
 
     Map<String, Object> getCrudPermissionForEmployeeByEmail(String empEmail);
-
+    String getBranchCodeByEmail(String email);
     Employee updateStatus(Long id, String status);
 }

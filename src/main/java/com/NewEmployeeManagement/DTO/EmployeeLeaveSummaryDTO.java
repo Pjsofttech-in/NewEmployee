@@ -12,6 +12,6 @@ public class EmployeeLeaveSummaryDTO {
     private Double totalUnpaidLeaves;
     private Double totalAppliedLeaves;
     private Double paidLeave;
-    private  Double unpaidLeave;
+    private Double unpaidLeave;
     private Double remaingPaidLeave;
 }

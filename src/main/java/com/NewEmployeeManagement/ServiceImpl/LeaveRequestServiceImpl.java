@@ -31,6 +31,7 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
     @Override
     public EmployeeLeaveRequest createLeaveRequest(EmployeeLeaveRequest employeeLeaveRequest, Long employeeId, String role, String email) {
         if (!permissionService.hasPermission(role, email, "POST")) {
+
             throw new AccessDeniedException("No permission to create leave request");
         }
 
@@ -193,31 +194,39 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
                 .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + employeeId));
 
         EmployeeCategory category = employee.getEmployeeCategory();
-        Double totalPaidLeavesFromCategory = category != null && category.getTotalPaidLeave() != null ? category.getTotalPaidLeave() : 0.0;
-        Double totalUnpaidLeavesFromCategory = category != null && category.getTotalUnpaidLeave() != null ? category.getTotalUnpaidLeave() : 0.0;
 
-        Double paidLeave = 0.0;
-        Double unpaidLeave = 0.0;
-        Double totalLeaveRequired = 0.0;
+        double totalPaidLeavesFromCategory = category != null && category.getTotalPaidLeave() != null ? category.getTotalPaidLeave() : 0.0;
+        double totalUnpaidLeavesFromCategory = category != null && category.getTotalUnpaidLeave() != null ? category.getTotalUnpaidLeave() : 0.0;
 
-        List<EmployeeLeaveRequest> employeeLeaveRequests = repository.findByEmployeeIdAndIsDeletedFalse(employeeId);
+        double totalAppliedLeaves = 0.0;
+        double paidLeave = 0.0;
+        double unpaidLeave = 0.0;
+
+        // Get all non-deleted leave requests
+        List<EmployeeLeaveRequest> employeeLeaveRequests = repository.findByEmpIDAndIsDeletedFalse(employeeId);
+
         for (EmployeeLeaveRequest request : employeeLeaveRequests) {
-            paidLeave += request.getPaidleave() != null ? request.getPaidleave() : 0.0;
-            unpaidLeave += request.getUnpaidleave() != null ? request.getUnpaidleave() : 0.0;
-            totalLeaveRequired += request.getLeaveRequired() != null ? request.getLeaveRequired() : 0.0;
+            Double leaveRequired = request.getLeaveRequired() != null ? request.getLeaveRequired() : 0.0;
+            totalAppliedLeaves += leaveRequired;
+
+            if ("approved".equalsIgnoreCase(request.getStatus())) {
+                // Use actual paid/unpaid values saved during approval
+                paidLeave += request.getPaidleave() != null ? request.getPaidleave() : 0.0;
+                unpaidLeave += request.getUnpaidleave() != null ? request.getUnpaidleave() : 0.0;
+            }
         }
 
-        Double remainingPaidLeave = employee.getPaidleaves() != null ? employee.getPaidleaves() : 0.0;
+        double remainingPaidLeave = totalPaidLeavesFromCategory - paidLeave;
+        if (remainingPaidLeave < 0) remainingPaidLeave = 0;
 
         return new EmployeeLeaveSummaryDTO(
                 totalPaidLeavesFromCategory,
                 totalUnpaidLeavesFromCategory,
-                totalLeaveRequired,
+                totalAppliedLeaves,
                 paidLeave,
                 unpaidLeave,
                 remainingPaidLeave
         );
     }
-
 
 }

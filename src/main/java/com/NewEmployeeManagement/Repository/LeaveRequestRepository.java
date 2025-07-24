@@ -14,5 +14,6 @@ public interface LeaveRequestRepository extends JpaRepository<EmployeeLeaveReque
     @Query("SELECT l FROM EmployeeLeaveRequest l WHERE l.branchCode = :branchCode ORDER BY l.id DESC")
     List<EmployeeLeaveRequest> findAllByBranchCode(@Param("branchCode")String branchCode);
 
-    List<EmployeeLeaveRequest> findByEmployeeIdAndIsDeletedFalse(Long employeeId);
+    @Query("SELECT e FROM EmployeeLeaveRequest e WHERE e.empID = :empId AND e.isDeleted = false")
+    List<EmployeeLeaveRequest> findByEmpIDAndIsDeletedFalse(@Param("empId") Long empId);
 }
