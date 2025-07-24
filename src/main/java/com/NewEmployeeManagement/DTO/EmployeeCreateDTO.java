@@ -66,49 +66,4 @@ public class EmployeeCreateDTO {
     private AddressDTO address;
     private DocumentDTO document;
 
-
-
-    @Data
-    public static class AddressDTO {
-        private String country;
-        private String state;
-        private String district;
-        private String taluka;
-        private String city;
-        private int pinCode;
-        private String landmark;
-        private String currentAddress;
-        @JsonProperty("pCountry")
-        private String pcountry;
-
-        @JsonProperty("pState")
-        private String pstate;
-
-        @JsonProperty("pDistrict")
-        private String pdistrict;
-
-        @JsonProperty("pTaluka")
-        private String ptaluka;
-
-        @JsonProperty("pCity")
-        private String pcity;
-
-        @JsonProperty("pPinCode")
-        private int ppinCode;
-
-        @JsonProperty("pLandmark")
-        private String plandmark;
-
-        @JsonProperty("pAddress")
-        private String paddress;
-    }
-
-    @Data
-    public static class DocumentDTO {
-        private String idProof;
-        private String employeePhoto;
-        private String resume;
-        private String addressProof;
-        private String experienceLetter;
-    }
 }

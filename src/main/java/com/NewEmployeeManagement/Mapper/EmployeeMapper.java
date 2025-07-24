@@ -91,14 +91,14 @@ public class EmployeeMapper {
                     address.getPinCode(),
                     address.getLandmark(),
                     address.getCurrentAddress(),
-                    address.getPCountry(),
-                    address.getPState(),
-                    address.getPDistrict(),
-                    address.getPTaluka(),
-                    address.getPCity(),
-                    address.getPPinCode(),
-                    address.getPLandmark(),
-                    address.getPAddress()
+                    address.getPcountry(),
+                    address.getPstate(),
+                    address.getPdistrict(),
+                    address.getPtaluka(),
+                    address.getPcity(),
+                    address.getPpinCode(),
+                    address.getPlandmark(),
+                    address.getPaddress()
             );
         }
 

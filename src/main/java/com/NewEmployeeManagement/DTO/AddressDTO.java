@@ -22,12 +22,12 @@ public class AddressDTO
     private String landmark;
     private String currentAddress;
 
-    private String pCountry;
-    private String pState;
-    private String pDistrict;
-    private String pTaluka;
-    private String pCity;
-    private int pPinCode;
-    private String pLandmark;
-    private String pAddress;
+    private String pcountry;
+    private String pstate;
+    private String pdistrict;
+    private String ptaluka;
+    private String pcity;
+    private int ppinCode;
+    private String plandmark;
+    private String paddress;
 }

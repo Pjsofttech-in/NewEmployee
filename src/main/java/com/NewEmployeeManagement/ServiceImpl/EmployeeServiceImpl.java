@@ -1,5 +1,6 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
+import com.NewEmployeeManagement.DTO.AddressDTO;
 import com.NewEmployeeManagement.DTO.EmployeeCreateDTO;
 import com.NewEmployeeManagement.DTO.EmployeeFilterDTO;
 import com.NewEmployeeManagement.DTO.EmployeeResponseDTO;
@@ -246,7 +247,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         // Update Address
         if (dto.getAddress() != null) {
             EmployeeAddress address = existing.getEmployeeAddress() != null ? existing.getEmployeeAddress() : new EmployeeAddress();
-            EmployeeCreateDTO.AddressDTO dtoAddress = dto.getAddress();
+            AddressDTO dtoAddress = dto.getAddress();
 
             updateIfNotNull(address::setCountry, dtoAddress.getCountry());
             updateIfNotNull(address::setState, dtoAddress.getState());
@@ -256,14 +257,14 @@ public class EmployeeServiceImpl implements EmployeeService {
             if (dtoAddress.getPinCode() != 0) address.setPinCode(dtoAddress.getPinCode());
             updateIfNotNull(address::setLandmark, dtoAddress.getLandmark());
             updateIfNotNull(address::setCurrentAddress, dtoAddress.getCurrentAddress());
-            updateIfNotNull(address::setPCountry, dtoAddress.getPcountry());
-            updateIfNotNull(address::setPState, dtoAddress.getPstate());
-            updateIfNotNull(address::setPDistrict, dtoAddress.getPdistrict());
-            updateIfNotNull(address::setPTaluka, dtoAddress.getPtaluka());
-            updateIfNotNull(address::setPCity, dtoAddress.getPcity());
-            if (dtoAddress.getPpinCode() != 0) address.setPPinCode(dtoAddress.getPpinCode());
-            updateIfNotNull(address::setPLandmark, dtoAddress.getPlandmark());
-            updateIfNotNull(address::setPAddress, dtoAddress.getPaddress());
+            updateIfNotNull(address::setPcountry, dtoAddress.getPcountry());
+            updateIfNotNull(address::setPstate, dtoAddress.getPstate());
+            updateIfNotNull(address::setPdistrict, dtoAddress.getPdistrict());
+            updateIfNotNull(address::setPtaluka, dtoAddress.getPtaluka());
+            updateIfNotNull(address::setPcity, dtoAddress.getPcity());
+            if (dtoAddress.getPpinCode() != 0) address.setPpinCode(dtoAddress.getPpinCode());
+            updateIfNotNull(address::setPlandmark, dtoAddress.getPlandmark());
+            updateIfNotNull(address::setPaddress, dtoAddress.getPaddress());
 
             address.setEmployee(existing);
             existing.setEmployeeAddress(address);
