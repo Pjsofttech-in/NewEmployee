@@ -67,4 +67,12 @@ public class LeaveRequestController {
         return ResponseEntity.ok(summary);
     }
 
+    @GetMapping("/getAllLeavesByEmployeeId")
+    public ResponseEntity<List<EmployeeLeaveRequest>> getLeavesByEmployee(@RequestParam String role, @RequestParam String email,@RequestParam Long empID)
+    {
+        List<EmployeeLeaveRequest> leaveList = leaveRequestService.getAllLeaveRequestsByEmpId(role, email, empID);
+        return ResponseEntity.ok(leaveList);
+    }
+
+
 }

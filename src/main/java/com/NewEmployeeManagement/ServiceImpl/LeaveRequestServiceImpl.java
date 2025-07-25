@@ -122,6 +122,16 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
                 .orElseThrow(() -> new RuntimeException("LeaveRequest not found"));
     }
 
+
+    @Override
+    public List<EmployeeLeaveRequest> getAllLeaveRequestsByEmpId(String role, String email, Long empID)
+    {
+        if (!permissionService.hasPermission(role, email, "GET")) {
+            throw new AccessDeniedException("No permission to view leave request");
+        }
+        return repository.findByEmpIDAndIsDeletedFalse(empID);
+    }
+
 //    @Override
 //    public EmployeeLeaveRequest approveOrRejectLeave(Long leaveRequestId, String action, String role, String email) {
 //        if (!permissionService.hasPermission(role, email, "POST")) {

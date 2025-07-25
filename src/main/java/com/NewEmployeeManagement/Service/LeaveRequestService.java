@@ -15,4 +15,5 @@ public interface LeaveRequestService {
 
     EmployeeLeaveSummaryDTO getLeaveSummary(String role, String email,Long employeeId);
 
+    List<EmployeeLeaveRequest> getAllLeaveRequestsByEmpId(String role, String email, Long empID);
 }
