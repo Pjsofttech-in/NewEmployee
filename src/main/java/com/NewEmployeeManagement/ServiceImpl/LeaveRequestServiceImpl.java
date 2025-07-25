@@ -207,18 +207,20 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
     }
 
     @Override
-    public EmployeeLeaveSummaryDTO getLeaveSummary(String role, String email, Long employeeId)
-    {
+    public EmployeeLeaveSummaryDTO getLeaveSummary(String role, String email, Long employeeId) {
         if (!permissionService.hasPermission(role, email, "GET")) {
-            throw new AccessDeniedException("No permission to approve/reject leave");
+            throw new AccessDeniedException("No permission to view leave summary");
         }
+
         Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + employeeId));
 
         EmployeeCategory category = employee.getEmployeeCategory();
 
-        double totalPaidLeavesFromCategory = category != null && category.getTotalPaidLeave() != null ? category.getTotalPaidLeave() : 0.0;
-        double totalUnpaidLeavesFromCategory = category != null && category.getTotalUnpaidLeave() != null ? category.getTotalUnpaidLeave() : 0.0;
+        double totalPaidLeavesFromCategory = category != null && category.getTotalPaidLeave() != null
+                ? category.getTotalPaidLeave() : 0.0;
+        double totalUnpaidLeavesFromCategory = category != null && category.getTotalUnpaidLeave() != null
+                ? category.getTotalUnpaidLeave() : 0.0;
 
         double totalAppliedLeaves = 0.0;
         double paidLeave = 0.0;
@@ -232,10 +234,19 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
             totalAppliedLeaves += leaveRequired;
 
             if ("approved".equalsIgnoreCase(request.getStatus())) {
-                // Use actual paid/unpaid values saved during approval
-                paidLeave += request.getPaidleave() != null ? request.getPaidleave() : 0.0;
-                unpaidLeave += request.getUnpaidleave() != null ? request.getUnpaidleave() : 0.0;
+                if (paidLeave + leaveRequired <= totalPaidLeavesFromCategory) {
+                    paidLeave += leaveRequired;
+                } else {
+                    double remainingPaidQuota = totalPaidLeavesFromCategory - paidLeave;
+                    if (remainingPaidQuota > 0) {
+                        paidLeave += remainingPaidQuota;
+                        unpaidLeave += (leaveRequired - remainingPaidQuota);
+                    } else {
+                        unpaidLeave += leaveRequired;
+                    }
+                }
             }
+
         }
 
         double remainingPaidLeave = totalPaidLeavesFromCategory - paidLeave;
@@ -250,5 +261,6 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
                 remainingPaidLeave
         );
     }
+
 
 }
