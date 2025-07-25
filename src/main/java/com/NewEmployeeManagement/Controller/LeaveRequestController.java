@@ -55,10 +55,10 @@ public class LeaveRequestController {
 
     @PostMapping("/leaveStatus/{id}")
     public EmployeeLeaveRequest approveOrRejectLeave(@PathVariable Long id,
-                                                     @RequestParam String action,
+                                                     @RequestParam String status,
                                                      @RequestParam String role,
                                                      @RequestParam String email) {
-        return leaveRequestService.approveOrRejectLeave(id, action, role, email);
+        return leaveRequestService.updateLeaveStatus(id, status, role, email);
     }
 
     @GetMapping("/getLeaveSummary/{employeeId}")

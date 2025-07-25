@@ -122,69 +122,89 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
                 .orElseThrow(() -> new RuntimeException("LeaveRequest not found"));
     }
 
+//    @Override
+//    public EmployeeLeaveRequest approveOrRejectLeave(Long leaveRequestId, String action, String role, String email) {
+//        if (!permissionService.hasPermission(role, email, "POST")) {
+//            throw new AccessDeniedException("No permission to approve/reject leave");
+//        }
+//
+//        EmployeeLeaveRequest employeeLeaveRequest = repository.findById(leaveRequestId)
+//                .orElseThrow(() -> new RuntimeException("LeaveRequest not found"));
+//
+//        String normalizedAction = action.trim().toLowerCase();
+//        if (!normalizedAction.equals("approve") && !normalizedAction.equals("reject")) {
+//            throw new IllegalArgumentException("Invalid action. Must be 'approve' or 'reject'");
+//        }
+//
+//        Employee employee = employeeLeaveRequest.getEmployee();
+//
+//        // Determine leave days: 0.5 for half-day, otherwise full leaveRequired or default 1.0
+//        double leaveDays = "half-day".equalsIgnoreCase(employeeLeaveRequest.getDuration()) ? 0.5 :
+//                employeeLeaveRequest.getLeaveRequired() != null ? employeeLeaveRequest.getLeaveRequired() : 1.0;
+//
+//        if ("approve".equals(normalizedAction)) {
+//            if ("Paid".equalsIgnoreCase(employeeLeaveRequest.getLeaveType())) {
+//                double availablePaidLeave = employee.getPaidleaves() != null ? employee.getPaidleaves() : 0.0;
+//
+//                if (availablePaidLeave < leaveDays) {
+//                    throw new IllegalArgumentException("Not enough paid leave balance to approve");
+//                }
+//
+//                employee.setPaidleaves(availablePaidLeave - leaveDays);
+//                employeeLeaveRequest.setPaidleave(leaveDays);
+//                employeeLeaveRequest.setUnpaidleave(0.0);
+//
+//            } else if ("Unpaid".equalsIgnoreCase(employeeLeaveRequest.getLeaveType())) {
+//                double availableUnpaidLeave = employee.getUnpaidleaves() != null ? employee.getUnpaidleaves() : 0.0;
+//
+//                if (availableUnpaidLeave < leaveDays) {
+//                    throw new IllegalArgumentException("Not enough unpaid leave balance to approve");
+//                }
+//
+//                employee.setUnpaidleaves(availableUnpaidLeave - leaveDays);
+//                employeeLeaveRequest.setUnpaidleave(leaveDays);
+//                employeeLeaveRequest.setPaidleave(0.0);
+//
+//            } else {
+//                throw new IllegalArgumentException("Invalid leave type");
+//            }
+//
+//            employeeLeaveRequest.setLeaveRequired(leaveDays);
+//            employeeLeaveRequest.setStatus("Approved");
+//            employeeLeaveRequest.setTotalleavecount(leaveDays);
+//            employeeLeaveRequest.calculateToDateAndLeaveRequestDate();
+//
+//        } else {
+//            employeeLeaveRequest.setStatus("Rejected");
+//            employeeLeaveRequest.setPaidleave(0.0);
+//            employeeLeaveRequest.setUnpaidleave(0.0);
+//            employeeLeaveRequest.setTotalleavecount(0.0);
+//        }
+//
+//        employeeRepository.save(employee);
+//        return repository.save(employeeLeaveRequest);
+//    }
+
+
     @Override
-    public EmployeeLeaveRequest approveOrRejectLeave(Long leaveRequestId, String action, String role, String email) {
+    public EmployeeLeaveRequest updateLeaveStatus(Long leaveRequestId, String status, String role, String email) {
         if (!permissionService.hasPermission(role, email, "POST")) {
-            throw new AccessDeniedException("No permission to approve/reject leave");
+            throw new AccessDeniedException("No permission to update leave status");
         }
 
-        EmployeeLeaveRequest employeeLeaveRequest = repository.findById(leaveRequestId)
+        EmployeeLeaveRequest leaveRequest = repository.findById(leaveRequestId)
                 .orElseThrow(() -> new RuntimeException("LeaveRequest not found"));
 
-        String normalizedAction = action.trim().toLowerCase();
-        if (!normalizedAction.equals("approve") && !normalizedAction.equals("reject")) {
-            throw new IllegalArgumentException("Invalid action. Must be 'approve' or 'reject'");
+        String normalizedStatus = status.trim().toLowerCase();
+
+        if (!normalizedStatus.equals("approved") && !normalizedStatus.equals("rejected")) {
+            throw new IllegalArgumentException("Status must be 'Approved' or 'Rejected'");
         }
 
-        Employee employee = employeeLeaveRequest.getEmployee();
+        leaveRequest.setStatus(normalizedStatus.equals("approved") ? "Approved" : "Rejected");
 
-        // Determine leave days: 0.5 for half-day, otherwise full leaveRequired or default 1.0
-        double leaveDays = "half-day".equalsIgnoreCase(employeeLeaveRequest.getDuration()) ? 0.5 :
-                employeeLeaveRequest.getLeaveRequired() != null ? employeeLeaveRequest.getLeaveRequired() : 1.0;
-
-        if ("approve".equals(normalizedAction)) {
-            if ("Paid".equalsIgnoreCase(employeeLeaveRequest.getLeaveType())) {
-                double availablePaidLeave = employee.getPaidleaves() != null ? employee.getPaidleaves() : 0.0;
-
-                if (availablePaidLeave < leaveDays) {
-                    throw new IllegalArgumentException("Not enough paid leave balance to approve");
-                }
-
-                employee.setPaidleaves(availablePaidLeave - leaveDays);
-                employeeLeaveRequest.setPaidleave(leaveDays);
-                employeeLeaveRequest.setUnpaidleave(0.0);
-
-            } else if ("Unpaid".equalsIgnoreCase(employeeLeaveRequest.getLeaveType())) {
-                double availableUnpaidLeave = employee.getUnpaidleaves() != null ? employee.getUnpaidleaves() : 0.0;
-
-                if (availableUnpaidLeave < leaveDays) {
-                    throw new IllegalArgumentException("Not enough unpaid leave balance to approve");
-                }
-
-                employee.setUnpaidleaves(availableUnpaidLeave - leaveDays);
-                employeeLeaveRequest.setUnpaidleave(leaveDays);
-                employeeLeaveRequest.setPaidleave(0.0);
-
-            } else {
-                throw new IllegalArgumentException("Invalid leave type");
-            }
-
-            employeeLeaveRequest.setLeaveRequired(leaveDays);
-            employeeLeaveRequest.setStatus("Approved");
-            employeeLeaveRequest.setTotalleavecount(leaveDays);
-            employeeLeaveRequest.calculateToDateAndLeaveRequestDate();
-
-        } else {
-            employeeLeaveRequest.setStatus("Rejected");
-            employeeLeaveRequest.setPaidleave(0.0);
-            employeeLeaveRequest.setUnpaidleave(0.0);
-            employeeLeaveRequest.setTotalleavecount(0.0);
-        }
-
-        employeeRepository.save(employee);
-        return repository.save(employeeLeaveRequest);
+        return repository.save(leaveRequest);
     }
-
 
     @Override
     public EmployeeLeaveSummaryDTO getLeaveSummary(String role, String email, Long employeeId)

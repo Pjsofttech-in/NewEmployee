@@ -11,8 +11,7 @@ public interface LeaveRequestService {
     EmployeeLeaveRequest updateLeaveRequest(Long id, EmployeeLeaveRequest employeeLeaveRequest, String role, String email);
     void deleteLeaveRequest(Long id, String role, String email);
     EmployeeLeaveRequest getLeaveRequestById(Long id, String role, String email);
-
-    EmployeeLeaveRequest approveOrRejectLeave(Long leaveRequestId, String action, String role, String email);
+    EmployeeLeaveRequest updateLeaveStatus(Long leaveRequestId, String status, String role, String email);
 
     EmployeeLeaveSummaryDTO getLeaveSummary(String role, String email,Long employeeId);
 
