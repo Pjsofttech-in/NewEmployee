@@ -37,39 +37,31 @@ public class AttendenceController {
         return ResponseEntity.ok(result);
     }
 
-//    @PostMapping(value = "/employeeLogout", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-//    public ResponseEntity<String> markLogout(
-//            @RequestParam("image") MultipartFile image,
-//            @RequestParam("branch_code") String branchCode,
-//            @RequestParam("system_name") String systemName,
-//            HttpServletRequest request) {
-//
-//        try {
-//            EmployeeAttendence attendance = attendenceService.markLogout(image, branchCode, systemName, request);
-//            return ResponseEntity.ok("Logout successfully of id:"+attendance.getEmployee().getId());
-//        } catch (Exception e) {
-//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Logout failed: " + e.getMessage());
-//        }
-//    }
+    @PostMapping(value = "/employeeLogout", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<String> logoutEmployee(
+        @RequestParam MultipartFile image,
+        @RequestParam String branchCode,
+        HttpServletRequest request) {
+
+    String logoutIp = request.getRemoteAddr();
+    String result = attendenceService.logoutEmployeeFromFace(image, branchCode, logoutIp);
+    return ResponseEntity.ok(result);
+}
 
     @PostMapping(value = "/employeeBreakIn", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<String> markBreakIn(
-            @RequestParam("image") MultipartFile image,
-            @RequestParam("branch_code") String branchCode,
-            @RequestParam("system_name") String systemName,
-            HttpServletRequest request) {
-
-        return attendenceService.markBreakIn(image, branchCode, systemName, request);
+    public ResponseEntity<String> breakIn(
+            @RequestParam MultipartFile image,
+            @RequestParam String branchCode)
+    {
+        return ResponseEntity.ok(attendenceService.breakInEmployeeFromFace(image, branchCode));
     }
 
     @PostMapping(value = "/employeeBreakOut", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> markBreakOut(
-            @RequestParam("image") MultipartFile image,
-            @RequestParam("branch_code") String branchCode,
-            @RequestParam("system_name") String systemName,
-            HttpServletRequest request) {
+            @RequestParam MultipartFile image,
+            @RequestParam String branchCode)  {
 
-        return attendenceService.markBreakOut(image, branchCode, systemName, request);
+        return ResponseEntity.ok(attendenceService.breakOutEmployeeFromFace(image, branchCode));
     }
 
     @PostMapping("/AttendanceFilter")

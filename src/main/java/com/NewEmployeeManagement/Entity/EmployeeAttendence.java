@@ -30,7 +30,7 @@ public class EmployeeAttendence {
     private LocalTime breakIn;
     private LocalTime breakOut;
     private Long breakMinutes;
-    private Integer shiftMinutes;
+    private Integer totalMinutesWorked;
     private String workType;
     private String shiftStartTime;
     private String day;

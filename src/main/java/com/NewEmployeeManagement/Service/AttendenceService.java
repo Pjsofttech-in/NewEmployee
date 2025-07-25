@@ -14,13 +14,9 @@ import java.time.LocalDate;
 public interface AttendenceService {
 
     String markEmployeeAttendanceFromFace(MultipartFile image, String branchCode);
-
-//    EmployeeAttendence markLogout(MultipartFile image, String branchCode, String systemName, HttpServletRequest request);
-
-    ResponseEntity<String> markBreakIn(MultipartFile image, String branchCode, String systemName, HttpServletRequest request);
-
-    ResponseEntity<String> markBreakOut(MultipartFile image, String branchCode, String systemName, HttpServletRequest request);
-
+    String logoutEmployeeFromFace(MultipartFile image, String branchCode, String logoutIp);
+    String breakInEmployeeFromFace(MultipartFile image, String branchCode);
+    String breakOutEmployeeFromFace(MultipartFile image, String branchCode);
     AttendanceSummaryDTO getTodayAttendanceSummary(String branchCode);
 
     Page<EmployeeAttendence> getFilteredAttendance(AttendenceFilterDTO filter, String timeFrame, LocalDate startDate, LocalDate endDate, Pageable pageable);
