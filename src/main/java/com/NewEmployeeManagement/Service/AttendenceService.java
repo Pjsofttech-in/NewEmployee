@@ -13,9 +13,9 @@ import java.time.LocalDate;
 
 public interface AttendenceService {
 
-    ResponseEntity<String> markAttendance(MultipartFile image, String branchCode, String systemName, HttpServletRequest request,String workType);
+    String markEmployeeAttendanceFromFace(MultipartFile image, String branchCode);
 
-    EmployeeAttendence markLogout(MultipartFile image, String branchCode, String systemName, HttpServletRequest request);
+//    EmployeeAttendence markLogout(MultipartFile image, String branchCode, String systemName, HttpServletRequest request);
 
     ResponseEntity<String> markBreakIn(MultipartFile image, String branchCode, String systemName, HttpServletRequest request);
 

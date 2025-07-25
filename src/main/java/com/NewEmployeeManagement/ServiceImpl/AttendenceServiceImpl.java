@@ -56,21 +56,14 @@ public class AttendenceServiceImpl implements AttendenceService {
     private EmployeeRepository employeeRepository;
 
     @Override
-    public ResponseEntity<String> markAttendance(MultipartFile image, String branchCode, String systemName, HttpServletRequest request, String workType) {
-
+    public String markEmployeeAttendanceFromFace(MultipartFile image, String branchCode) {
         try {
-            if (!("Work From Home".equalsIgnoreCase(workType) || "Work From Office".equalsIgnoreCase(workType))) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body("Invalid work type. Please select either 'Work From Home' or 'Work From Office'.");
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+            String fastApiUrl = "https://pjsofttech.in:51443/auto-branch-scan";
 
-        try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
+            // Prepare multipart body
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             body.add("image", new ByteArrayResource(image.getBytes()) {
                 @Override
@@ -79,204 +72,186 @@ public class AttendenceServiceImpl implements AttendenceService {
                 }
             });
             body.add("branch_code", branchCode);
-            body.add("system_name", systemName);
 
             HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
-            ResponseEntity<String> response = restTemplate.postForEntity(pythonApiUrl, requestEntity, String.class);
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity<Map> response = restTemplate.postForEntity(fastApiUrl, requestEntity, Map.class);
 
-            String responseBody = response.getBody();
-            System.out.println("Python API response: " + responseBody);
+            Map<String, Object> responseBody = response.getBody();
 
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode root = mapper.readTree(responseBody);
-
-            String status = root.path("status").asText(null);
-            String empIdStr = root.path("empid").asText(null);
-
-            if (!"success".equalsIgnoreCase(status) || empIdStr == null) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body("Face not recognized or missing employee ID.");
+            if (responseBody == null || !"success".equals(responseBody.get("status"))) {
+                return "Face recognition failed";
             }
 
+            List<Map<String, Object>> matches = (List<Map<String, Object>>) responseBody.get("matches");
+            if (matches == null || matches.isEmpty()) {
+                return "No face match found";
+            }
+
+            Map<String, Object> firstMatch = matches.get(0);
+            String empIdStr = String.valueOf(firstMatch.get("empid"));
             Long empId = Long.parseLong(empIdStr);
-            Optional<Employee> employeeOpt = employeeRepository.findById(empId);
-            if (employeeOpt.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body("Employee not found for ID: " + empId);
+
+            LocalDate today = LocalDate.now();
+
+            // Fetch Employee
+            Employee employee = employeeRepository.findById(empId)
+                    .orElseThrow(() -> new RuntimeException("Employee not found"));
+
+            // Check if attendance already marked
+            Optional<EmployeeAttendence> existingAttendance = attendenceRepository.findByEmployeeAndTodaysDate(employee, today);
+            if (existingAttendance.isPresent()) {
+                return "Attendance already marked for: " + employee.getFullName();
             }
 
-            Employee employee = employeeOpt.get();
-            if (employee.isDeleted()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body("Employee not found for ID: " + empId);
-            }
+            LocalTime loginTime = LocalTime.now();
+            String shiftStartTimeStr = employee.getShiftStartTime(); // Example: "09:00"
+            LocalTime shiftStartTime = LocalTime.parse(shiftStartTimeStr); // Assumes correct format
+            LocalTime allowedTime = shiftStartTime.plusMinutes(5);
+            String status = loginTime.isAfter(allowedTime) ? "Late" : "OnTime";
 
-            if (attendenceRepository.existsByEmployee_IdAndTodaysDateAndStatus(employee.getId(), LocalDate.now(), "login")) {
-                return ResponseEntity.status(HttpStatus.CONFLICT)
-                        .body("Attendance already marked for today.");
-            }
-
-            LocalTime loginTime = LocalTime.now(ZoneId.of("Asia/Kolkata"));
-
+            String dayName = LocalDate.now().getDayOfWeek().toString();
+            // Create new attendance entry
             EmployeeAttendence attendance = new EmployeeAttendence();
-            attendance.setName(employee.getFullName());
-            attendance.setTodaysDate(LocalDate.now());
-            attendance.setLoginTime(loginTime);
-            attendance.setSystemName(systemName);
-            attendance.setIP(request.getRemoteAddr());
-            attendance.setShift(employee.getShift());
             attendance.setEmployee(employee);
+            attendance.setTodaysDate(today);
+            attendance.setLoginTime(loginTime);
+            attendance.setStatus(status);
+            attendance.setDay(dayName.charAt(0) + dayName.substring(1).toLowerCase());
+            attendance.setBranchCode(branchCode);
+            attendance.setName(employee.getFullName());
+            attendance.setEmail(employee.getEmpEmail());
+            attendance.setShift(employee.getShift());
             attendance.setShiftStartTime(employee.getShiftStartTime());
             attendance.setShiftEndTime(employee.getShiftEndTime());
-            attendance.setBranchCode(employee.getBranchCode());
-            attendance.setEmail(employee.getEmpEmail());
-            attendance.setWorkType(workType);
-
-            try {
-                String shiftStart = employee.getShiftStartTime(); // e.g., "09:30"
-                if (shiftStart != null && !shiftStart.isEmpty()) {
-                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
-                    LocalTime shiftStartTime = LocalTime.parse(shiftStart, formatter);
-                    if (loginTime.isAfter(shiftStartTime)) {
-                        attendance.setStatus("Late");
-                    } else {
-                        attendance.setStatus("On Time");
-                    }
-                } else {
-                    attendance.setStatus("N/A");
-                }
-            } catch (Exception e) {
-                attendance.setStatus("Error");
-                System.err.println("Late mark calculation failed: " + e.getMessage());
-            }
 
             attendenceRepository.save(attendance);
 
-            return ResponseEntity.ok("Attendance marked successfully for: " + employee.getFullName());
+            return "Attendance marked for employee: " + employee.getFullName();
 
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error while marking attendance: " + e.getMessage());
+            return "Failed to mark attendance: " + e.getMessage();
         }
     }
 
 
-    @Override
-    public EmployeeAttendence markLogout(MultipartFile image, String branchCode, String systemName, HttpServletRequest request) {
-        try {
-            // Call Python API
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
-            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-            body.add("image", new ByteArrayResource(image.getBytes()) {
-                @Override
-                public String getFilename() {
-                    return image.getOriginalFilename();
-                }
-            });
-            body.add("system_name", systemName);
-            body.add("branch_code", branchCode);
-
-            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-            ResponseEntity<String> response = restTemplate.postForEntity(pythonLogoutApiUrl, requestEntity, String.class);
-
-            if (!response.getStatusCode().is2xxSuccessful()) {
-                throw new RuntimeException("Python API logout failed with status: " + response.getStatusCode());
-            }
-
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode root = mapper.readTree(response.getBody());
-
-            String status = root.path("status").asText(null);
-            String empIdStr = root.path("empid").asText(null);
-            String logoutTimeStr = root.path("logout_time").asText(null);
-
-            if (!"success".equalsIgnoreCase(status) || empIdStr == null) {
-                throw new RuntimeException("Logout failed: Face not recognized or missing employee ID.");
-            }
-
-            Long empId = Long.parseLong(empIdStr);
-            Optional<Employee> employeeOpt = employeeRepository.findById(empId);
-            if (employeeOpt.isEmpty()) {
-                throw new RuntimeException("Employee not found for ID: " + empId);
-            }
-
-            Employee employee = employeeOpt.get();
-
-            // Fetch today's attendance record by employee ID and date
-            EmployeeAttendence attendance = attendenceRepository.findByEmailAndTodaysDate(employee.getEmpEmail(), LocalDate.now())
-                    .orElseThrow(() -> new RuntimeException("Attendance not found for today."));
-
-            if (attendance.getLogoutTime() != null) {
-                throw new RuntimeException("Logout already marked for today.");
-            }
-
-            // Use provided logout time or current time
-            LocalTime logoutTime = (logoutTimeStr != null && !logoutTimeStr.isEmpty())
-                    ? LocalTime.parse(logoutTimeStr)
-                    : LocalTime.now(ZoneId.of("Asia/Kolkata"));
-
-            attendance.setLogoutTime(logoutTime);
-            attendance.setLogoutIP(request.getRemoteAddr());
-            attendance.setStatus("Logout");
-
-            // Calculate shift duration
-            if (attendance.getLoginTime() != null) {
-                long minutes = ChronoUnit.MINUTES.between(attendance.getLoginTime(), logoutTime);
-                attendance.setShiftMinutes((int) minutes);
-            } else {
-                attendance.setShiftMinutes(0);
-            }
-
-            // After setting attendance.setShiftMinutes(...)
-            // After calculating actual shiftMinutes
-            if (attendance.getShiftStartTime() != null && attendance.getShiftEndTime() != null) {
-                try {
-                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
-                    LocalTime shiftStart = LocalTime.parse(attendance.getShiftStartTime(), formatter);
-                    LocalTime shiftEnd = LocalTime.parse(attendance.getShiftEndTime(), formatter);
-
-                    long expectedShiftMinutes = ChronoUnit.MINUTES.between(shiftStart, shiftEnd);
-                    long actualShiftMinutes = attendance.getShiftMinutes() != null ? attendance.getShiftMinutes() : 0;
-
-                    // Set overTime
-                    long overtime = actualShiftMinutes > expectedShiftMinutes
-                            ? actualShiftMinutes - expectedShiftMinutes
-                            : 0;
-                    attendance.setOverTime(overtime);
-
-                    // Calculate day
-                    if (actualShiftMinutes >= expectedShiftMinutes) {
-                        attendance.setDay(1.0);
-                    } else if (actualShiftMinutes >= (expectedShiftMinutes - 30)) {
-                        attendance.setDay(0.5);
-                    } else {
-                        attendance.setDay(0.0);
-                    }
-
-                } catch (Exception ex) {
-                    System.err.println("Error parsing shift times for overtime/day: " + ex.getMessage());
-                    attendance.setOverTime(0L);
-                    attendance.setDay(0.0);
-                }
-            } else {
-                // If shift times are not set
-                attendance.setDay(0.0);
-            }
-
-
-
-            return attendenceRepository.save(attendance);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Error during logout: " + e.getMessage());
-        }
-
-    }
+//    @Override
+//    public EmployeeAttendence markLogout(MultipartFile image, String branchCode, String systemName, HttpServletRequest request) {
+//        try {
+//            // Call Python API
+//            HttpHeaders headers = new HttpHeaders();
+//            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+//
+//            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+//            body.add("image", new ByteArrayResource(image.getBytes()) {
+//                @Override
+//                public String getFilename() {
+//                    return image.getOriginalFilename();
+//                }
+//            });
+//            body.add("system_name", systemName);
+//            body.add("branch_code", branchCode);
+//
+//            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+//            ResponseEntity<String> response = restTemplate.postForEntity(pythonLogoutApiUrl, requestEntity, String.class);
+//
+//            if (!response.getStatusCode().is2xxSuccessful()) {
+//                throw new RuntimeException("Python API logout failed with status: " + response.getStatusCode());
+//            }
+//
+//            ObjectMapper mapper = new ObjectMapper();
+//            JsonNode root = mapper.readTree(response.getBody());
+//
+//            String status = root.path("status").asText(null);
+//            String empIdStr = root.path("empid").asText(null);
+//            String logoutTimeStr = root.path("logout_time").asText(null);
+//
+//            if (!"success".equalsIgnoreCase(status) || empIdStr == null) {
+//                throw new RuntimeException("Logout failed: Face not recognized or missing employee ID.");
+//            }
+//
+//            Long empId = Long.parseLong(empIdStr);
+//            Optional<Employee> employeeOpt = employeeRepository.findById(empId);
+//            if (employeeOpt.isEmpty()) {
+//                throw new RuntimeException("Employee not found for ID: " + empId);
+//            }
+//
+//            Employee employee = employeeOpt.get();
+//
+//            // Fetch today's attendance record by employee ID and date
+//            EmployeeAttendence attendance = attendenceRepository.findByEmailAndTodaysDate(employee.getEmpEmail(), LocalDate.now())
+//                    .orElseThrow(() -> new RuntimeException("Attendance not found for today."));
+//
+//            if (attendance.getLogoutTime() != null) {
+//                throw new RuntimeException("Logout already marked for today.");
+//            }
+//
+//            // Use provided logout time or current time
+//            LocalTime logoutTime = (logoutTimeStr != null && !logoutTimeStr.isEmpty())
+//                    ? LocalTime.parse(logoutTimeStr)
+//                    : LocalTime.now(ZoneId.of("Asia/Kolkata"));
+//
+//            attendance.setLogoutTime(logoutTime);
+//            attendance.setLogoutIP(request.getRemoteAddr());
+//            attendance.setStatus("Logout");
+//
+//            // Calculate shift duration
+//            if (attendance.getLoginTime() != null) {
+//                long minutes = ChronoUnit.MINUTES.between(attendance.getLoginTime(), logoutTime);
+//                attendance.setShiftMinutes((int) minutes);
+//            } else {
+//                attendance.setShiftMinutes(0);
+//            }
+//
+//            // After setting attendance.setShiftMinutes(...)
+//            // After calculating actual shiftMinutes
+//            if (attendance.getShiftStartTime() != null && attendance.getShiftEndTime() != null) {
+//                try {
+//                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+//                    LocalTime shiftStart = LocalTime.parse(attendance.getShiftStartTime(), formatter);
+//                    LocalTime shiftEnd = LocalTime.parse(attendance.getShiftEndTime(), formatter);
+//
+//                    long expectedShiftMinutes = ChronoUnit.MINUTES.between(shiftStart, shiftEnd);
+//                    long actualShiftMinutes = attendance.getShiftMinutes() != null ? attendance.getShiftMinutes() : 0;
+//
+//                    // Set overTime
+//                    long overtime = actualShiftMinutes > expectedShiftMinutes
+//                            ? actualShiftMinutes - expectedShiftMinutes
+//                            : 0;
+//                    attendance.setOverTime(overtime);
+//
+//                    // Calculate day
+//                    if (actualShiftMinutes >= expectedShiftMinutes) {
+//                        attendance.setDay(1.0);
+//                    } else if (actualShiftMinutes >= (expectedShiftMinutes - 30)) {
+//                        attendance.setDay(0.5);
+//                    } else {
+//                        attendance.setDay(0.0);
+//                    }
+//
+//                } catch (Exception ex) {
+//                    System.err.println("Error parsing shift times for overtime/day: " + ex.getMessage());
+//                    attendance.setOverTime(0L);
+//                    attendance.setDay(0.0);
+//                }
+//            } else {
+//                // If shift times are not set
+//                attendance.setDay(0.0);
+//            }
+//
+//
+//
+//            return attendenceRepository.save(attendance);
+//
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            throw new RuntimeException("Error during logout: " + e.getMessage());
+//        }
+//
+//    }
 
     @Override
     public ResponseEntity<String> markBreakIn(MultipartFile image, String branchCode, String systemName, HttpServletRequest request) {

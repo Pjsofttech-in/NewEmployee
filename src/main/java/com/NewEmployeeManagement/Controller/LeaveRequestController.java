@@ -62,8 +62,8 @@ public class LeaveRequestController {
     }
 
     @GetMapping("/getLeaveSummary/{employeeId}")
-    public ResponseEntity<EmployeeLeaveSummaryDTO> getLeaveSummary(@PathVariable Long employeeId) {
-        EmployeeLeaveSummaryDTO summary = leaveRequestService.getLeaveSummary(employeeId);
+    public ResponseEntity<EmployeeLeaveSummaryDTO> getLeaveSummary(@RequestParam String role, @RequestParam String email,@PathVariable Long employeeId) {
+        EmployeeLeaveSummaryDTO summary = leaveRequestService.getLeaveSummary(role,email,employeeId);
         return ResponseEntity.ok(summary);
     }
 

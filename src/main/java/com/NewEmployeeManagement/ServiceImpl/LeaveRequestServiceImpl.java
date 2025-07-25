@@ -65,8 +65,6 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
     }
 
 
-
-
     @Override
     public List<EmployeeLeaveRequest> getAllLeaveRequests(String role, String email) {
         if (!permissionService.hasPermission(role, email, "GET")) {
@@ -189,7 +187,11 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
 
 
     @Override
-    public EmployeeLeaveSummaryDTO getLeaveSummary(Long employeeId) {
+    public EmployeeLeaveSummaryDTO getLeaveSummary(String role, String email, Long employeeId)
+    {
+        if (!permissionService.hasPermission(role, email, "GET")) {
+            throw new AccessDeniedException("No permission to approve/reject leave");
+        }
         Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + employeeId));
 

@@ -29,9 +29,9 @@ public interface AttendenceRepository extends JpaRepository<EmployeeAttendence, 
     @Query("SELECT a FROM EmployeeAttendence a WHERE a.todaysDate = :today AND a.status IN ('Late', 'On Time')")
     List<EmployeeAttendence> findPresentAttendances(@Param("today") LocalDate today);
 
-//    @Query("SELECT e.name FROM Employee e WHERE e.id NOT IN (SELECT a.employee.id FROM Attendence a WHERE a.todaysDate = :today)")
-//    List<String> findAbsentEmployeeNames(@Param("today") LocalDate today);
-
+    @Query("SELECT e FROM EmployeeAttendence e WHERE e.employee = :employee AND e.todaysDate = :date")
+    Optional<EmployeeAttendence> findByEmployeeAndTodaysDate(@Param("employee") Employee employee,
+                                                             @Param("date") LocalDate date);
     @Query("SELECT e FROM Employee e WHERE e.branchCode = :branchCode AND e.isDeleted = false AND e.id NOT IN (" +
             "SELECT a.employee.id FROM EmployeeAttendence a WHERE a.todaysDate = :today AND a.employee.branchCode = :branchCode)")
     List<Employee> findAbsentEmployees(@Param("today") LocalDate today, @Param("branchCode") String branchCode);

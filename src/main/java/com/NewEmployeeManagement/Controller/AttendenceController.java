@@ -30,30 +30,27 @@ public class AttendenceController {
 
 
     @PostMapping(value = "/markAttendanceForEmployee", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<String> markAttendance(
+    public ResponseEntity<String> markEmployeeAttendanceFromFace(
             @RequestParam("image") MultipartFile image,
-            @RequestParam("branch_code") String branchCode,
-            @RequestParam("system_name") String systemName,
-            @RequestParam("work_type") String workType,
-            HttpServletRequest request) {
-
-        return attendenceService.markAttendance(image, branchCode, systemName, request,workType);
+            @RequestParam("branchCode") String branchCode) {
+        String result = attendenceService.markEmployeeAttendanceFromFace(image, branchCode);
+        return ResponseEntity.ok(result);
     }
 
-    @PostMapping(value = "/employeeLogout", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<String> markLogout(
-            @RequestParam("image") MultipartFile image,
-            @RequestParam("branch_code") String branchCode,
-            @RequestParam("system_name") String systemName,
-            HttpServletRequest request) {
-
-        try {
-            EmployeeAttendence attendance = attendenceService.markLogout(image, branchCode, systemName, request);
-            return ResponseEntity.ok("Logout successfully of id:"+attendance.getEmployee().getId());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Logout failed: " + e.getMessage());
-        }
-    }
+//    @PostMapping(value = "/employeeLogout", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+//    public ResponseEntity<String> markLogout(
+//            @RequestParam("image") MultipartFile image,
+//            @RequestParam("branch_code") String branchCode,
+//            @RequestParam("system_name") String systemName,
+//            HttpServletRequest request) {
+//
+//        try {
+//            EmployeeAttendence attendance = attendenceService.markLogout(image, branchCode, systemName, request);
+//            return ResponseEntity.ok("Logout successfully of id:"+attendance.getEmployee().getId());
+//        } catch (Exception e) {
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Logout failed: " + e.getMessage());
+//        }
+//    }
 
     @PostMapping(value = "/employeeBreakIn", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> markBreakIn(

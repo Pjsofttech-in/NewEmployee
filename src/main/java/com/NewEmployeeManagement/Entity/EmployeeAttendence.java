@@ -23,7 +23,6 @@ public class EmployeeAttendence {
     private LocalTime LoginTime;
     private LocalTime LogoutTime;
     private String status;
-    private String systemName;
     private String systemIP;
     private String IP;       // Field for Wi-Fi IP
     private String logoutIP;
@@ -34,7 +33,7 @@ public class EmployeeAttendence {
     private Integer shiftMinutes;
     private String workType;
     private String shiftStartTime;
-    private Double day;
+    private String day;
     private String shiftEndTime;
     private Long overTime;
     private String branchCode;

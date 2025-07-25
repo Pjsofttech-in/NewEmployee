@@ -14,6 +14,6 @@ public interface LeaveRequestService {
 
     EmployeeLeaveRequest approveOrRejectLeave(Long leaveRequestId, String action, String role, String email);
 
-    EmployeeLeaveSummaryDTO getLeaveSummary(Long employeeId);
+    EmployeeLeaveSummaryDTO getLeaveSummary(String role, String email,Long employeeId);
 
 }
