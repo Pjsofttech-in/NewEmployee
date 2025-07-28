@@ -32,15 +32,15 @@ public class EmpQueryServiceImpl implements EmpQueryService {
         }
 
         String branchCode = permissionService.fetchBranchCode(role, email);
-
-        // 🔍 Check Employee existence
-        Employee employee = employeeRepository.findByEmpEmail(query.getEmail())
+        Employee employee = employeeRepository.findByEmpEmail(email)
                 .orElseThrow(() -> new RuntimeException("Employee with given email not found"));
 
         if (employee.isDeleted()) {
             throw new RuntimeException("Employee with given email is deleted");
         }
-
+        if("USER".equalsIgnoreCase(role)){
+            query.setEmail(email);
+        }
         query.setRole(role);
         query.setCreatedByEmail(email);
         query.setBranchCode(branchCode);
