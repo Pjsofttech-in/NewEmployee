@@ -56,8 +56,13 @@ public class EmpQueryServiceImpl implements EmpQueryService {
         if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to view queries");
         }
-        String branchCode = permissionService.fetchBranchCode(role, email);
-        return repository.findAllByBranchCode(branchCode);
+        if("USER".equalsIgnoreCase(role)){
+            return repository.findAllByEmail(email);
+        }
+        else {
+            String branchCode = permissionService.fetchBranchCode(role, email);
+            return repository.findAllByBranchCode(branchCode);
+        }
     }
 
     @Override

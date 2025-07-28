@@ -11,4 +11,6 @@ public interface EmpQueryRepository extends JpaRepository<EmployeeQuery, Long> {
     @Query("SELECT q FROM EmployeeQuery q WHERE q.branchCode = :branchCode ORDER BY q.id DESC")
     List<EmployeeQuery> findAllByBranchCode(String branchCode);
 
+    List<EmployeeQuery> findAllByEmail(String email);
+
 }
