@@ -11,4 +11,6 @@ public interface MemoRepository extends JpaRepository<EmployeeMemo, Long> {
 
     @Query("SELECT m FROM EmployeeMemo m WHERE m.branchCode = :branchCode AND m.isDeleted = false ORDER BY m.id DESC")
     List<EmployeeMemo> findAllByBranchCode(@Param("branchCode") String branchCode);
+
+    List<EmployeeMemo> findAllByEmail(String email);
 }
