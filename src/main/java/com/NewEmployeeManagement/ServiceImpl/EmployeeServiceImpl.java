@@ -362,20 +362,20 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
 
-    @Override
-    public Map<String, Object> getCrudPermissionForEmployeeByEmail(String empEmail) {
-        Optional<Employee> employeeOpt = repository.findByEmpEmail(empEmail);
-        if (employeeOpt.isPresent()) {
-            Employee employee = employeeOpt.get();
-            Map<String, Object> permissions = new HashMap<>();
-            permissions.put("candGet", employee.isCandGet());
-            permissions.put("candPost", employee.isCandPost());
-            permissions.put("candPut", employee.isCandPut());
-            permissions.put("candDelete", employee.isCandDelete());
-            return permissions;
-        }
-        throw new EntityNotFoundException("Employee not found with email: " + empEmail);
-    }
+//    @Override
+//    public Map<String, Object> getCrudPermissionForEmployeeByEmail(String empEmail) {
+//        Optional<Employee> employeeOpt = repository.findByEmpEmail(empEmail);
+//        if (employeeOpt.isPresent()) {
+//            Employee employee = employeeOpt.get();
+//            Map<String, Object> permissions = new HashMap<>();
+//            permissions.put("candGet", employee.isCandGet());
+//            permissions.put("candPost", employee.isCandPost());
+//            permissions.put("candPut", employee.isCandPut());
+//            permissions.put("candDelete", employee.isCandDelete());
+//            return permissions;
+//        }
+//        throw new EntityNotFoundException("Employee not found with email: " + empEmail);
+//    }
 
     @Override
     public Employee updateStatus(Long id, String status){

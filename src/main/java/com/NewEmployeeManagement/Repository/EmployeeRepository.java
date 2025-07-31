@@ -27,6 +27,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
 
     Optional<Employee> findByEmpEmail(String empEmail);
 
+    boolean existsByEmpEmail(String empEmail);
+
     @Query("SELECT e FROM Employee e JOIN e.employeeDocument d WHERE d.employeePhoto = :photo")
     Optional<Employee> findByEmployeePhoto(@Param("photo") String photo);
 

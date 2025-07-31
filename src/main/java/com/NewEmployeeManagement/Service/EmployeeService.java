@@ -32,7 +32,6 @@ public interface EmployeeService {
     void deleteEmployee(Long id, String role, String email);
     void carryForwardLeavesForEligibleEmployees();
 
-    Map<String, Object> getCrudPermissionForEmployeeByEmail(String empEmail);
     String getBranchCodeByEmail(String email);
     Employee updateStatus(Long id, String status);
 }

@@ -89,4 +89,14 @@ public class NoticeServiceImpl implements NoticeService {
         return repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Notice not found"));
     }
+
+    @Override
+    public List<EmployeeNotice> getNoticesByEmail(String role, String email)
+    {
+        if (!permissionService.hasPermission(role, email, "GET")) {
+            throw new AccessDeniedException("No permission to view notice");
+        }
+
+        return repository.findAllByEmailAndNotDeleted(email);
+    }
 }

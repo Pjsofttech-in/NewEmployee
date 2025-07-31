@@ -84,7 +84,7 @@ public class AttendenceController {
 
     @GetMapping("/TodayAttendaceSummary")
     public ResponseEntity<AttendanceSummaryDTO> getTodayAttendanceSummary(
-            @RequestParam("branch_code") String branchCode) {
+            @RequestParam String branchCode) {
         AttendanceSummaryDTO summary = attendenceService.getTodayAttendanceSummary(branchCode);
         return ResponseEntity.ok(summary);
     }

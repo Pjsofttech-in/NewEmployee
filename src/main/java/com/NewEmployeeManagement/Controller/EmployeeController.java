@@ -144,11 +144,11 @@ public class EmployeeController {
         return "Carry forward process completed for eligible employees.";
     }
 
-    @GetMapping("/permissions")
-    public ResponseEntity<Map<String, Object>> getCrudPermissions(@RequestParam String email) {
-        Map<String, Object> permissions = service.getCrudPermissionForEmployeeByEmail(email);
-        return ResponseEntity.ok(permissions);
-    }
+//    @GetMapping("/permissions")
+//    public ResponseEntity<Map<String, Object>> getCrudPermissions(@RequestParam String email) {
+//        Map<String, Object> permissions = service.getCrudPermissionForEmployeeByEmail(email);
+//        return ResponseEntity.ok(permissions);
+//    }
     @PutMapping("updateStatus/{id}")
     public ResponseEntity<Employee> updateStus(@PathVariable Long id,
                                                @RequestParam String Status){

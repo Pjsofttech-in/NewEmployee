@@ -1,5 +1,7 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
+import com.NewEmployeeManagement.Entity.Employee;
+import com.NewEmployeeManagement.Repository.EmployeeRepository;
 import com.NewEmployeeManagement.Service.EmployeeService;
 import com.NewEmployeeManagement.Service.PermissionService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class PermissionServiceImpl implements PermissionService {
@@ -17,7 +20,7 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Autowired
     @Lazy
-    EmployeeService employeeService;
+    EmployeeRepository employeeRepository;
 
     @Autowired
     WebClient webClient;
@@ -65,17 +68,21 @@ public class PermissionServiceImpl implements PermissionService {
                 };
             }
             case "USER" -> {
-                Map<String, Object> perms = employeeService.getCrudPermissionForEmployeeByEmail(email);
-                System.out.println("Permissions for USER: " + perms);
+                boolean emailExists = employeeRepository.existsByEmpEmail(email);
+
+                if (!emailExists) {
+                    System.out.println("Email does not exist: " + email);
+                    yield false; // Deny permission
+                }
+
+                System.out.println("Permissions for USER: All allowed for existing email " + email);
 
                 yield switch (action.toUpperCase()) {
-                    case "GET" -> Boolean.TRUE.equals(perms.get("candGet"));
-                    case "POST" -> Boolean.TRUE.equals(perms.get("candPost"));
-                    case "PUT" -> Boolean.TRUE.equals(perms.get("candPut"));
-                    case "DELETE" -> Boolean.TRUE.equals(perms.get("candDelete"));
+                    case "GET", "POST", "PUT", "DELETE" -> true;
                     default -> false;
                 };
             }
+
             default -> false;
         };
     }
@@ -91,8 +98,14 @@ public class PermissionServiceImpl implements PermissionService {
         String lowerRole = role.toLowerCase();
 
         if ("user".equals(lowerRole)) {
-            return employeeService.getBranchCodeByEmail(email);
+            Optional<Employee> employee = employeeRepository.findByEmpEmail(email);
+            if (employee.isPresent()) {
+                return employee.get().getBranchCode(); // ✅ correct field accessor
+            } else {
+                throw new RuntimeException("Employee not found for email: " + email);
+            }
         }
+
 
         String endpoint = roleToEndpoint.get(lowerRole);
         if (endpoint == null) {
