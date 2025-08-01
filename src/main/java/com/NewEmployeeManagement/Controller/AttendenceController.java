@@ -93,6 +93,8 @@ public class AttendenceController {
     @GetMapping("/getAttendanceByEmpId")
     public ResponseEntity<Page<EmployeeAttendence>> getAttendanceByEmpId(
             @RequestParam Long empId,
+            @RequestParam String role,
+            @RequestParam String email,
             @RequestParam(required = false) String timeFrame,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate customStartDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate customEndDate,
@@ -100,7 +102,7 @@ public class AttendenceController {
             @RequestParam(defaultValue = "10") int size
     ) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("todaysDate").descending());
-        Page<EmployeeAttendence> attendances = attendenceService.getAttendanceByEmpId(empId, timeFrame, customStartDate, customEndDate, pageable);
+        Page<EmployeeAttendence> attendances = attendenceService.getAttendanceByEmpId(empId, role, email, timeFrame, customStartDate, customEndDate, pageable);
         return ResponseEntity.ok(attendances);
     }
 

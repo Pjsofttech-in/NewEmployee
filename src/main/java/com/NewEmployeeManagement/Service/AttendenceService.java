@@ -19,6 +19,6 @@ public interface AttendenceService {
     String breakInEmployeeFromFace(MultipartFile image, String branchCode);
     String breakOutEmployeeFromFace(MultipartFile image, String branchCode);
     AttendanceSummaryDTO getTodayAttendanceSummary(String branchCode);
-    Page<EmployeeAttendence> getAttendanceByEmpId(Long empId, String timeFrame, LocalDate customStartDate, LocalDate customEndDate, Pageable pageable);
+    Page<EmployeeAttendence> getAttendanceByEmpId(Long empId, String role, String email,String timeFrame, LocalDate customStartDate, LocalDate customEndDate, Pageable pageable);
     Page<EmployeeAttendanceDTO> getFilteredEmployeeAttendance(AttendenceFilterDTO filterDTO, String role, String email, String timeFrame, LocalDate customStartDate, LocalDate customEndDate, Pageable pageable);
 }

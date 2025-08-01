@@ -331,7 +331,7 @@ public class AttendenceServiceImpl implements AttendenceService {
             Pageable pageable)
     {
         if (!permissionService.hasPermission(role, email, "Post")) {
-            throw new AccessDeniedException("No permission to view Get Count");
+            throw new AccessDeniedException("No permission to view Get Attendace");
         }
 
         // 1. Determine date range
@@ -480,7 +480,12 @@ public class AttendenceServiceImpl implements AttendenceService {
     }
 
     @Override
-    public Page<EmployeeAttendence> getAttendanceByEmpId(Long empId, String timeFrame, LocalDate customStartDate, LocalDate customEndDate, Pageable pageable) {
+    public Page<EmployeeAttendence> getAttendanceByEmpId(Long empId, String role, String email,String timeFrame, LocalDate customStartDate, LocalDate customEndDate, Pageable pageable) {
+
+        if (!permissionService.hasPermission(role, email, "Get")) {
+            throw new AccessDeniedException("No permission to view Get Attendace");
+        }
+
         LocalDate today = LocalDate.now();
         LocalDate startDate = null;
         LocalDate endDate = today;
