@@ -2,6 +2,8 @@ package com.NewEmployeeManagement.Repository;
 
 import com.NewEmployeeManagement.Entity.EmployeeAttendence;
 import com.NewEmployeeManagement.Entity.Employee;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -35,5 +37,15 @@ public interface AttendenceRepository extends JpaRepository<EmployeeAttendence, 
     @Query("SELECT e FROM Employee e WHERE e.branchCode = :branchCode AND e.isDeleted = false AND e.id NOT IN (" +
             "SELECT a.employee.id FROM EmployeeAttendence a WHERE a.todaysDate = :today AND a.employee.branchCode = :branchCode)")
     List<Employee> findAbsentEmployees(@Param("today") LocalDate today, @Param("branchCode") String branchCode);
+
+
+    @Query("SELECT a FROM EmployeeAttendence a WHERE a.employee.id = :empid")
+    Page<EmployeeAttendence> findByEmployeeId(@Param("empid") Long empid, Pageable pageable);
+
+    @Query("SELECT a FROM EmployeeAttendence a WHERE a.employee.id = :empid AND a.todaysDate BETWEEN :startDate AND :endDate")
+    Page<EmployeeAttendence> findByEmployeeIdAndTodaysDateBetween(@Param("empid") Long empid,
+                                                                  @Param("startDate") LocalDate startDate,
+                                                                  @Param("endDate") LocalDate endDate,
+                                                                  Pageable pageable);
 
 }

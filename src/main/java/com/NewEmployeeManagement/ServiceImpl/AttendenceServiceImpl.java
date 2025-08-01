@@ -2,6 +2,7 @@ package com.NewEmployeeManagement.ServiceImpl;
 
 import com.NewEmployeeManagement.DTO.AttendanceSummaryDTO;
 import com.NewEmployeeManagement.DTO.AttendenceFilterDTO;
+import com.NewEmployeeManagement.DTO.EmployeeAttendanceDTO;
 import com.NewEmployeeManagement.Entity.EmployeeAttendence;
 import com.NewEmployeeManagement.Entity.Employee;
 import com.NewEmployeeManagement.Pageination.AttendanceSpecification;
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.*;
@@ -24,10 +26,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.Duration;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneId;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -35,18 +34,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class AttendenceServiceImpl implements AttendenceService {
-
-    @Value("${employee.attendance.python-api-url}")
-    private String pythonApiUrl;
-
-    @Value("${employee.attendance-logout.python-api-url}")
-    private String pythonLogoutApiUrl;
-
-    @Value("${employee.attendance-breakin.python-api-url}")
-    private String pythonBreakInApiUrl;
-
-    @Value("${employee.attendance-breakout.python-api-url}")
-    private String pythonBreakOutApiUrl;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -330,17 +317,126 @@ public class AttendenceServiceImpl implements AttendenceService {
     }
 
     @Override
-    public Page<EmployeeAttendence> getFilteredAttendance(AttendenceFilterDTO filter, String timeFrame, LocalDate startDate, LocalDate endDate, Pageable pageable) {
+    public Page<EmployeeAttendanceDTO> getFilteredEmployeeAttendance(
+            AttendenceFilterDTO filterDTO,
+            String timeFrame,
+            LocalDate customStartDate,
+            LocalDate customEndDate,
+            Pageable pageable) {
 
-        if (timeFrame == null || timeFrame.isBlank()) {
-            timeFrame = "all";
+        // 1. Determine date range
+        LocalDate today = LocalDate.now();
+        LocalDate startDate = today;
+        LocalDate endDate = today;
+
+
+        switch (timeFrame != null ? timeFrame.toLowerCase() : "all") {
+            case "today" -> {
+                startDate = today;
+                endDate = today;
+            }
+            case "7days" -> {
+                startDate = today.minusDays(6);
+                endDate = today;
+            }
+            case "30days" -> {
+                startDate = today.minusDays(29);
+                endDate = today;
+            }
+            case "365days" -> {
+                startDate = today.minusDays(364);
+                endDate = today;
+            }
+            case "custom" -> {
+                if (customStartDate != null && customEndDate != null) {
+                    startDate = customStartDate;
+                    endDate = customEndDate;
+                }
+            }
+            case "all" -> {
+                startDate = employeeRepository.findEarliestJoiningDate()
+                        .orElse(today.minusYears(1));
+                endDate = today;
+            }
         }
 
-        Specification<EmployeeAttendence> spec =
-                AttendanceSpecification.build(filter, timeFrame, startDate, endDate);
 
-        return attendenceRepository.findAll(spec, pageable);
+        // 2. Fetch employees
+        List<Employee> employees = employeeRepository.findActiveEmployeesJoinedBeforeOrOn(endDate);
+
+        // 3. Filter by name (optional)
+        if (filterDTO != null && filterDTO.getName() != null && !filterDTO.getName().isBlank()) {
+            String name = filterDTO.getName().toLowerCase();
+            employees = employees.stream()
+                    .filter(emp -> emp.getFullName() != null && emp.getFullName().toLowerCase().contains(name))
+                    .collect(Collectors.toList());
+        }
+
+        // 4. Attendance from DB
+        var spec = AttendanceSpecification.build(filterDTO, timeFrame, customStartDate, customEndDate);
+        List<EmployeeAttendence> attendances = attendenceRepository.findAll(spec);
+
+        // 5. Map attendance
+        Map<String, EmployeeAttendence> attendanceMap = attendances.stream()
+                .collect(Collectors.toMap(
+                        a -> a.getEmployee().getId() + "_" + a.getTodaysDate(),
+                        a -> a
+                ));
+
+        List<EmployeeAttendanceDTO> combinedList = new ArrayList<>();
+
+        // 6. Combine employee + attendance for each date
+        for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+            for (Employee emp : employees) {
+                if (emp.getJoiningDate() != null && !date.isBefore(emp.getJoiningDate())) {
+                    String key = emp.getId() + "_" + date;
+                    EmployeeAttendence att = attendanceMap.get(key);
+
+                    EmployeeAttendanceDTO dto;
+                    if (date.getDayOfWeek() == DayOfWeek.SUNDAY) {
+                        dto = new EmployeeAttendanceDTO(emp.getId(), emp.getFullName(), emp.getEmpEmail(), date,
+                                "Sunday", null, null, null, null, 0L);
+                    } else if (att != null) {
+                        dto = new EmployeeAttendanceDTO(
+                                att.getEmployee().getId(),
+                                att.getName(),
+                                att.getEmail(),
+                                att.getTodaysDate(),
+                                att.getStatus(),
+                                att.getLoginTime(),
+                                att.getLogoutTime(),
+                                att.getBreakIn(),
+                                att.getBreakOut(),
+                                att.getBreakMinutes()
+                        );
+                    } else {
+                        dto = new EmployeeAttendanceDTO(emp.getId(), emp.getFullName(), emp.getEmpEmail(), date,
+                                "Absent", null, null, null, null, 0L);
+                    }
+
+                    combinedList.add(dto);
+                }
+            }
+        }
+
+
+        // 7. Filter by status
+        if (filterDTO != null && filterDTO.getStatus() != null && !filterDTO.getStatus().equalsIgnoreCase("All")) {
+            String status = filterDTO.getStatus().toLowerCase();
+            combinedList = combinedList.stream()
+                    .filter(dto -> dto.getStatus() != null && dto.getStatus().toLowerCase().equals(status))
+                    .toList();
+        }
+
+        // 8. Pagination
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), combinedList.size());
+        List<EmployeeAttendanceDTO> paged = (start < end) ? combinedList.subList(start, end) : List.of();
+
+
+        return new PageImpl<>(paged, pageable, combinedList.size());
     }
+
 
     @Override
     public AttendanceSummaryDTO getTodayAttendanceSummary(String branchCode) {
@@ -370,6 +466,43 @@ public class AttendenceServiceImpl implements AttendenceService {
                 absentNames.size(),
                 absentNames
         );
+    }
+
+    @Override
+    public Page<EmployeeAttendence> getAttendanceByEmpId(Long empId, String timeFrame, LocalDate customStartDate, LocalDate customEndDate, Pageable pageable) {
+        LocalDate today = LocalDate.now();
+        LocalDate startDate = null;
+        LocalDate endDate = today;
+
+        if (timeFrame == null || timeFrame.equalsIgnoreCase("all")) {
+            return attendenceRepository.findByEmployeeId(empId, pageable);
+        }
+
+        switch (timeFrame.toLowerCase()) {
+            case "today" -> {
+                startDate = today;
+            }
+            case "7days" -> {
+                startDate = today.minusDays(6);
+            }
+            case "30days" -> {
+                startDate = today.minusDays(29);
+            }
+            case "365days" -> {
+                startDate = today.minusDays(364);
+            }
+            case "custom" -> {
+                if (customStartDate != null && customEndDate != null) {
+                    startDate = customStartDate;
+                    endDate = customEndDate;
+                } else {
+                    throw new IllegalArgumentException("Custom date range requires both start and end dates.");
+                }
+            }
+            default -> throw new IllegalArgumentException("Invalid time frame value.");
+        }
+
+        return attendenceRepository.findByEmployeeIdAndTodaysDateBetween(empId, startDate, endDate, pageable);
     }
 
 }

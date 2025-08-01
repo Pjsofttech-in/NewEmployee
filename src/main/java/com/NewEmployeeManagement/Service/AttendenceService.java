@@ -2,6 +2,7 @@ package com.NewEmployeeManagement.Service;
 
 import com.NewEmployeeManagement.DTO.AttendanceSummaryDTO;
 import com.NewEmployeeManagement.DTO.AttendenceFilterDTO;
+import com.NewEmployeeManagement.DTO.EmployeeAttendanceDTO;
 import com.NewEmployeeManagement.Entity.EmployeeAttendence;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Page;
@@ -18,6 +19,6 @@ public interface AttendenceService {
     String breakInEmployeeFromFace(MultipartFile image, String branchCode);
     String breakOutEmployeeFromFace(MultipartFile image, String branchCode);
     AttendanceSummaryDTO getTodayAttendanceSummary(String branchCode);
-
-    Page<EmployeeAttendence> getFilteredAttendance(AttendenceFilterDTO filter, String timeFrame, LocalDate startDate, LocalDate endDate, Pageable pageable);
+    Page<EmployeeAttendence> getAttendanceByEmpId(Long empId, String timeFrame, LocalDate customStartDate, LocalDate customEndDate, Pageable pageable);
+    Page<EmployeeAttendanceDTO> getFilteredEmployeeAttendance(AttendenceFilterDTO filterDTO, String timeFrame, LocalDate customStartDate, LocalDate customEndDate, Pageable pageable);
 }

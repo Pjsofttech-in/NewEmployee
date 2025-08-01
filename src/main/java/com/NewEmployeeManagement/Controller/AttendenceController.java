@@ -2,6 +2,7 @@ package com.NewEmployeeManagement.Controller;
 
 import com.NewEmployeeManagement.DTO.AttendanceSummaryDTO;
 import com.NewEmployeeManagement.DTO.AttendenceFilterDTO;
+import com.NewEmployeeManagement.DTO.EmployeeAttendanceDTO;
 import com.NewEmployeeManagement.Entity.EmployeeAttendence;
 import com.NewEmployeeManagement.Service.AttendenceService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -65,19 +66,17 @@ public class AttendenceController {
     }
 
     @PostMapping("/AttendanceFilter")
-    public ResponseEntity<Page<EmployeeAttendence>> getAttendanceList(
+    public ResponseEntity<Page<EmployeeAttendanceDTO>> getAllEmployeeAttendance(
             @RequestParam(required = false) String timeFrame,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate customStartDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate customEndDate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestBody(required = false) AttendenceFilterDTO filter) {
+            @RequestBody(required = false) AttendenceFilterDTO filterDTO) {
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
-
-        Page<EmployeeAttendence> result = attendenceService.getFilteredAttendance(
-                filter, timeFrame, startDate, endDate, pageable
-        );
+        Pageable pageable = PageRequest.of(page, size);
+        Page<EmployeeAttendanceDTO> result = attendenceService.getFilteredEmployeeAttendance(
+                filterDTO, timeFrame, customStartDate, customEndDate, pageable);
 
         return ResponseEntity.ok(result);
     }
@@ -88,5 +87,20 @@ public class AttendenceController {
         AttendanceSummaryDTO summary = attendenceService.getTodayAttendanceSummary(branchCode);
         return ResponseEntity.ok(summary);
     }
+
+    @GetMapping("/getAttendanceByEmpId")
+    public ResponseEntity<Page<EmployeeAttendence>> getAttendanceByEmpId(
+            @RequestParam Long empId,
+            @RequestParam(required = false) String timeFrame,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate customStartDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate customEndDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("todaysDate").descending());
+        Page<EmployeeAttendence> attendances = attendenceService.getAttendanceByEmpId(empId, timeFrame, customStartDate, customEndDate, pageable);
+        return ResponseEntity.ok(attendances);
+    }
+
 
 }
