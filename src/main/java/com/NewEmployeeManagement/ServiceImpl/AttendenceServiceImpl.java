@@ -9,6 +9,7 @@ import com.NewEmployeeManagement.Pageination.AttendanceSpecification;
 import com.NewEmployeeManagement.Repository.AttendenceRepository;
 import com.NewEmployeeManagement.Repository.EmployeeRepository;
 import com.NewEmployeeManagement.Service.AttendenceService;
+import com.NewEmployeeManagement.Service.PermissionService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.*;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -42,6 +44,9 @@ public class AttendenceServiceImpl implements AttendenceService {
 
     @Autowired
     private EmployeeRepository employeeRepository;
+
+    @Autowired
+    private PermissionService permissionService;
 
     @Override
     public String markEmployeeAttendanceFromFace(MultipartFile image, String branchCode) {
@@ -319,16 +324,22 @@ public class AttendenceServiceImpl implements AttendenceService {
     @Override
     public Page<EmployeeAttendanceDTO> getFilteredEmployeeAttendance(
             AttendenceFilterDTO filterDTO,
+            String role, String email,
             String timeFrame,
             LocalDate customStartDate,
             LocalDate customEndDate,
-            Pageable pageable) {
+            Pageable pageable)
+    {
+        if (!permissionService.hasPermission(role, email, "Post")) {
+            throw new AccessDeniedException("No permission to view Get Count");
+        }
 
         // 1. Determine date range
         LocalDate today = LocalDate.now();
         LocalDate startDate = today;
         LocalDate endDate = today;
 
+        String branchCode = permissionService.fetchBranchCode(role, email);
 
         switch (timeFrame != null ? timeFrame.toLowerCase() : "all") {
             case "today" -> {
@@ -362,7 +373,7 @@ public class AttendenceServiceImpl implements AttendenceService {
 
 
         // 2. Fetch employees
-        List<Employee> employees = employeeRepository.findActiveEmployeesJoinedBeforeOrOn(endDate);
+        List<Employee> employees = employeeRepository.findActiveEmployeesByBranchCodeAndJoiningDate(branchCode, endDate);
 
         // 3. Filter by name (optional)
         if (filterDTO != null && filterDTO.getName() != null && !filterDTO.getName().isBlank()) {
@@ -373,7 +384,7 @@ public class AttendenceServiceImpl implements AttendenceService {
         }
 
         // 4. Attendance from DB
-        var spec = AttendanceSpecification.build(filterDTO, timeFrame, customStartDate, customEndDate);
+        var spec = AttendanceSpecification.build(filterDTO, timeFrame, branchCode,customStartDate, customEndDate);
         List<EmployeeAttendence> attendances = attendenceRepository.findAll(spec);
 
         // 5. Map attendance

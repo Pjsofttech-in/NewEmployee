@@ -67,8 +67,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
     Long countTotalEmployeesBetweenDatesAndBranchCode(LocalDateTime startDate, LocalDateTime endDate, String branchCode);
 
 
-    @Query("SELECT e FROM Employee e WHERE e.isDeleted = false AND e.joiningDate <= :endDate")
-    List<Employee> findActiveEmployeesJoinedBeforeOrOn(@Param("endDate") LocalDate endDate);
+    @Query("SELECT e FROM Employee e WHERE e.branchCode = :branchCode AND e.joiningDate <= :endDate AND e.isDeleted = false")
+    List<Employee> findActiveEmployeesByBranchCodeAndJoiningDate(@Param("branchCode") String branchCode, @Param("endDate") LocalDate endDate);
 
     @Query("SELECT MIN(e.joiningDate) FROM Employee e WHERE e.isDeleted = false")
     Optional<LocalDate> findEarliestJoiningDate();

@@ -12,7 +12,7 @@ import java.util.List;
 public class AttendanceSpecification
 {
     public static Specification<EmployeeAttendence> build(AttendenceFilterDTO filter,
-                                                          String timeFrame,
+                                                          String timeFrame, String branchCode,
                                                           LocalDate customStartDate,
                                                           LocalDate customEndDate) {
         return (root, query, cb) -> {
@@ -26,6 +26,7 @@ public class AttendanceSpecification
                     predicates.add(cb.equal(cb.lower(root.get("status")), filter.getStatus().toLowerCase()));
                 }
             }
+            predicates.add(cb.equal(root.get("branchCode"), branchCode));
 
             LocalDate today = LocalDate.now();
             switch (timeFrame != null ? timeFrame.toLowerCase() : "all") {

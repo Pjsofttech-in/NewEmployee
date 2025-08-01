@@ -67,6 +67,8 @@ public class AttendenceController {
 
     @PostMapping("/AttendanceFilter")
     public ResponseEntity<Page<EmployeeAttendanceDTO>> getAllEmployeeAttendance(
+            @RequestParam String role,
+            @RequestParam String email,
             @RequestParam(required = false) String timeFrame,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate customStartDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate customEndDate,
@@ -76,7 +78,7 @@ public class AttendenceController {
 
         Pageable pageable = PageRequest.of(page, size);
         Page<EmployeeAttendanceDTO> result = attendenceService.getFilteredEmployeeAttendance(
-                filterDTO, timeFrame, customStartDate, customEndDate, pageable);
+                filterDTO, role, email, timeFrame, customStartDate, customEndDate, pageable);
 
         return ResponseEntity.ok(result);
     }
