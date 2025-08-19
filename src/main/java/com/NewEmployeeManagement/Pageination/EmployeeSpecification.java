@@ -32,7 +32,8 @@ public class EmployeeSpecification
                     predicates.add(cb.equal(root.get("categoryName"), filter.getCategoryName()));
                 }
                 if (filter.getDesignation() != null) {
-                    predicates.add(cb.equal(root.get("designation"), filter.getDesignation()));
+                    predicates.add(cb.like(cb.lower(root.get("designation")),
+                            "%" + filter.getDesignation().toLowerCase() + "%"));
                 }
                 if (filter.getStatus() != null) {
                     predicates.add(cb.equal(root.get("status"), filter.getStatus()));
@@ -46,6 +47,9 @@ public class EmployeeSpecification
                 }
                 if (filter.getShift() != null) {
                     predicates.add(cb.equal(root.get("shift"), filter.getShift()));
+                }
+                if (filter.getEmployeeType() != null) {
+                    predicates.add(cb.equal(root.get("employeeType"), filter.getEmployeeType()));
                 }
             }
 

@@ -106,5 +106,12 @@ public class AttendenceController {
         return ResponseEntity.ok(attendances);
     }
 
+    @GetMapping("/getAttendaceCountForSalaryCalculation")
+    public Long getAttendanceCount(
+            @RequestParam Long empId,
+            @RequestParam int month,
+            @RequestParam int year) {
+        return attendenceService.getAttendanceCount(empId, month, year);
+    }
 
 }

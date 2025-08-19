@@ -95,7 +95,7 @@ public class AttendenceServiceImpl implements AttendenceService {
             // Check if attendance already marked
             Optional<EmployeeAttendence> existingAttendance = attendenceRepository.findByEmployeeAndTodaysDate(employee, today);
             if (existingAttendance.isPresent()) {
-                return "Attendance already marked for: " + employee.getFullName() +"With empId :" + empId;
+                return "Attendance already marked for: " + employee.getFullName() +" With empId :" + empId;
             }
 
             LocalTime loginTime = LocalTime.now();
@@ -121,7 +121,7 @@ public class AttendenceServiceImpl implements AttendenceService {
 
             attendenceRepository.save(attendance);
 
-            return "Attendance marked for employee: " + employee.getFullName() + "With empId :" + empId ;
+            return "Attendance marked for employee: " + employee.getFullName() + " With empId :" + empId ;
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -521,4 +521,8 @@ public class AttendenceServiceImpl implements AttendenceService {
         return attendenceRepository.findByEmployeeIdAndTodaysDateBetween(empId, startDate, endDate, pageable);
     }
 
+    @Override
+    public Long getAttendanceCount(Long empId, int month, int year) {
+        return attendenceRepository.getAttendanceCountByEmpIdAndMonthYear(empId, month, year);
+    }
 }

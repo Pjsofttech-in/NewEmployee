@@ -22,17 +22,17 @@ public class EmployeeCategory {
     private Long id;
 
     private String categoryName;
-    private BigDecimal hraPercentage;
-    private Double medicalAllowancePercentage;
-    private BigDecimal pfPercentage;
-    private BigDecimal esicPercentage;
-    private Double professionalTaxPercentage;
-    private Double incomeTaxPercentage;
+    private BigDecimal hraPercentage;   //percentage value
+    private Double medicalAllowancePercentage;  // percentage value
+    private BigDecimal pfPercentage;        //percentage value
+    private BigDecimal esicPercentage;  //percentage value
+    private Double professionalTaxPercentage;  //ruppess
+    private Double incomeTaxPercentage;     //percentage value
     private Double totalPaidLeave;
     private Double totalUnpaidLeave;
     private boolean isDeleted = false;
     private Double pt;
-    private Double insentive;
+    private Double insentive;           //ruppess
     private Double tds;
     private Double ta;
     private Double companyFund;

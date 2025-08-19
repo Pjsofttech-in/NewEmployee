@@ -22,9 +22,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -49,6 +54,9 @@ public class EmployeeServiceImpl implements EmployeeService {
     EmployeeCategoryRepository employeeCategoryRepository;
 
     @Autowired
+    private RestTemplate restTemplate;
+
+    @Autowired
     private PermissionService permissionService;
 
     @Autowired
@@ -58,6 +66,8 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Autowired
      EmployeeMapper employeeMapper;
+
+
 
 
     private String saveFileToStorageOrReturnName(MultipartFile file) {
@@ -159,12 +169,14 @@ public class EmployeeServiceImpl implements EmployeeService {
             savedEmployee.setEmployeeDocument(employeeDocument);
 
             savedEmployee = repository.save(savedEmployee);
+            refreshCacheUpload("employee-sys", branchCode, savedEmployee.getId());
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to upload documents", e); // rollback will be triggered
         }
 
         return savedEmployee;
+
     }
 
 
@@ -312,6 +324,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
                 document.setEmployee(existing);
                 existing.setEmployeeDocument(document);
+                refreshCacheUpload("employee-sys", branchCode, existing.getId());
 
 //            }
         } catch (IOException e) {
@@ -331,7 +344,9 @@ public class EmployeeServiceImpl implements EmployeeService {
     public void deleteEmployee(Long id, String role, String email) {
         if (!permissionService.hasPermission(role, email, "DELETE")) throw new AccessDeniedException("No permission");
         Employee emp = repository.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
+        String branchCode = permissionService.fetchBranchCode(role, email);
         emp.setDeleted(true);
+        refreshCacheUpload("employee-sys", branchCode, emp.getId());
         repository.save(emp);
     }
 
@@ -394,5 +409,30 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
         return employee.getBranchCode();
     }
+
+    private void refreshCacheUpload(String systemName, String branchCode, Long empId) {
+        try {
+            String url = "https://pjsofttech.in:51443/refresh-cache-upload";
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("system_name", systemName);
+            body.put("branch_code", branchCode);
+            body.put("empid", String.valueOf(empId));
+            body.put("token", "python-java-token-123");
+
+            HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+
+            ResponseEntity<String> response = restTemplate.postForEntity(url, requestEntity, String.class);
+
+            System.out.println("✅ Python API response: " + response.getBody());
+        } catch (Exception e) {
+            System.out.println("❌ Error calling Python API: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
 
 }

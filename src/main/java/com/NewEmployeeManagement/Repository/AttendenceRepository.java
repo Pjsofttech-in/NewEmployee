@@ -48,4 +48,10 @@ public interface AttendenceRepository extends JpaRepository<EmployeeAttendence, 
                                                                   @Param("endDate") LocalDate endDate,
                                                                   Pageable pageable);
 
+    @Query("SELECT COUNT(e) FROM EmployeeAttendence e " +
+            "WHERE e.employee.id = :empId " +
+            "AND FUNCTION('MONTH', e.todaysDate) = :month " +
+            "AND FUNCTION('YEAR', e.todaysDate) = :year")
+    Long getAttendanceCountByEmpIdAndMonthYear(@Param("empId") Long empId, @Param("month") int month, @Param("year") int year);
+
 }

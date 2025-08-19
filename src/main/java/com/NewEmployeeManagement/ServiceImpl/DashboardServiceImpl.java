@@ -60,13 +60,11 @@ public class DashboardServiceImpl implements DashboardService
             default -> throw new IllegalArgumentException("Invalid filter type: " + filter);
         }
 
-        // Convert to LocalDateTime range
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
 
         Long total = employeeRepository.countTotalEmployeesBetweenDatesAndBranchCode(startDateTime, endDateTime, branchCode);
 
-        // Call updated methods
         List<Object[]> statusList = employeeRepository.countByStatusBetweenDatesAndBranchCode(startDateTime, endDateTime,branchCode);
         List<Object[]> deptList = employeeRepository.countByDepartmentJoinedBetweenDatesAndBranchCode(startDateTime, endDateTime,branchCode);
         List<Object[]> categoryList = employeeRepository.countByCategoryJoinedBetweenDatesAndBranchCode(startDateTime, endDateTime,branchCode);
@@ -75,14 +73,12 @@ public class DashboardServiceImpl implements DashboardService
         statusMap.put("Joined", 0L);
         statusMap.put("Terminated", 0L);
 
-        // Override defaults if present in DB results
         for (Object[] obj : statusList) {
             String status = (String) obj[0];
             Long count = (Long) obj[1];
             statusMap.put(status, count);
         }
 
-        // Add total count as "total"
         statusMap.put("total", total);
 
         Map<String, Long> deptMap = new HashMap<>();

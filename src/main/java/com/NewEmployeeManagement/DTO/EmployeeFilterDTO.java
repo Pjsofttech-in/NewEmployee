@@ -13,5 +13,6 @@ public class EmployeeFilterDTO {
     private String fullName;
     private String dutyType;
     private String shift;
+    private String employeeType;
 
 }

@@ -21,4 +21,5 @@ public interface AttendenceService {
     AttendanceSummaryDTO getTodayAttendanceSummary(String branchCode);
     Page<EmployeeAttendence> getAttendanceByEmpId(Long empId, String role, String email,String timeFrame, LocalDate customStartDate, LocalDate customEndDate, Pageable pageable);
     Page<EmployeeAttendanceDTO> getFilteredEmployeeAttendance(AttendenceFilterDTO filterDTO, String role, String email, String timeFrame, LocalDate customStartDate, LocalDate customEndDate, Pageable pageable);
+    Long getAttendanceCount(Long empId, int month, int year);
 }
