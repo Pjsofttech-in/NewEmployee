@@ -28,14 +28,14 @@ public class EmployeeCategory {
     private BigDecimal esicPercentage;  //percentage value
     private Double professionalTaxPercentage;  //ruppess
     private Double incomeTaxPercentage;     //percentage value
+    private Double insentive;           //ruppess
+    private Double tds;                 //percent
+    private Double ta;                   //travelling allowance ruppess
+    private Double companyFund;            // ruppess
     private Double totalPaidLeave;
     private Double totalUnpaidLeave;
     private boolean isDeleted = false;
-    private Double pt;
-    private Double insentive;           //ruppess
-    private Double tds;
-    private Double ta;
-    private Double companyFund;
+
     @Email
     private String createdByEmail;
     private String role;

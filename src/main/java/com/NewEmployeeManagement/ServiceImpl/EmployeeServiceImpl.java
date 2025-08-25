@@ -1,9 +1,6 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
-import com.NewEmployeeManagement.DTO.AddressDTO;
-import com.NewEmployeeManagement.DTO.EmployeeCreateDTO;
-import com.NewEmployeeManagement.DTO.EmployeeFilterDTO;
-import com.NewEmployeeManagement.DTO.EmployeeResponseDTO;
+import com.NewEmployeeManagement.DTO.*;
 import com.NewEmployeeManagement.Entity.*;
 import com.NewEmployeeManagement.Mapper.EmployeeMapper;
 import com.NewEmployeeManagement.Pageination.EmployeeSpecification;
@@ -29,6 +26,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -36,10 +35,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Consumer;
 
 @Service
@@ -417,14 +413,15 @@ public class EmployeeServiceImpl implements EmployeeService {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
-            Map<String, Object> body = new HashMap<>();
-            body.put("system_name", systemName);
-            body.put("branch_code", branchCode);
-            body.put("empid", String.valueOf(empId));
-            body.put("token", "python-java-token-123");
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("system_name", systemName);
+            body.add("branch_code", branchCode);
+            body.add("empid", String.valueOf(empId));
+            body.add("token", "python-java-token-123");
 
-            HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
+            RestTemplate restTemplate = new RestTemplate();
             ResponseEntity<String> response = restTemplate.postForEntity(url, requestEntity, String.class);
 
             System.out.println("✅ Python API response: " + response.getBody());
@@ -434,5 +431,10 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
     }
 
+    @Override
+    public List<EmployeeBirthdayDTO> getUpcomingBirthdays(String branchCode)
+    {
+        return repository.findUpcomingBirthdays(branchCode);
+    }
 
 }

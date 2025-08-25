@@ -1,8 +1,6 @@
 package com.NewEmployeeManagement.Service;
 
-import com.NewEmployeeManagement.DTO.EmployeeCreateDTO;
-import com.NewEmployeeManagement.DTO.EmployeeFilterDTO;
-import com.NewEmployeeManagement.DTO.EmployeeResponseDTO;
+import com.NewEmployeeManagement.DTO.*;
 import com.NewEmployeeManagement.Entity.Employee;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,4 +32,6 @@ public interface EmployeeService {
 
     String getBranchCodeByEmail(String email);
     Employee updateStatus(Long id, String status);
+
+    List<EmployeeBirthdayDTO> getUpcomingBirthdays(String branchCode);
 }

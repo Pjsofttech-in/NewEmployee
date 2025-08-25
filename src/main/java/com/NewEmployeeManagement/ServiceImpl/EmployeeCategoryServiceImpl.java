@@ -66,7 +66,7 @@ public class EmployeeCategoryServiceImpl implements EmployeeCategoryService {
         existing.setTotalPaidLeave(category.getTotalPaidLeave() != null ? category.getTotalPaidLeave() : existing.getTotalPaidLeave());
         existing.setTotalUnpaidLeave(category.getTotalUnpaidLeave() != null ? category.getTotalUnpaidLeave() : existing.getTotalUnpaidLeave());
         existing.setInsentive(category.getInsentive() !=null? category.getInsentive() : existing.getInsentive());
-        existing.setPt(category.getPt() !=null? category.getPt() : existing.getPt());
+
         existing.setTds(category.getTds() !=null? category.getTds() : existing.getTds());
         existing.setTa(category.getTa() !=null? category.getTa() : existing.getTa());
         existing.setCompanyFund(category.getCompanyFund() !=null? category.getCompanyFund() : existing.getCompanyFund());

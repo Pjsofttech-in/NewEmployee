@@ -1,5 +1,7 @@
 package com.NewEmployeeManagement.Repository;
 
+import com.NewEmployeeManagement.DTO.BirthdayDTO;
+import com.NewEmployeeManagement.DTO.EmployeeBirthdayDTO;
 import com.NewEmployeeManagement.Entity.Employee;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -72,5 +74,16 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
 
     @Query("SELECT MIN(e.joiningDate) FROM Employee e WHERE e.isDeleted = false")
     Optional<LocalDate> findEarliestJoiningDate();
+
+    @Query(value = """
+            SELECT e.full_name as fullName, e.dob as dob, e.department as department, e.category_name as categoryName
+            FROM employee e
+            WHERE e.branch_code = :branchCode
+              AND DATE_FORMAT(e.dob, '%m-%d') 
+                  BETWEEN DATE_FORMAT(CURDATE(), '%m-%d') 
+                  AND DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 7 DAY), '%m-%d')
+            """, nativeQuery = true)
+    List<EmployeeBirthdayDTO> findUpcomingBirthdays(@Param("branchCode") String branchCode);
+
 
 }

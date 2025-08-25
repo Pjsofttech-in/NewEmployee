@@ -1,8 +1,6 @@
 package com.NewEmployeeManagement.Controller;
 
-import com.NewEmployeeManagement.DTO.EmployeeCreateDTO;
-import com.NewEmployeeManagement.DTO.EmployeeFilterDTO;
-import com.NewEmployeeManagement.DTO.EmployeeResponseDTO;
+import com.NewEmployeeManagement.DTO.*;
 import com.NewEmployeeManagement.Entity.Employee;
 import com.NewEmployeeManagement.Pageination.EmployeeSpecification;
 import com.NewEmployeeManagement.Service.EmployeeService;
@@ -23,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -154,5 +153,10 @@ public class EmployeeController {
     public ResponseEntity<Employee> updateStus(@PathVariable Long id,
                                                @RequestParam String Status){
         return ResponseEntity.ok(service.updateStatus(id, Status));
+    }
+
+    @GetMapping("/upcomingEmployeeBirthdays")
+    public List<EmployeeBirthdayDTO> getUpcomingBirthdays(@RequestParam String branchCode) {
+        return service.getUpcomingBirthdays(branchCode);
     }
 }
