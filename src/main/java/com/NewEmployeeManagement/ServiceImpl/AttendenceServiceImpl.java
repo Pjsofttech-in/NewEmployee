@@ -525,4 +525,75 @@ public class AttendenceServiceImpl implements AttendenceService {
     public Long getAttendanceCount(Long empId, int month, int year) {
         return attendenceRepository.getAttendanceCountByEmpIdAndMonthYear(empId, month, year);
     }
+
+
+
+    @Override
+    public String markEmployeeAttendanceManually(List<Long> empIds, String role, String email)
+    {
+        if (!permissionService.hasPermission(role, email, "Get")) {
+            throw new AccessDeniedException("No permission to view Get Attendace");
+        }
+
+        String branchCode = permissionService.fetchBranchCode(role, email);
+        try {
+            LocalDate today = LocalDate.now();
+            LocalTime loginTime = LocalTime.now();
+            String dayName = today.getDayOfWeek().toString();
+            String formattedDay = dayName.charAt(0) + dayName.substring(1).toLowerCase();
+
+            StringBuilder resultMessage = new StringBuilder();
+
+            for (Long empId : empIds) {
+                // Fetch employee
+                Employee employee = employeeRepository.findById(empId)
+                        .orElseThrow(() -> new RuntimeException("Employee not found with empId: " + empId));
+
+                // Check if attendance already marked
+                Optional<EmployeeAttendence> existingAttendance =
+                        attendenceRepository.findByEmployeeAndTodaysDate(employee, today);
+
+                if (existingAttendance.isPresent()) {
+                    resultMessage.append("Attendance already marked for: ")
+                            .append(employee.getFullName())
+                            .append(" (empId: ").append(empId).append(")\n");
+                    continue;
+                }
+
+                // Calculate status (OnTime / Late)
+                String shiftStartTimeStr = employee.getShiftStartTime(); // e.g. "09:00"
+                LocalTime shiftStartTime = LocalTime.parse(shiftStartTimeStr);
+                LocalTime allowedTime = shiftStartTime.plusMinutes(5);
+                String status = loginTime.isAfter(allowedTime) ? "Late" : "OnTime";
+
+                // Create attendance entry
+                EmployeeAttendence attendance = new EmployeeAttendence();
+                attendance.setEmployee(employee);
+                attendance.setTodaysDate(today);
+                attendance.setLoginTime(loginTime);
+                attendance.setStatus(status);
+                attendance.setDay(formattedDay);
+                attendance.setBranchCode(branchCode);
+                attendance.setName(employee.getFullName());
+                attendance.setEmail(employee.getEmpEmail());
+                attendance.setShift(employee.getShift());
+                attendance.setShiftStartTime(employee.getShiftStartTime());
+                attendance.setShiftEndTime(employee.getShiftEndTime());
+
+                attendenceRepository.save(attendance);
+
+                resultMessage.append("Attendance marked for: ")
+                        .append(employee.getFullName())
+                        .append(" (empId: ").append(empId).append(")\n");
+            }
+
+            return resultMessage.toString();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Failed to mark attendance: " + e.getMessage();
+        }
+    }
+
+
 }

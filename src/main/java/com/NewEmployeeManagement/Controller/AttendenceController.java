@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.util.List;
 
 
 @RestController
@@ -113,5 +114,16 @@ public class AttendenceController {
             @RequestParam int year) {
         return attendenceService.getAttendanceCount(empId, month, year);
     }
+
+
+    @PostMapping("/markAttendanceEmployeeManually")
+    public ResponseEntity<String> markAttendanceManual(
+            @RequestParam List<Long> empIds,
+            @RequestParam String role,
+            @RequestParam String email) {
+        String response = attendenceService.markEmployeeAttendanceManually(empIds, role, email);
+        return ResponseEntity.ok(response);
+    }
+
 
 }

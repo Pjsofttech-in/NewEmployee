@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.util.List;
 
 public interface AttendenceService {
 
@@ -22,4 +23,6 @@ public interface AttendenceService {
     Page<EmployeeAttendence> getAttendanceByEmpId(Long empId, String role, String email,String timeFrame, LocalDate customStartDate, LocalDate customEndDate, Pageable pageable);
     Page<EmployeeAttendanceDTO> getFilteredEmployeeAttendance(AttendenceFilterDTO filterDTO, String role, String email, String timeFrame, LocalDate customStartDate, LocalDate customEndDate, Pageable pageable);
     Long getAttendanceCount(Long empId, int month, int year);
+    String markEmployeeAttendanceManually(List<Long> empIds, String role, String email);
+
 }
