@@ -215,7 +215,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         // Update main employee fields
         updateIfNotNull(existing::setFullName, dto.getFullName());
         updateIfNotNull(existing::setEmpEmail, dto.getEmpEmail());
-        updateIfNotNull(existing::setPassword, dto.getPassword());
+        updateIfNotNull(existing::setPassword, passwordEncoder.encode(dto.getPassword()));
         updateIfNotNull(existing::setDob, dto.getDob());
         updateIfNotNull(existing::setMobileNo, dto.getMobileNo());
         updateIfNotNull(existing::setParentNo, dto.getParentNo());

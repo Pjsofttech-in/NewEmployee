@@ -74,7 +74,7 @@ public class AttendenceServiceImpl implements AttendenceService {
             Map<String, Object> responseBody = response.getBody();
 
             if (responseBody == null || !"success".equals(responseBody.get("status"))) {
-                return "Face recognition failed";
+                return "Face recognition failed Or No face match Found";
             }
 
             List<Map<String, Object>> matches = (List<Map<String, Object>>) responseBody.get("matches");
