@@ -29,7 +29,7 @@ public class EmployeeCategory {
     private BigDecimal incomeTaxPercentage;     //percentage value
     private BigDecimal tds;                 //percent
 //    private BigDecimal insentive;           //ruppess
-//    private BigDecimal professionalTaxPercentage;  //ruppess
+    private BigDecimal professionalTaxPercentage;  //ruppess
 //    private BigDecimal ta;                   //travelling allowance ruppess
 //    private BigDecimal companyFund;            // ruppess
     private Double totalPaidLeave;

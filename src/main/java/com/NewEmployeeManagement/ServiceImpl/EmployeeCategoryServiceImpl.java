@@ -65,11 +65,11 @@ public class EmployeeCategoryServiceImpl implements EmployeeCategoryService {
         existing.setIncomeTaxPercentage(category.getIncomeTaxPercentage() != null ? category.getIncomeTaxPercentage() : existing.getIncomeTaxPercentage());
         existing.setTotalPaidLeave(category.getTotalPaidLeave() != null ? category.getTotalPaidLeave() : existing.getTotalPaidLeave());
         existing.setTotalUnpaidLeave(category.getTotalUnpaidLeave() != null ? category.getTotalUnpaidLeave() : existing.getTotalUnpaidLeave());
-        existing.setInsentive(category.getInsentive() !=null? category.getInsentive() : existing.getInsentive());
+//        existing.setInsentive(category.getInsentive() !=null? category.getInsentive() : existing.getInsentive());
         existing.setTds((category.getTds() !=null? category.getTds() : existing.getTds()));
         existing.setTds(category.getTds() !=null? category.getTds() : existing.getTds());
-        existing.setTa(category.getTa() !=null? category.getTa() : existing.getTa());
-        existing.setCompanyFund(category.getCompanyFund() !=null? category.getCompanyFund() : existing.getCompanyFund());
+//        existing.setTa(category.getTa() !=null? category.getTa() : existing.getTa());
+//        existing.setCompanyFund(category.getCompanyFund() !=null? category.getCompanyFund() : existing.getCompanyFund());
         convertToPercentageIfNeeded(existing);
         return employeeCategoryRepository.save(existing);
     }
