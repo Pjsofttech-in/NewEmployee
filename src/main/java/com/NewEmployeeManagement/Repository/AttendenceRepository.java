@@ -47,11 +47,19 @@ public interface AttendenceRepository extends JpaRepository<EmployeeAttendence, 
                                                                   @Param("startDate") LocalDate startDate,
                                                                   @Param("endDate") LocalDate endDate,
                                                                   Pageable pageable);
+    @Query("SELECT COUNT(a) FROM EmployeeAttendence a " +
+            "WHERE a.employee.id = :empId " +
+            "AND FUNCTION('MONTH', a.todaysDate) = :month " +
+            "AND FUNCTION('YEAR', a.todaysDate) = :year " +
+            "AND (a.status = 'Late' OR a.status = 'OnTime')")
+    Long getAttendanceCount(@Param("empId") Long empId,
+                            @Param("month") int month,
+                            @Param("year") int year);
 
-    @Query("SELECT COUNT(e) FROM EmployeeAttendence e " +
-            "WHERE e.employee.id = :empId " +
-            "AND FUNCTION('MONTH', e.todaysDate) = :month " +
-            "AND FUNCTION('YEAR', e.todaysDate) = :year")
-    Long getAttendanceCountByEmpIdAndMonthYear(@Param("empId") Long empId, @Param("month") int month, @Param("year") int year);
 
+    @Query("SELECT COALESCE(SUM(a.overTime), 0) FROM EmployeeAttendence a " +
+            "WHERE a.employee.id = :empId AND MONTH(a.todaysDate) = :month AND YEAR(a.todaysDate) = :year")
+    Long sumOvertimeMinutesForMonth(@Param("empId") Long empId,
+                                    @Param("month") int month,
+                                    @Param("year") int year);
 }

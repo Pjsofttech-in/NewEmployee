@@ -44,7 +44,7 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
 
         employeeLeaveRequest.setEmployee(employee);
 
-        employeeLeaveRequest.setEmpID(employee.getId());
+        employeeLeaveRequest.setEmpId(employee.getId());
         employeeLeaveRequest.setFullName(employee.getFullName());
         employeeLeaveRequest.setCategoryName(employee.getCategoryName());
 

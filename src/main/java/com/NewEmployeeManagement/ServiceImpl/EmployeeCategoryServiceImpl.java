@@ -66,7 +66,7 @@ public class EmployeeCategoryServiceImpl implements EmployeeCategoryService {
         existing.setTotalPaidLeave(category.getTotalPaidLeave() != null ? category.getTotalPaidLeave() : existing.getTotalPaidLeave());
         existing.setTotalUnpaidLeave(category.getTotalUnpaidLeave() != null ? category.getTotalUnpaidLeave() : existing.getTotalUnpaidLeave());
         existing.setInsentive(category.getInsentive() !=null? category.getInsentive() : existing.getInsentive());
-
+        existing.setTds((category.getTds() !=null? category.getTds() : existing.getTds()));
         existing.setTds(category.getTds() !=null? category.getTds() : existing.getTds());
         existing.setTa(category.getTa() !=null? category.getTa() : existing.getTa());
         existing.setCompanyFund(category.getCompanyFund() !=null? category.getCompanyFund() : existing.getCompanyFund());
@@ -123,6 +123,7 @@ public class EmployeeCategoryServiceImpl implements EmployeeCategoryService {
         category.setEsicPercentage(convertToPercent(category.getEsicPercentage()));
 //        category.setProfessionalTaxPercentage(convertToPercent(category.getProfessionalTaxPercentage()));
 //        category.setIncomeTaxPercentage(convertToPercent(category.getIncomeTaxPercentage()));
+          category.setTds(convertToPercent(category.getTds()));
     }
 
     @Override
@@ -133,6 +134,7 @@ public class EmployeeCategoryServiceImpl implements EmployeeCategoryService {
         category.setEsicPercentage(convertIfNeeded(category.getEsicPercentage()));
 //        category.setProfessionalTaxPercentage(convertIfNeeded(category.getProfessionalTaxPercentage()));
 //        category.setIncomeTaxPercentage(convertIfNeeded(category.getIncomeTaxPercentage()));
+        category.setTds(convertIfNeeded(category.getTds()));
     }
 
     @Override
@@ -143,6 +145,7 @@ public class EmployeeCategoryServiceImpl implements EmployeeCategoryService {
         category.setEsicPercentage(convertToInteger(category.getEsicPercentage()));
 //        category.setProfessionalTaxPercentage(convertToInteger(category.getProfessionalTaxPercentage()));
 //        category.setIncomeTaxPercentage(convertToInteger(category.getIncomeTaxPercentage()));
+        category.setTds(convertToInteger(category.getTds()));
     }
 
     @Override

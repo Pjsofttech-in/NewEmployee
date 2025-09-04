@@ -21,11 +21,12 @@ public class EmployeeSalary {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private int empID;
+    private Long empId;
     private String fullName;
     private String department;
     private String employeecategory;
     private BigDecimal basicSalary;
+    private BigDecimal actualBasic;
     private BigDecimal hraAllowance;
     private BigDecimal taAllowance;
     private BigDecimal incentive;
@@ -35,7 +36,9 @@ public class EmployeeSalary {
     private BigDecimal esic;
     private BigDecimal professionalTax;
     private BigDecimal incomeTax;
+    private BigDecimal companyFund;
     private BigDecimal deductions;
+    private BigDecimal tds;
     private BigDecimal netSalaryBeforeTaxes;
     private BigDecimal finalNetSalary;
     private int month;
@@ -57,4 +60,10 @@ public class EmployeeSalary {
 
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate paymentDate;
+
+
+    @ManyToOne
+    @JoinColumn(name = "employee_id")
+    private Employee employee;
+
 }

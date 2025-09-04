@@ -26,12 +26,12 @@ public class EmployeeCategory {
     private Double medicalAllowancePercentage;  // percentage value
     private BigDecimal pfPercentage;        //percentage value
     private BigDecimal esicPercentage;  //percentage value
-    private Double professionalTaxPercentage;  //ruppess
-    private Double incomeTaxPercentage;     //percentage value
-    private Double insentive;           //ruppess
-    private Double tds;                 //percent
-    private Double ta;                   //travelling allowance ruppess
-    private Double companyFund;            // ruppess
+    private BigDecimal incomeTaxPercentage;     //percentage value
+    private BigDecimal tds;                 //percent
+//    private BigDecimal insentive;           //ruppess
+//    private BigDecimal professionalTaxPercentage;  //ruppess
+//    private BigDecimal ta;                   //travelling allowance ruppess
+//    private BigDecimal companyFund;            // ruppess
     private Double totalPaidLeave;
     private Double totalUnpaidLeave;
     private boolean isDeleted = false;

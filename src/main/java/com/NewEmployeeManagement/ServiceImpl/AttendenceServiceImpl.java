@@ -74,7 +74,7 @@ public class AttendenceServiceImpl implements AttendenceService {
             Map<String, Object> responseBody = response.getBody();
 
             if (responseBody == null || !"success".equals(responseBody.get("status"))) {
-                return "Face recognition failed Or No face match Found";
+                return "Face recognition failed ";
             }
 
             List<Map<String, Object>> matches = (List<Map<String, Object>>) responseBody.get("matches");
@@ -523,7 +523,7 @@ public class AttendenceServiceImpl implements AttendenceService {
 
     @Override
     public Long getAttendanceCount(Long empId, int month, int year) {
-        return attendenceRepository.getAttendanceCountByEmpIdAndMonthYear(empId, month, year);
+        return attendenceRepository.getAttendanceCount(empId, month, year);
     }
 
 
@@ -560,13 +560,11 @@ public class AttendenceServiceImpl implements AttendenceService {
                     continue;
                 }
 
-                // Calculate status (OnTime / Late)
                 String shiftStartTimeStr = employee.getShiftStartTime(); // e.g. "09:00"
                 LocalTime shiftStartTime = LocalTime.parse(shiftStartTimeStr);
                 LocalTime allowedTime = shiftStartTime.plusMinutes(5);
                 String status = loginTime.isAfter(allowedTime) ? "Late" : "OnTime";
 
-                // Create attendance entry
                 EmployeeAttendence attendance = new EmployeeAttendence();
                 attendance.setEmployee(employee);
                 attendance.setTodaysDate(today);

@@ -14,6 +14,17 @@ public interface LeaveRequestRepository extends JpaRepository<EmployeeLeaveReque
     @Query("SELECT l FROM EmployeeLeaveRequest l WHERE l.branchCode = :branchCode ORDER BY l.id DESC")
     List<EmployeeLeaveRequest> findAllByBranchCode(@Param("branchCode")String branchCode);
 
-    @Query("SELECT e FROM EmployeeLeaveRequest e WHERE e.empID = :empId AND e.isDeleted = false")
+    @Query("SELECT e FROM EmployeeLeaveRequest e WHERE e.empId = :empId AND e.isDeleted = false")
     List<EmployeeLeaveRequest> findByEmpIDAndIsDeletedFalse(@Param("empId") Long empId);
+
+    @Query("SELECT COALESCE(SUM(l.paidleave), 0) " +
+            "FROM EmployeeLeaveRequest l " +
+            "WHERE l.empId = :empId " +
+            "AND l.status = 'APPROVED' " +
+            "AND MONTH(l.fromDate) = :month " +
+            "AND YEAR(l.fromDate) = :year")
+    Double getPaidLeaveForMonth(@Param("empId") Long empId,
+                                @Param("month") int month,
+                                @Param("year") int year);
+
 }

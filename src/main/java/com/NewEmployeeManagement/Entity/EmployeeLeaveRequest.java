@@ -20,7 +20,7 @@ public class EmployeeLeaveRequest {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long empID;
+    private Long empId;
 
     @NotNull(message = "From date cannot be null")
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
