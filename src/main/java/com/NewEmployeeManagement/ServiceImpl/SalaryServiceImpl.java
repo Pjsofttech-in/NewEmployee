@@ -87,8 +87,8 @@ public class SalaryServiceImpl implements SalaryService
         salary.setBranchCode(branchCode);
         salary.setBasicSalary(employee.getSalary());
 
-        int daysInMonth = YearMonth.of(salary.getYear(), salary.getMonth()).lengthOfMonth();
-        salary.setDaysOfMonth(daysInMonth);
+//        int daysInMonth = YearMonth.of(salary.getYear(), salary.getMonth()).lengthOfMonth();
+        salary.setDaysOfMonth(salary.getDaysOfMonth());
 
         double presentDays = Optional.ofNullable(
                 attendenceService.getAttendanceCount(empId, salary.getMonth(), salary.getYear())
@@ -105,7 +105,7 @@ public class SalaryServiceImpl implements SalaryService
         double totalWorkingDays = presentDays + paidLeave + paidHolidays;
         salary.setWorkingDays(totalWorkingDays);
 
-        EmployeeSalary computed = calculateSalary(salary, daysInMonth, employee);
+        EmployeeSalary computed = calculateSalary(salary, salary.getDaysOfMonth(), employee);
 
         return employeeSalaryRepository.save(computed);
     }
@@ -200,17 +200,6 @@ public class SalaryServiceImpl implements SalaryService
         return base.multiply(pct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
     }
 
-//    @Override
-//    public List<EmployeeSalary> getAllSalary(String role, String email)
-//    {
-//        if (!permissionService.hasPermission(role, email, "Get")) {
-//            throw new AccessDeniedException("No permission to Get salary");
-//        }
-//        String branchCode = permissionService.fetchBranchCode(role, email);
-//
-//        return employeeSalaryRepository.findAllByBranchCode(branchCode);
-//
-//    }
 
     @Override
     public EmployeeSalary getSalaryByEmpIdMonthYear(String role, String email, Long empId, int month, int year)

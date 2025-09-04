@@ -46,4 +46,22 @@ public class EmployeeSalarySpecification
             return cb.and(predicates.toArray(new Predicate[0]));
         };
     }
+
+    public static Specification<EmployeeSalary> filterByEmpIdMonthYear(Long empId, Integer month, Integer year) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (empId != null) {
+                predicates.add(cb.equal(root.get("empId"), empId));
+            }
+            if (month != null) {
+                predicates.add(cb.equal(root.get("month"), month));
+            }
+            if (year != null) {
+                predicates.add(cb.equal(root.get("year"), year));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
 }
