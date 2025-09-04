@@ -1,7 +1,11 @@
 package com.NewEmployeeManagement.Repository;
 
 import com.NewEmployeeManagement.Entity.EmployeeSalary;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -9,7 +13,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface SalaryRepository extends JpaRepository<EmployeeSalary,Long>
+public interface SalaryRepository extends JpaRepository<EmployeeSalary,Long>, JpaSpecificationExecutor<EmployeeSalary>
 {
     @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END " +
             "FROM EmployeeSalary s " +
@@ -26,8 +30,13 @@ public interface SalaryRepository extends JpaRepository<EmployeeSalary,Long>
 
 
 
-    @Query("SELECT s FROM EmployeeSalary s WHERE s.branchCode = :branchCode ORDER BY s.id DESC")
-    List<EmployeeSalary> findAllByBranchCode(@Param("branchCode") String branchCode);
+    @Query("SELECT s FROM EmployeeSalary s WHERE s.branchCode = :branchCode AND s.isDeleted = false")
+    Page<EmployeeSalary> findAllByBranchCode(@Param("branchCode") String branchCode, Pageable pageable);
 
+    @Query("SELECT s FROM EmployeeSalary s WHERE s.empId = :empId AND s.isDeleted = false ORDER BY s.year DESC, s.month DESC")
+    List<EmployeeSalary> findAllByEmpId(@Param("empId") Long empId);
 
+    @Modifying
+    @Query("UPDATE EmployeeSalary s SET s.status = :status WHERE s.id = :salaryId AND s.isDeleted = false")
+    int updateSalaryStatus(@Param("salaryId") Long salaryId, @Param("status") String status);
 }

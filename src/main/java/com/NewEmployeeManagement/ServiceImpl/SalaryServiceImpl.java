@@ -1,13 +1,20 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
+import com.NewEmployeeManagement.DTO.EmployeeSalaryFilterDTO;
 import com.NewEmployeeManagement.Entity.Employee;
 import com.NewEmployeeManagement.Entity.EmployeeCategory;
 import com.NewEmployeeManagement.Entity.EmployeeSalary;
+import com.NewEmployeeManagement.Pageination.EmployeeSalarySpecification;
 import com.NewEmployeeManagement.Repository.*;
 import com.NewEmployeeManagement.Service.AttendenceService;
 import com.NewEmployeeManagement.Service.PermissionService;
 import com.NewEmployeeManagement.Service.SalaryService;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
@@ -193,17 +200,17 @@ public class SalaryServiceImpl implements SalaryService
         return base.multiply(pct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
     }
 
-    @Override
-    public List<EmployeeSalary> getAllSalary(String role, String email)
-    {
-        if (!permissionService.hasPermission(role, email, "Get")) {
-            throw new AccessDeniedException("No permission to Get salary");
-        }
-        String branchCode = permissionService.fetchBranchCode(role, email);
-
-        return employeeSalaryRepository.findAllByBranchCode(branchCode);
-
-    }
+//    @Override
+//    public List<EmployeeSalary> getAllSalary(String role, String email)
+//    {
+//        if (!permissionService.hasPermission(role, email, "Get")) {
+//            throw new AccessDeniedException("No permission to Get salary");
+//        }
+//        String branchCode = permissionService.fetchBranchCode(role, email);
+//
+//        return employeeSalaryRepository.findAllByBranchCode(branchCode);
+//
+//    }
 
     @Override
     public EmployeeSalary getSalaryByEmpIdMonthYear(String role, String email, Long empId, int month, int year)
@@ -211,9 +218,61 @@ public class SalaryServiceImpl implements SalaryService
         if (!permissionService.hasPermission(role, email, "Get")) {
             throw new AccessDeniedException("No permission to Get salary");
         }
-        return employeeSalaryRepository.findByEmpIdAndMonthAndYear(empId, month, year);
+        EmployeeSalary salary = employeeSalaryRepository.findByEmpIdAndMonthAndYear(empId, month, year);
 
+        return salary;
     }
+
+    @Override
+    public List<EmployeeSalary> getAllSalaryByEmpId(String role, String email, Long empId)
+    {
+        if (!permissionService.hasPermission(role, email, "Get")) {
+            throw new AccessDeniedException("No permission to Get salary");
+        }
+
+        List<EmployeeSalary> salaries = employeeSalaryRepository.findAllByEmpId(empId);
+        return salaries;
+    }
+
+    @Override
+    public Page<EmployeeSalary> getFilteredSalaries(EmployeeSalaryFilterDTO filter, int page, int size, String role, String email) {
+        if (!permissionService.hasPermission(role, email, "Get")) {
+            throw new AccessDeniedException("No permission to Get salary");
+        }
+
+        String branchCode = permissionService.fetchBranchCode(role, email);
+
+        Specification<EmployeeSalary> spec = EmployeeSalarySpecification.filterSalaries(
+                filter.getEmpId(),
+                filter.getFullName(),
+                filter.getDepartment(),
+                filter.getStatus(),
+                filter.getEmployeecategory(),
+                filter.getMonth(),
+                filter.getYear(),
+                branchCode
+        );
+
+        Pageable pageable = PageRequest.of(page, size);
+        return employeeSalaryRepository.findAll(spec, pageable);
+    }
+
+    @Override
+    @Transactional
+    public String updateSalaryStatus(Long salaryId, String status, String role, String email) {
+        if (!permissionService.hasPermission(role, email, "Update")) {
+            throw new AccessDeniedException("No permission to update salary status");
+        }
+
+        int updated = employeeSalaryRepository.updateSalaryStatus(salaryId, status);
+
+        if (updated > 0) {
+            return "Salary status updated successfully for ID " + salaryId;
+        } else {
+            throw new RuntimeException("Salary record not found or already deleted with ID " + salaryId);
+        }
+    }
+
 
 }
 
