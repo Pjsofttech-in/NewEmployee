@@ -48,11 +48,19 @@ public class SalaryController
     }
 
     @GetMapping("/getAllSalariesByEmpId")
-    public ResponseEntity<List<EmployeeSalary>> getAllSalariesByEmpId(@RequestParam String role, @RequestParam String email, @RequestParam Long empId)
-    {
-        List<EmployeeSalary> salaries = salaryService.getAllSalaryByEmpId(role, email, empId);
+    public ResponseEntity<Page<EmployeeSalary>> getAllSalaryByEmpId(
+            @RequestParam String role,
+            @RequestParam String email,
+            @RequestParam Long empId,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Page<EmployeeSalary> salaries = salaryService.getAllSalaryByEmpId(role, email, empId, month, year, page, size);
         return ResponseEntity.ok(salaries);
     }
+
 
     @PutMapping("/updateSalaryStatus")
     public ResponseEntity<String> updateSalaryStatus(

@@ -213,14 +213,16 @@ public class SalaryServiceImpl implements SalaryService
     }
 
     @Override
-    public List<EmployeeSalary> getAllSalaryByEmpId(String role, String email, Long empId)
-    {
+    public Page<EmployeeSalary> getAllSalaryByEmpId(String role, String email, Long empId, Integer month, Integer year, int page, int size) {
         if (!permissionService.hasPermission(role, email, "Get")) {
             throw new AccessDeniedException("No permission to Get salary");
         }
 
-        List<EmployeeSalary> salaries = employeeSalaryRepository.findAllByEmpId(empId);
-        return salaries;
+        Pageable pageable = PageRequest.of(page, size);
+
+        Specification<EmployeeSalary> spec = EmployeeSalarySpecification.filterByEmpIdMonthYear(empId, month, year);
+
+        return employeeSalaryRepository.findAll(spec, pageable);
     }
 
     @Override
