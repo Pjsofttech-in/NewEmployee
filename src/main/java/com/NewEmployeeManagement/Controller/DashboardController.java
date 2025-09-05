@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 @RestController
 //@CrossOrigin(origins = "http://localhost:3000")
@@ -19,6 +20,8 @@ public class DashboardController
 {
     @Autowired
     DashboardService dashboardService;
+
+
 
     @GetMapping("/getEmployeeCountForCardsAndGraph")
     public ResponseEntity<EmployeeCountResponse> getEmployeeCounts(
@@ -31,6 +34,16 @@ public class DashboardController
         EmployeeCountResponse response = dashboardService.getEmployeeCounts(role, email,filter, startDate, endDate);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/geSalarySummeryForCards")
+    public Map<String, Object> getSalarySummary(
+            @RequestParam String role,
+            @RequestParam String email,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer year) {
+        return dashboardService.getSalarySummary(role,email,month, year);
+    }
+
 
 
 }

@@ -1,6 +1,7 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
 import com.NewEmployeeManagement.DTO.EmployeeSalaryFilterDTO;
+import com.NewEmployeeManagement.DTO.SalarySummaryResponseDTO;
 import com.NewEmployeeManagement.Entity.Employee;
 import com.NewEmployeeManagement.Entity.EmployeeCategory;
 import com.NewEmployeeManagement.Entity.EmployeeSalary;
@@ -22,8 +23,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class SalaryServiceImpl implements SalaryService
@@ -226,7 +226,7 @@ public class SalaryServiceImpl implements SalaryService
     }
 
     @Override
-    public Page<EmployeeSalary> getFilteredSalaries(EmployeeSalaryFilterDTO filter, int page, int size, String role, String email) {
+    public SalarySummaryResponseDTO getFilteredSalaries(EmployeeSalaryFilterDTO filter, int page, int size, String role, String email) {
         if (!permissionService.hasPermission(role, email, "Get")) {
             throw new AccessDeniedException("No permission to Get salary");
         }
@@ -245,8 +245,17 @@ public class SalaryServiceImpl implements SalaryService
         );
 
         Pageable pageable = PageRequest.of(page, size);
-        return employeeSalaryRepository.findAll(spec, pageable);
+        Page<EmployeeSalary> salaries = employeeSalaryRepository.findAll(spec, pageable);
+
+        long totalCount = employeeSalaryRepository.count(spec);
+        BigDecimal totalSum = employeeSalaryRepository.findAll(spec).stream()
+                .map(EmployeeSalary::getFinalNetSalary)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return new SalarySummaryResponseDTO(salaries, totalCount, totalSum);
     }
+
 
     @Override
     @Transactional

@@ -2,12 +2,14 @@ package com.NewEmployeeManagement.ServiceImpl;
 
 import com.NewEmployeeManagement.DTO.EmployeeCountResponse;
 import com.NewEmployeeManagement.Repository.EmployeeRepository;
+import com.NewEmployeeManagement.Repository.SalaryRepository;
 import com.NewEmployeeManagement.Service.DashboardService;
 import com.NewEmployeeManagement.Service.PermissionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -23,6 +25,9 @@ public class DashboardServiceImpl implements DashboardService
 
     @Autowired
     PermissionService permissionService;
+
+    @Autowired
+    SalaryRepository salaryRepository;
 
     @Override
     public EmployeeCountResponse getEmployeeCounts(String role, String email,String filter, LocalDate startDate, LocalDate endDate)
@@ -95,5 +100,34 @@ public class DashboardServiceImpl implements DashboardService
 
         return response;
     }
+
+    @Override
+    public Map<String, Object> getSalarySummary(String role, String email, Integer month, Integer year)
+    {
+        if (!permissionService.hasPermission(role, email, "Get")) {
+            throw new AccessDeniedException("No permission to Get salary status");
+        }
+
+        Map<String, Object> result = new HashMap<>();
+
+        long totalCount = salaryRepository.countAllSalaries(month, year);
+        long paidCount = salaryRepository.countPaidSalaries(month, year);
+        long pendingCount = salaryRepository.countPendingSalaries(month, year);
+
+        BigDecimal totalSum = salaryRepository.sumAllFinalNetSalary(month, year);
+        BigDecimal paidSum = salaryRepository.sumPaidFinalNetSalary(month, year);
+        BigDecimal pendingSum = salaryRepository.sumPendingFinalNetSalary(month, year);
+
+        result.put("totalCount", totalCount);
+        result.put("paidCount", paidCount);
+        result.put("pendingCount", pendingCount);
+
+        result.put("totalSum", totalSum);
+        result.put("paidSum", paidSum);
+        result.put("pendingSum", pendingSum);
+
+        return result;
+    }
+
 
 }

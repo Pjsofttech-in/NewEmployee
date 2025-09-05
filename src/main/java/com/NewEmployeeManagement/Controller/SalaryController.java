@@ -1,6 +1,7 @@
 package com.NewEmployeeManagement.Controller;
 
 import com.NewEmployeeManagement.DTO.EmployeeSalaryFilterDTO;
+import com.NewEmployeeManagement.DTO.SalarySummaryResponseDTO;
 import com.NewEmployeeManagement.Entity.EmployeeSalary;
 import com.NewEmployeeManagement.Service.SalaryService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 public class SalaryController
@@ -36,14 +38,14 @@ public class SalaryController
     }
 
     @PostMapping("/getAllSalary")
-    public ResponseEntity<Page<EmployeeSalary>> getFilteredSalaries(
+    public ResponseEntity<SalarySummaryResponseDTO> getFilteredSalaries(
             @RequestParam String role,
             @RequestParam String email,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestBody EmployeeSalaryFilterDTO filter) {
 
-        Page<EmployeeSalary> salaries = salaryService.getFilteredSalaries(filter, page, size, role, email);
+        SalarySummaryResponseDTO salaries = salaryService.getFilteredSalaries(filter, page, size, role, email);
         return ResponseEntity.ok(salaries);
     }
 
@@ -72,5 +74,6 @@ public class SalaryController
         String result = salaryService.updateSalaryStatus(salaryId, status, role, email);
         return ResponseEntity.ok(result);
     }
+
 
 }

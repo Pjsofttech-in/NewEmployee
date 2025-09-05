@@ -16,7 +16,6 @@ public class EmployeeSalarySpecification
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // Branch filter (mandatory)
             if (branchCode != null) {
                 predicates.add(cb.equal(root.get("branchCode"), branchCode));
             }
