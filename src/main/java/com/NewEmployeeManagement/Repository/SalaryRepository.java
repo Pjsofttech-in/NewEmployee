@@ -43,40 +43,85 @@ public interface SalaryRepository extends JpaRepository<EmployeeSalary,Long>, Jp
     @Query("SELECT COUNT(s) FROM EmployeeSalary s " +
             "WHERE (:month IS NULL OR s.month = :month) " +
             "AND (:year IS NULL OR s.year = :year) " +
-            "AND s.isDeleted = false")
-    long countAllSalaries(@Param("month") Integer month, @Param("year") Integer year);
+            "AND s.isDeleted = false " +
+            "AND s.branchCode = :branchCode")
+    long countAllSalaries(@Param("month") Integer month,
+                          @Param("year") Integer year,
+                          @Param("branchCode") String branchCode);
 
     @Query("SELECT COUNT(s) FROM EmployeeSalary s " +
             "WHERE s.status = 'Paid' " +
             "AND (:month IS NULL OR s.month = :month) " +
             "AND (:year IS NULL OR s.year = :year) " +
-            "AND s.isDeleted = false")
-    long countPaidSalaries(@Param("month") Integer month, @Param("year") Integer year);
+            "AND s.isDeleted = false " +
+            "AND s.branchCode = :branchCode")
+    long countPaidSalaries(@Param("month") Integer month,
+                           @Param("year") Integer year,
+                           @Param("branchCode") String branchCode);
 
     @Query("SELECT COUNT(s) FROM EmployeeSalary s " +
             "WHERE s.status = 'Pending' " +
             "AND (:month IS NULL OR s.month = :month) " +
             "AND (:year IS NULL OR s.year = :year) " +
-            "AND s.isDeleted = false")
-    long countPendingSalaries(@Param("month") Integer month, @Param("year") Integer year);
+            "AND s.isDeleted = false " +
+            "AND s.branchCode = :branchCode")
+    long countPendingSalaries(@Param("month") Integer month,
+                              @Param("year") Integer year,
+                              @Param("branchCode") String branchCode);
 
     @Query("SELECT COALESCE(SUM(s.finalNetSalary), 0) FROM EmployeeSalary s " +
             "WHERE (:month IS NULL OR s.month = :month) " +
             "AND (:year IS NULL OR s.year = :year) " +
-            "AND s.isDeleted = false")
-    BigDecimal sumAllFinalNetSalary(@Param("month") Integer month, @Param("year") Integer year);
+            "AND s.isDeleted = false " +
+            "AND s.branchCode = :branchCode")
+    BigDecimal sumAllFinalNetSalary(@Param("month") Integer month,
+                                    @Param("year") Integer year,
+                                    @Param("branchCode") String branchCode);
 
     @Query("SELECT COALESCE(SUM(s.finalNetSalary), 0) FROM EmployeeSalary s " +
             "WHERE s.status = 'Paid' " +
             "AND (:month IS NULL OR s.month = :month) " +
             "AND (:year IS NULL OR s.year = :year) " +
-            "AND s.isDeleted = false")
-    BigDecimal sumPaidFinalNetSalary(@Param("month") Integer month, @Param("year") Integer year);
+            "AND s.isDeleted = false " +
+            "AND s.branchCode = :branchCode")
+    BigDecimal sumPaidFinalNetSalary(@Param("month") Integer month,
+                                     @Param("year") Integer year,
+                                     @Param("branchCode") String branchCode);
 
     @Query("SELECT COALESCE(SUM(s.finalNetSalary), 0) FROM EmployeeSalary s " +
             "WHERE s.status = 'Pending' " +
             "AND (:month IS NULL OR s.month = :month) " +
             "AND (:year IS NULL OR s.year = :year) " +
-            "AND s.isDeleted = false")
-    BigDecimal sumPendingFinalNetSalary(@Param("month") Integer month, @Param("year") Integer year);
+            "AND s.isDeleted = false " +
+            "AND s.branchCode = :branchCode")
+    BigDecimal sumPendingFinalNetSalary(@Param("month") Integer month,
+                                        @Param("year") Integer year,
+                                        @Param("branchCode") String branchCode);
+
+    @Query("SELECT COALESCE(SUM(e.finalNetSalary), 0) " +
+            "FROM EmployeeSalary e " +
+            "WHERE e.month = :month AND e.year = :year " +
+            "AND e.isDeleted = false " +
+            "AND e.branchCode = :branchCode")
+    BigDecimal getTotalNetSalaryByMonthAndYear(@Param("month") int month,
+                                               @Param("year") int year,
+                                               @Param("branchCode") String branchCode);
+
+    @Query("SELECT COALESCE(SUM(e.finalNetSalary), 0) " +
+            "FROM EmployeeSalary e " +
+            "WHERE e.year = :year " +
+            "AND e.isDeleted = false " +
+            "AND e.branchCode = :branchCode")
+    BigDecimal getTotalNetSalaryByYear(@Param("year") int year,
+                                       @Param("branchCode") String branchCode);
+
+    @Query("SELECT e.month, COALESCE(SUM(e.finalNetSalary), 0) " +
+            "FROM EmployeeSalary e " +
+            "WHERE e.year = :year " +
+            "AND e.isDeleted = false " +
+            "AND e.branchCode = :branchCode " +
+            "GROUP BY e.month " +
+            "ORDER BY e.branchCode ASC, e.month ASC")
+    List<Object[]> getMonthlySalaryTotalsByYear(@Param("year") int year,
+                                                @Param("branchCode") String branchCode);
 }

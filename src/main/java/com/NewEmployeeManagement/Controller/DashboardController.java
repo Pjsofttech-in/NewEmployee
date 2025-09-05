@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Map;
 
@@ -44,6 +45,31 @@ public class DashboardController
         return dashboardService.getSalarySummary(role,email,month, year);
     }
 
+    @GetMapping("/SalaryComparisonBetweenTwoMonth")
+    public ResponseEntity<Map<String, BigDecimal>> getSalaryComparison(
+            @RequestParam String role,
+            @RequestParam String email,
+            @RequestParam int month,
+            @RequestParam int year) {
+        return ResponseEntity.ok(dashboardService.getSalaryComparison(role,email,month, year));
+    }
+
+    @GetMapping("/SalaryComparisonByYears")
+    public ResponseEntity<Map<String, BigDecimal>> getYearlyComparison(
+            @RequestParam String role,
+            @RequestParam String email,
+            @RequestParam int year1,
+            @RequestParam int year2) {
+        return ResponseEntity.ok(dashboardService.getYearlyComparison(role,email,year1, year2));
+    }
+
+    @GetMapping("/getSalaryRevenewByMonthofYear")
+    public ResponseEntity<Map<String, BigDecimal>> getMonthlySalaryTotals(
+            @RequestParam String role,
+            @RequestParam String email,
+            @RequestParam int year) {
+        return ResponseEntity.ok(dashboardService.getMonthlySalaryTotals(role,email,year));
+    }
 
 
 }
