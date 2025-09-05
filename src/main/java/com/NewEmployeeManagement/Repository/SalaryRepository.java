@@ -36,8 +36,13 @@ public interface SalaryRepository extends JpaRepository<EmployeeSalary,Long>, Jp
     List<EmployeeSalary> findAllByEmpId(@Param("empId") Long empId);
 
     @Modifying
-    @Query("UPDATE EmployeeSalary s SET s.status = :status WHERE s.id = :salaryId AND s.isDeleted = false")
-    int updateSalaryStatus(@Param("salaryId") Long salaryId, @Param("status") String status);
+    @Query("UPDATE EmployeeSalary s " +
+            "SET s.status = :status, " +
+            "    s.transactionId = CASE WHEN :transactionId IS NULL THEN s.transactionId ELSE :transactionId END " +
+            "WHERE s.id = :salaryId AND s.isDeleted = false")
+    int updateSalaryStatus(@Param("salaryId") Long salaryId,
+                           @Param("status") String status,
+                           @Param("transactionId") Long transactionId);
 
 
     @Query("SELECT COUNT(s) FROM EmployeeSalary s " +

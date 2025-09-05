@@ -261,12 +261,12 @@ public class SalaryServiceImpl implements SalaryService
 
     @Override
     @Transactional
-    public String updateSalaryStatus(Long salaryId, String status, String role, String email) {
+    public String updateSalaryStatus(Long salaryId, String status, Long transactionId, String role, String email) {
         if (!permissionService.hasPermission(role, email, "Put")) {
             throw new AccessDeniedException("No permission to update salary status");
         }
 
-        int updated = employeeSalaryRepository.updateSalaryStatus(salaryId, status);
+        int updated = employeeSalaryRepository.updateSalaryStatus(salaryId, status, transactionId);
 
         if (updated > 0) {
             return "Salary status updated successfully for ID " + salaryId;

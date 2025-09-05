@@ -69,9 +69,10 @@ public class SalaryController
             @RequestParam String role,
             @RequestParam String email,
             @RequestParam Long salaryId,
-            @RequestParam String status) {
+            @RequestParam String status,
+            @RequestParam(required = false) Long transactionId) {
 
-        String result = salaryService.updateSalaryStatus(salaryId, status, role, email);
+        String result = salaryService.updateSalaryStatus(salaryId, status, transactionId, role, email);
         return ResponseEntity.ok(result);
     }
 
