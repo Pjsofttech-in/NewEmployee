@@ -62,4 +62,16 @@ public interface AttendenceRepository extends JpaRepository<EmployeeAttendence, 
     Long sumOvertimeMinutesForMonth(@Param("empId") Long empId,
                                     @Param("month") int month,
                                     @Param("year") int year);
+
+
+    @Query("SELECT e.todaysDate, SUM(e.totalMinutesWorked) " +
+            "FROM EmployeeAttendence e " +
+            "WHERE FUNCTION('MONTH', e.todaysDate) = :month " +
+            "AND FUNCTION('YEAR', e.todaysDate) = :year " +
+            "AND e.employee.id = :empId " +
+            "GROUP BY e.todaysDate " +
+            "ORDER BY e.todaysDate")
+    List<Object[]> getDailyWorkMinutesByMonth(@Param("empId") Long empId,
+                                              @Param("month") int month,
+                                              @Param("year") int year);
 }

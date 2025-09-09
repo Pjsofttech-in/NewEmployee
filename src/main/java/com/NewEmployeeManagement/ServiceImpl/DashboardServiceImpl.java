@@ -1,6 +1,7 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
 import com.NewEmployeeManagement.DTO.EmployeeCountResponse;
+import com.NewEmployeeManagement.Repository.AttendenceRepository;
 import com.NewEmployeeManagement.Repository.EmployeeRepository;
 import com.NewEmployeeManagement.Repository.SalaryRepository;
 import com.NewEmployeeManagement.Service.DashboardService;
@@ -28,6 +29,9 @@ public class DashboardServiceImpl implements DashboardService
 
     @Autowired
     SalaryRepository salaryRepository;
+
+    @Autowired
+    AttendenceRepository attendenceRepository;
 
     @Override
     public EmployeeCountResponse getEmployeeCounts(String role, String email,String filter, LocalDate startDate, LocalDate endDate)
@@ -202,6 +206,20 @@ public class DashboardServiceImpl implements DashboardService
         }
 
         return result;
+    }
+
+
+    @Override
+    public Map<LocalDate, Long> getMonthlyAttendance(String role, String email,Long empId, int month, int year) {
+        List<Object[]> results = attendenceRepository.getDailyWorkMinutesByMonth(empId, month, year);
+
+        Map<LocalDate, Long> attendanceMap = new LinkedHashMap<>();
+        for (Object[] row : results) {
+            LocalDate date = (LocalDate) row[0];
+            Long totalMinutes = (Long) row[1];
+            attendanceMap.put(date, totalMinutes);
+        }
+        return attendanceMap;
     }
 
 }

@@ -72,4 +72,16 @@ public class DashboardController
     }
 
 
+    @GetMapping("/getMonthlyAttendaceByEmpId")
+    public ResponseEntity<Map<LocalDate, Long>> getMonthlyAttendance(
+            @RequestParam String role,
+            @RequestParam String email,
+            @RequestParam Long empId,
+            @RequestParam int month,
+            @RequestParam int year) {
+
+        Map<LocalDate, Long> response = dashboardService.getMonthlyAttendance(role,email,empId, month, year);
+        return ResponseEntity.ok(response);
+    }
+
 }
