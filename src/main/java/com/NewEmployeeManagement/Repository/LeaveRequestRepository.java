@@ -27,4 +27,14 @@ public interface LeaveRequestRepository extends JpaRepository<EmployeeLeaveReque
                                 @Param("month") int month,
                                 @Param("year") int year);
 
+
+    @Query("SELECT MONTH(e.fromDate), SUM(e.leaveRequired) " +
+            "FROM EmployeeLeaveRequest e " +
+            "WHERE e.empId = :empId " +
+            "AND YEAR(e.fromDate) = :year " +
+            "AND e.isDeleted = false " +
+            "AND e.status = 'Approved' " +
+            "GROUP BY MONTH(e.fromDate)")
+    List<Object[]> getLeaveByYear(@Param("empId") Long empId, @Param("year") int year);
+
 }

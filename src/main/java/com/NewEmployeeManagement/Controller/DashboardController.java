@@ -94,4 +94,15 @@ public class DashboardController
         Map<String, Double> response = dashboardService.getYearlySalary(role,email,empId, year);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/getLeaveReportByYearByEmpId")
+    public ResponseEntity<Map<String, Double>> getYearlyLeaves(
+            @RequestParam String role,
+            @RequestParam String email,
+            @RequestParam Long empId,
+            @RequestParam int year) {
+
+        Map<String, Double> response = dashboardService.getYearlyLeaves(role,email,empId, year);
+        return ResponseEntity.ok(response);
+    }
 }

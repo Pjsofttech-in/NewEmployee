@@ -3,6 +3,7 @@ package com.NewEmployeeManagement.ServiceImpl;
 import com.NewEmployeeManagement.DTO.EmployeeCountResponse;
 import com.NewEmployeeManagement.Repository.AttendenceRepository;
 import com.NewEmployeeManagement.Repository.EmployeeRepository;
+import com.NewEmployeeManagement.Repository.LeaveRequestRepository;
 import com.NewEmployeeManagement.Repository.SalaryRepository;
 import com.NewEmployeeManagement.Service.DashboardService;
 import com.NewEmployeeManagement.Service.PermissionService;
@@ -34,6 +35,10 @@ public class DashboardServiceImpl implements DashboardService
 
     @Autowired
     AttendenceRepository attendenceRepository;
+
+
+    @Autowired
+    LeaveRequestRepository leaveRequestRepository;
 
     @Override
     public EmployeeCountResponse getEmployeeCounts(String role, String email,String filter, LocalDate startDate, LocalDate endDate)
@@ -259,6 +264,32 @@ public class DashboardServiceImpl implements DashboardService
         }
 
         return salaryMap;
+    }
+
+
+
+    @Override
+    public Map<String, Double> getYearlyLeaves(String role, String email,Long empId, int year)
+    {
+        if (!permissionService.hasPermission(role, email, "Get")) {
+            throw new AccessDeniedException("No permission to Get salary Leave");
+        }
+        Map<String, Double> leaveMap = new LinkedHashMap<>();
+        for (Month month : Month.values()) {
+            leaveMap.put(month.getDisplayName(TextStyle.FULL, Locale.ENGLISH), 0.0);
+        }
+
+        List<Object[]> results = leaveRequestRepository.getLeaveByYear(empId, year);
+
+        for (Object[] row : results) {
+            int monthNumber = (int) row[0]; // 1–12
+            Double totalLeaves = ((Number) row[1]).doubleValue();
+
+            Month month = Month.of(monthNumber);
+            leaveMap.put(month.getDisplayName(TextStyle.FULL, Locale.ENGLISH), totalLeaves);
+        }
+
+        return leaveMap;
     }
 
 }

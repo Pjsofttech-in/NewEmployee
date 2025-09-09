@@ -17,4 +17,6 @@ public interface DashboardService
     Map<LocalDate, Long> getMonthlyAttendance(String role, String email, Long empId, int month, int year);
     Map<String, Double> getYearlySalary(String role, String email, Long empId, int year);
 
+    Map<String, Double> getYearlyLeaves(String role, String email,Long empId, int year);
+
 }
