@@ -17,6 +17,8 @@ import java.time.Month;
 import java.time.format.TextStyle;
 import java.util.*;
 
+import static java.time.temporal.ChronoUnit.MONTHS;
+
 @Service
 public class DashboardServiceImpl implements DashboardService
 {
@@ -211,6 +213,11 @@ public class DashboardServiceImpl implements DashboardService
 
     @Override
     public Map<LocalDate, Long> getMonthlyAttendance(String role, String email,Long empId, int month, int year) {
+
+        if (!permissionService.hasPermission(role, email, "Get")) {
+            throw new AccessDeniedException("No permission to Get Attendace Report");
+        }
+
         List<Object[]> results = attendenceRepository.getDailyWorkMinutesByMonth(empId, month, year);
 
         Map<LocalDate, Long> attendanceMap = new LinkedHashMap<>();
@@ -220,6 +227,38 @@ public class DashboardServiceImpl implements DashboardService
             attendanceMap.put(date, totalMinutes);
         }
         return attendanceMap;
+    }
+
+    @Override
+    public Map<String, Double> getYearlySalary(String role, String email, Long empId, int year) {
+
+        if (!permissionService.hasPermission(role, email, "Get")) {
+            throw new AccessDeniedException("No permission to Get salary Report");
+        }
+
+        Map<String, Double> salaryMap = new LinkedHashMap<>();
+        for (Month month : Month.values()) {
+            salaryMap.put(
+                    month.getDisplayName(TextStyle.FULL, Locale.ENGLISH), // "January"
+                    0.0
+            );
+        }
+
+        // Fetch salaries grouped by month from DB
+        List<Object[]> results = salaryRepository.getSalaryByYear(empId, year);
+
+        // Update salaryMap with actual totals
+        for (Object[] row : results) {
+            int monthNumber = (int) row[0]; // month number (1–12)
+            Double total = ((Number) row[1]).doubleValue();
+            Month month = Month.of(monthNumber);
+            salaryMap.put(
+                    month.getDisplayName(TextStyle.FULL, Locale.ENGLISH),
+                    total
+            );
+        }
+
+        return salaryMap;
     }
 
 }

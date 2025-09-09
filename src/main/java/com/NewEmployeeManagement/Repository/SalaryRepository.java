@@ -129,4 +129,12 @@ public interface SalaryRepository extends JpaRepository<EmployeeSalary,Long>, Jp
             "ORDER BY e.branchCode ASC, e.month ASC")
     List<Object[]> getMonthlySalaryTotalsByYear(@Param("year") int year,
                                                 @Param("branchCode") String branchCode);
+
+
+
+    @Query("SELECT e.month, SUM(e.finalNetSalary) " +
+            "FROM EmployeeSalary e " +
+            "WHERE e.empId = :empId AND e.year = :year AND e.isDeleted = false " +
+            "GROUP BY e.month")
+    List<Object[]> getSalaryByYear(@Param("empId") Long empId, @Param("year") int year);
 }
