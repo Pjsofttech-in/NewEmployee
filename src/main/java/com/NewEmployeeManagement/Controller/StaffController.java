@@ -1,5 +1,6 @@
 package com.NewEmployeeManagement.Controller;
 
+import com.NewEmployeeManagement.DTO.InstituteLoginResponse;
 import com.NewEmployeeManagement.JWT.LoginRequest;
 import com.NewEmployeeManagement.JWT.LoginResponse;
 import com.NewEmployeeManagement.ServiceImpl.StaffService;
@@ -8,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -41,6 +43,14 @@ public class StaffController
 
         Map<String, Object> permissions = staffLoginService.getCrudPermissionForDepartmentByEmail(departmentEmail);
         return ResponseEntity.ok(permissions);
+    }
+
+
+
+    @GetMapping("/getInstituteDetails")
+    public ResponseEntity<List<InstituteLoginResponse>> getInstitute(@RequestParam String instituteEmail) {
+        List<InstituteLoginResponse> response = staffLoginService.getInstituteDetailsOnly(instituteEmail);
+        return ResponseEntity.ok(response);
     }
 
 }

@@ -1,5 +1,7 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
+import com.NewEmployeeManagement.DTO.InstituteClientWrapperResponse;
+import com.NewEmployeeManagement.DTO.InstituteLoginResponse;
 import com.NewEmployeeManagement.JWT.LoginRequest;
 import com.NewEmployeeManagement.JWT.LoginResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,6 +15,8 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -71,6 +75,19 @@ public class StaffService
                 .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
                 .block();
 
+    }
+
+    public List<InstituteLoginResponse> getInstituteDetailsOnly(String email) {
+        InstituteClientWrapperResponse response = webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/getLayerClientByClientEmail")
+                        .queryParam("email", email)
+                        .build())
+                .retrieve()
+                .bodyToMono(InstituteClientWrapperResponse.class)
+                .block();
+
+        return response != null ? response.getInstituteResponseDTOS() : Collections.emptyList();
     }
 
 
