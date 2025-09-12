@@ -242,6 +242,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         updateIfNotNull(existing::setToMail, dto.getToMail());
         updateIfNotNull(existing::setSubject, dto.getSubject());
         updateIfNotNull(existing::setBody, dto.getBody());
+        updateIfNotNull(existing::setPassword, dto.getPassword());
         updateIfNotNull(existing::setCreateAt, dto.getCreateAt());
         updateIfNotNull(existing::setPaidleaves, dto.getPaidleaves());
         updateIfNotNull(existing::setCarryForwardedLeaves, dto.getCarryForwardedLeaves());
