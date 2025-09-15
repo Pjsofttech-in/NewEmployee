@@ -107,7 +107,12 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         employee.setEmpRole("USER");
         employee.setSystemName("employee-sys");
-        employee.setJoiningDate(LocalDate.now());
+        if (dto.getJoiningDate() != null) {
+            employee.setJoiningDate(dto.getJoiningDate());
+        } else {
+            employee.setJoiningDate(LocalDate.now());
+        }
+
         employee.setBranchCode(branchCode);
         employee.setRole(role);
         employee.setCreatedByEmail(email);
@@ -215,7 +220,9 @@ public class EmployeeServiceImpl implements EmployeeService {
         // Update main employee fields
         updateIfNotNull(existing::setFullName, dto.getFullName());
         updateIfNotNull(existing::setEmpEmail, dto.getEmpEmail());
-        updateIfNotNull(existing::setPassword, passwordEncoder.encode(dto.getPassword()));
+        if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
+            existing.setPassword(passwordEncoder.encode(dto.getPassword()));
+        }
         updateIfNotNull(existing::setDob, dto.getDob());
         updateIfNotNull(existing::setMobileNo, dto.getMobileNo());
         updateIfNotNull(existing::setParentNo, dto.getParentNo());
@@ -242,11 +249,11 @@ public class EmployeeServiceImpl implements EmployeeService {
         updateIfNotNull(existing::setToMail, dto.getToMail());
         updateIfNotNull(existing::setSubject, dto.getSubject());
         updateIfNotNull(existing::setBody, dto.getBody());
-        updateIfNotNull(existing::setPassword, dto.getPassword());
         updateIfNotNull(existing::setCreateAt, dto.getCreateAt());
         updateIfNotNull(existing::setPaidleaves, dto.getPaidleaves());
         updateIfNotNull(existing::setCarryForwardedLeaves, dto.getCarryForwardedLeaves());
         updateIfNotNull(existing::setUnpaidleaves, dto.getUnpaidleaves());
+        updateIfNotNull(existing::setJoiningDate, dto.getJoiningDate());
         updateIfNotNull(existing::setFaceEncoding, dto.getFaceEncoding());
         updateIfNotNull(existing::setCreatedByEmail, dto.getCreatedByEmail());
         updateIfNotNull(existing::setRole, dto.getRole());
@@ -425,9 +432,9 @@ public class EmployeeServiceImpl implements EmployeeService {
             RestTemplate restTemplate = new RestTemplate();
             ResponseEntity<String> response = restTemplate.postForEntity(url, requestEntity, String.class);
 
-            System.out.println("✅ Python API response: " + response.getBody());
+            System.out.println("Python API response: " + response.getBody());
         } catch (Exception e) {
-            System.out.println("❌ Error calling Python API: " + e.getMessage());
+            System.out.println("Error calling Python API: " + e.getMessage());
             e.printStackTrace();
         }
     }

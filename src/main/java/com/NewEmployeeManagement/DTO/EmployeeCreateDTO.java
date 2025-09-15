@@ -21,7 +21,7 @@ public class EmployeeCreateDTO {
     private String bloodGroup;
     private Long adharNo;
     private String panNo;
-    private Date joiningDate;
+    private LocalDate joiningDate;
     private String department;
     private String workLocation;
     private String designation;
