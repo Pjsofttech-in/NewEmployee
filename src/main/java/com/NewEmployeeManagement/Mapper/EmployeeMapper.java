@@ -52,6 +52,8 @@ public class EmployeeMapper {
                 employee.getSubject(),
                 employee.getBody(),
                 employee.getCreateAt(),
+                employee.getRejoiningData(),
+                employee.getTerminatDate(),
                 employee.getPaidleaves(),
                 employee.getCarryForwardedLeaves(),
                 employee.getUnpaidleaves(),

@@ -52,6 +52,8 @@ public class EmployeeDTO
     private String subject;
     private String body;
     private LocalDateTime createAt;
+    private LocalDate rejoiningData;
+    private LocalDate terminatDate;
     private Double paidleaves;
     private Double carryForwardedLeaves =0.0;
     private Double unpaidleaves;

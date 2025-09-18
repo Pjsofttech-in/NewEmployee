@@ -31,7 +31,7 @@ public interface EmployeeService {
     void carryForwardLeavesForEligibleEmployees();
 
     String getBranchCodeByEmail(String email);
-    Employee updateStatus(Long id, String status);
+    Employee updateStatus(String role, String email,Long id, String status, LocalDate date);
 
     List<EmployeeBirthdayDTO> getUpcomingBirthdays(String branchCode);
 }

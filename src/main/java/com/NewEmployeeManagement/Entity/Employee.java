@@ -51,13 +51,9 @@ public class Employee {
     private Date otpExpiry;
     @Column(name = "pMobile_no")
     private String parentNo;
-
-
-
     //2nd page form
     @Column(name = "joining_date")
     private LocalDate joiningDate;
-
 
     private String department;
     private String workLocation;
@@ -77,17 +73,14 @@ public class Employee {
 
     private String status = "Joined";
 
-
     private String systemName;
-
     private int osen;
-
     private String toMail;
     private String subject;
     private String body;
-
     private LocalDateTime createAt;
-
+    private LocalDate rejoiningData;
+    private LocalDate terminatDate;
     // Leave information
     private Double paidleaves;
     private Double carryForwardedLeaves =0.0;

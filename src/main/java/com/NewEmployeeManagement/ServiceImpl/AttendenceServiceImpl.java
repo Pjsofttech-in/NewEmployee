@@ -165,13 +165,11 @@ public class AttendenceServiceImpl implements AttendenceService {
             String empIdStr = String.valueOf(firstMatch.get("empid"));
             Long empId = Long.parseLong(empIdStr);
 
-            // 🔍 Fetch the Employee object first
             Employee employee = employeeRepository.findById(empId)
                     .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + empId));
 
             LocalDate today = LocalDate.now();
 
-            // ✅ Use the correct repository method with Employee object
             Optional<EmployeeAttendence> optional = attendenceRepository.findByEmployeeAndTodaysDate(employee, today);
 
             if (optional.isEmpty()) {

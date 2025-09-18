@@ -380,31 +380,31 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
     }
 
-
-//    @Override
-//    public Map<String, Object> getCrudPermissionForEmployeeByEmail(String empEmail) {
-//        Optional<Employee> employeeOpt = repository.findByEmpEmail(empEmail);
-//        if (employeeOpt.isPresent()) {
-//            Employee employee = employeeOpt.get();
-//            Map<String, Object> permissions = new HashMap<>();
-//            permissions.put("candGet", employee.isCandGet());
-//            permissions.put("candPost", employee.isCandPost());
-//            permissions.put("candPut", employee.isCandPut());
-//            permissions.put("candDelete", employee.isCandDelete());
-//            return permissions;
-//        }
-//        throw new EntityNotFoundException("Employee not found with email: " + empEmail);
-//    }
-
     @Override
-    public Employee updateStatus(Long id, String status){
-        Employee employee=repository.findById(id).get();
+    public Employee updateStatus(String role, String email, Long id, String status, LocalDate date)
+    {
+        if (!permissionService.hasPermission(role, email, "Put")) {
+            throw new AccessDeniedException("No permission");
+        }
+
+        Employee employee = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
+
         employee.setStatus(status);
+
+        if ("Terminated".equalsIgnoreCase(status)) {
+            employee.setTerminatDate(date);
+        } else if ("Rejoined".equalsIgnoreCase(status)) {
+            employee.setRejoiningData(date);
+        }
+
         return repository.save(employee);
     }
 
+
     @Override
-    public String getBranchCodeByEmail(String email) {
+    public String getBranchCodeByEmail(String email)
+    {
         Employee employee = repository.findByEmpEmail(email)
                 .orElseThrow(() -> new RuntimeException("Employee not found with email: " + email));
 

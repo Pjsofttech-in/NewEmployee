@@ -151,8 +151,11 @@ public class EmployeeController {
 
     @PutMapping("updateStatus/{id}")
     public ResponseEntity<Employee> updateStus(@PathVariable Long id,
-                                               @RequestParam String Status){
-        return ResponseEntity.ok(service.updateStatus(id, Status));
+                                               @RequestParam  String role,
+                                               @RequestParam String email,
+                                               @RequestParam String Status,
+                                               @RequestParam LocalDate date){
+        return ResponseEntity.ok(service.updateStatus(role, email,id, Status,date));
     }
 
     @GetMapping("/upcomingEmployeeBirthdays")

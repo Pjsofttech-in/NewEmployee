@@ -22,8 +22,6 @@ public class DashboardController
     @Autowired
     DashboardService dashboardService;
 
-
-
     @GetMapping("/getEmployeeCountForCardsAndGraph")
     public ResponseEntity<EmployeeCountResponse> getEmployeeCounts(
            @RequestParam String role,
