@@ -1,6 +1,8 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
 import com.NewEmployeeManagement.DTO.EmployeeCountResponse;
+import com.NewEmployeeManagement.Entity.Employee;
+import com.NewEmployeeManagement.Entity.EmployeeLeaveRequest;
 import com.NewEmployeeManagement.Repository.AttendenceRepository;
 import com.NewEmployeeManagement.Repository.EmployeeRepository;
 import com.NewEmployeeManagement.Repository.LeaveRequestRepository;
@@ -16,6 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.format.TextStyle;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 import static java.time.temporal.ChronoUnit.MONTHS;
@@ -291,5 +294,108 @@ public class DashboardServiceImpl implements DashboardService
 
         return leaveMap;
     }
+
+    @Override
+    public Map<String, Long> getAttendanceReport(String role, String email, String filter,
+                                                 LocalDate startDate, LocalDate endDate) {
+
+        if (!permissionService.hasPermission(role, email, "GET")) {
+            throw new AccessDeniedException("No permission to view Get Count");
+        }
+        String branchCode = permissionService.fetchBranchCode(role, email);
+
+        // --- apply filter ---
+        LocalDate today = LocalDate.now();
+        LocalDate fromDate;
+        LocalDate toDate = today;
+        switch (filter.toLowerCase()) {
+            case "today" -> fromDate = today;
+            case "7days" -> fromDate = today.minusDays(6);
+            case "30days" -> fromDate = today.minusDays(29);
+            case "365days" -> fromDate = today.minusDays(364);
+            case "custom" -> {
+                fromDate = startDate;
+                toDate = endDate;
+            }
+            default -> throw new IllegalArgumentException("Invalid filter.");
+        }
+
+        // --- 1) employees active in this period ---
+        List<Employee> employees = employeeRepository.findEmployeesActiveBetween(branchCode, fromDate, toDate);
+        long totalEmployees = employees.size();
+
+        // --- 2) calculate expected attendances ---
+        long expectedAttendances = 0L;
+        for (Employee e : employees) {
+            LocalDate empJoin = e.getJoiningDate();
+            LocalDate empRejoin = e.getRejoiningData();
+            LocalDate effectiveStart = (empRejoin != null && (empJoin == null || empRejoin.isAfter(empJoin)))
+                    ? empRejoin : empJoin;
+
+            if (effectiveStart == null) continue;
+            LocalDate effectiveEnd = (e.getTerminatDate() != null) ? e.getTerminatDate() : toDate;
+
+            LocalDate overlapStart = effectiveStart.isAfter(fromDate) ? effectiveStart : fromDate;
+            LocalDate overlapEnd = effectiveEnd.isBefore(toDate) ? effectiveEnd : toDate;
+
+            if (!overlapStart.isAfter(overlapEnd)) {
+                long days = ChronoUnit.DAYS.between(overlapStart, overlapEnd) + 1;
+                expectedAttendances += days;
+            }
+        }
+
+        // --- 3) present counts ---
+        long onTimeCount = attendenceRepository.countOnTimeRecords(branchCode, fromDate, toDate);
+        long lateCount = attendenceRepository.countLateRecords(branchCode, fromDate, toDate);
+        long presentCount = onTimeCount + lateCount;
+
+        // --- 4) leave days ---
+        long leaveCount = 0L;
+        List<EmployeeLeaveRequest> leaves = leaveRequestRepository.findApprovedLeavesOverlapping(branchCode, fromDate, toDate);
+        for (EmployeeLeaveRequest lr : leaves) {
+            LocalDate leaveStart = lr.getFromDate();
+            LocalDate leaveEnd = lr.getToDate();
+            LocalDate overlapStart = (leaveStart.isAfter(fromDate)) ? leaveStart : fromDate;
+            LocalDate overlapEnd = (leaveEnd.isBefore(toDate)) ? leaveEnd : toDate;
+            if (!overlapStart.isAfter(overlapEnd)) {
+                leaveCount += ChronoUnit.DAYS.between(overlapStart, overlapEnd) + 1;
+            }
+        }
+
+        long absentCount = expectedAttendances - presentCount - leaveCount;
+        if (absentCount < 0) absentCount = 0;
+
+        // --- 6) averages ---
+        Map<String, Long> report = new HashMap<>();
+        if (!filter.equalsIgnoreCase("today")) {
+            // average PER EMPLOYEE
+            if (totalEmployees > 0) {
+                report.put("avgTotalEmployees", totalEmployees);
+                report.put("avgExpectedAttendances", expectedAttendances / totalEmployees);
+                report.put("avgPresentCount", presentCount / totalEmployees);
+                report.put("avgLateCount", lateCount / totalEmployees);
+                report.put("avgAbsentCount", absentCount / totalEmployees);
+                report.put("avgLeaveCount", leaveCount / totalEmployees);
+            } else {
+                report.put("avgTotalEmployees", 0L);
+                report.put("avgExpectedAttendances", 0L);
+                report.put("avgPresentCount", 0L);
+                report.put("avgLateCount", 0L);
+                report.put("avgAbsentCount", 0L);
+                report.put("avgLeaveCount", 0L);
+            }
+        } else {
+            // today's raw counts
+            report.put("totalEmployees", totalEmployees);
+            report.put("expectedAttendances", expectedAttendances);
+            report.put("presentCount", presentCount);
+            report.put("lateCount", lateCount);
+            report.put("absentCount", absentCount);
+            report.put("leaveCount", leaveCount);
+        }
+
+        return report;
+    }
+
 
 }

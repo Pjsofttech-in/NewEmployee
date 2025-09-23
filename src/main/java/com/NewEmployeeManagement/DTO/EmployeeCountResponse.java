@@ -16,4 +16,5 @@ public class EmployeeCountResponse
     private Map<String, Long> statusCounts;      // e.g., { "Joined": 6, "Terminated": 3 }
     private Map<String, Long> departmentCounts;  // e.g., { "IT": 6 }
     private Map<String, Long> categoryCounts;    // e.g., { "Developer": 2, "Tester": 4 }
+
 }

@@ -56,7 +56,6 @@ public class AttendenceServiceImpl implements AttendenceService {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
-            // Prepare multipart body
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             body.add("image", new ByteArrayResource(image.getBytes()) {
                 @Override
@@ -74,7 +73,7 @@ public class AttendenceServiceImpl implements AttendenceService {
             Map<String, Object> responseBody = response.getBody();
 
             if (responseBody == null || !"success".equals(responseBody.get("status"))) {
-                return "Face recognition failed ";
+                return "Face recognition failed";
             }
 
             List<Map<String, Object>> matches = (List<Map<String, Object>>) responseBody.get("matches");
@@ -88,23 +87,41 @@ public class AttendenceServiceImpl implements AttendenceService {
 
             LocalDate today = LocalDate.now();
 
-            // Fetch Employee
             Employee employee = employeeRepository.findById(empId)
                     .orElseThrow(() -> new RuntimeException("Employee not found"));
 
-            // Check if attendance already marked
-            Optional<EmployeeAttendence> existingAttendance = attendenceRepository.findByEmployeeAndTodaysDate(employee, today);
+            Optional<EmployeeAttendence> existingAttendance =
+                    attendenceRepository.findByEmployeeAndTodaysDate(employee, today);
             if (existingAttendance.isPresent()) {
-                return "Attendance already marked for: " + employee.getFullName() +" With empId :" + empId;
+                return "Attendance already marked for: " + employee.getFullName() + " With empId :" + empId;
             }
 
             LocalTime loginTime = LocalTime.now();
+
             String shiftStartTimeStr = employee.getShiftStartTime(); // Example: "09:00"
-            LocalTime shiftStartTime = LocalTime.parse(shiftStartTimeStr); // Assumes correct format
-            LocalTime allowedTime = shiftStartTime.plusMinutes(5);
-            String status = loginTime.isAfter(allowedTime) ? "Late" : "OnTime";
+            LocalTime shiftStartTime = null;
+            LocalTime allowedTime = null;
+
+            if (shiftStartTimeStr != null && !shiftStartTimeStr.isBlank()) {
+                try {
+                    shiftStartTime = LocalTime.parse(shiftStartTimeStr);
+                    allowedTime = shiftStartTime.plusMinutes(5);
+                } catch (Exception ex) {
+                    // Log the parsing issue and fallback
+                    System.err.println("Invalid shiftStartTime for empId " + empId + ": " + shiftStartTimeStr);
+                }
+            }
+
+            String status;
+            if (allowedTime != null) {
+                status = loginTime.isAfter(allowedTime) ? "Late" : "OnTime";
+            } else {
+
+                status = "OnTime";
+            }
 
             String dayName = LocalDate.now().getDayOfWeek().toString();
+
             // Create new attendance entry
             EmployeeAttendence attendance = new EmployeeAttendence();
             attendance.setEmployee(employee);
@@ -121,7 +138,7 @@ public class AttendenceServiceImpl implements AttendenceService {
 
             attendenceRepository.save(attendance);
 
-            return "Attendance marked for employee: " + employee.getFullName() + " With empId :" + empId ;
+            return "Attendance marked for employee: " + employee.getFullName() + " With empId :" + empId;
 
         } catch (Exception e) {
             e.printStackTrace();

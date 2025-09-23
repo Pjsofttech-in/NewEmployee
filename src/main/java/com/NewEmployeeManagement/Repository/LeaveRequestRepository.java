@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Repository
@@ -36,5 +37,16 @@ public interface LeaveRequestRepository extends JpaRepository<EmployeeLeaveReque
             "AND e.status = 'Approved' " +
             "GROUP BY MONTH(e.fromDate)")
     List<Object[]> getLeaveByYear(@Param("empId") Long empId, @Param("year") int year);
+
+
+    @Query("SELECT l FROM EmployeeLeaveRequest l " +
+            "WHERE l.branchCode = :branchCode " +
+            "AND l.status = 'APPROVED' " +
+            "AND l.toDate >= :fromDate " +   // overlap condition
+            "AND l.fromDate <= :toDate")
+    List<EmployeeLeaveRequest> findApprovedLeavesOverlapping(@Param("branchCode") String branchCode,
+                                                     @Param("fromDate") LocalDate fromDate,
+                                                     @Param("toDate") LocalDate toDate);
+
 
 }

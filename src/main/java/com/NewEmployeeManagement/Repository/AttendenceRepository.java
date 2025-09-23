@@ -74,4 +74,38 @@ public interface AttendenceRepository extends JpaRepository<EmployeeAttendence, 
     List<Object[]> getDailyWorkMinutesByMonth(@Param("empId") Long empId,
                                               @Param("month") int month,
                                               @Param("year") int year);
+
+
+    @Query("SELECT COUNT(a) FROM EmployeeAttendence a " +
+            "WHERE a.branchCode = :branchCode " +
+            "AND a.todaysDate BETWEEN :fromDate AND :toDate " +
+            "AND (a.status = 'OnTime' OR a.status = 'Present')")
+    long countOnTimeRecords(@Param("branchCode") String branchCode,
+                            @Param("fromDate") LocalDate fromDate,
+                            @Param("toDate") LocalDate toDate);
+
+    @Query("SELECT COUNT(a) FROM EmployeeAttendence a " +
+            "WHERE a.branchCode = :branchCode " +
+            "AND a.todaysDate BETWEEN :fromDate AND :toDate " +
+            "AND a.status = 'Late'")
+    long countLateRecords(@Param("branchCode") String branchCode,
+                          @Param("fromDate") LocalDate fromDate,
+                          @Param("toDate") LocalDate toDate);
+
+      @Query(value = "SELECT COUNT(DISTINCT emp_id, todays_date) FROM EmployeeAttendence " +
+            "WHERE branchCode = :branchCode AND todays_date BETWEEN :fromDate AND :toDate " +
+            "AND status IN ('OnTime','Present')",
+            nativeQuery = true)
+    long countOnTimeDistinctEmpDate(@Param("branchCode") String branchCode,
+                                    @Param("fromDate") LocalDate fromDate,
+                                    @Param("toDate") LocalDate toDate);
+
+    @Query(value = "SELECT COUNT(DISTINCT emp_id, todays_date) FROM EmployeeAttendence " +
+            "WHERE branchCode = :branchCode AND todays_date BETWEEN :fromDate AND :toDate " +
+            "AND status = 'Late'",
+            nativeQuery = true)
+    long countLateDistinctEmpDate(@Param("branchCode") String branchCode,
+                                  @Param("fromDate") LocalDate fromDate,
+                                  @Param("toDate") LocalDate toDate);
+
 }

@@ -103,4 +103,16 @@ public class DashboardController
         Map<String, Double> response = dashboardService.getYearlyLeaves(role,email,empId, year);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/getCardsDataForAdmin")
+    public ResponseEntity<Map<String, Long>> getAttendanceReport(
+            @RequestParam String role,
+            @RequestParam String email,
+            @RequestParam String filter,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        Map<String, Long> report = dashboardService.getAttendanceReport(role, email, filter, startDate, endDate);
+        return ResponseEntity.ok(report);
+    }
 }

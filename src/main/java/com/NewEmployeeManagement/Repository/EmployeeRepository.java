@@ -86,4 +86,18 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
     List<EmployeeBirthdayDTO> findUpcomingBirthdays(@Param("branchCode") String branchCode);
 
 
+    @Query("""
+        SELECT e FROM Employee e
+        WHERE e.branchCode = :branchCode
+          AND e.isDeleted = false
+          AND (
+               (e.joiningDate IS NOT NULL AND e.joiningDate <= :endDate)
+               OR (e.rejoiningData IS NOT NULL AND e.rejoiningData <= :endDate)
+          )
+          AND (e.terminatDate IS NULL OR e.terminatDate >= :startDate)
+        """)
+    List<Employee> findEmployeesActiveBetween(@Param("branchCode") String branchCode,
+                                              @Param("startDate") LocalDate startDate,
+                                              @Param("endDate") LocalDate endDate);
+
 }

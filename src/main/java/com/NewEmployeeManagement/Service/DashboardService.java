@@ -19,4 +19,5 @@ public interface DashboardService
 
     Map<String, Double> getYearlyLeaves(String role, String email,Long empId, int year);
 
+    Map<String, Long> getAttendanceReport(String role, String email, String filter, LocalDate startDate, LocalDate endDate);
 }
