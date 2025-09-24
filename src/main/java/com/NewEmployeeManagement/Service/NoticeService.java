@@ -10,5 +10,4 @@ public interface NoticeService {
     EmployeeNotice updateNotice(Long id, EmployeeNotice employeeNotice, String role, String email);
     void deleteNotice(Long id, String role, String email);
     EmployeeNotice getNoticeById(Long id, String role, String email);
-    List<EmployeeNotice> getNoticesByEmail(String role, String email);
 }

@@ -52,9 +52,4 @@ public class NoticeController {
     }
 
 
-    @GetMapping("/getNoticeByEmail")
-    public List<EmployeeNotice> getNoticesByEmail(@RequestParam String role,@RequestParam String email)
-    {
-        return service.getNoticesByEmail(role,email);
-    }
 }

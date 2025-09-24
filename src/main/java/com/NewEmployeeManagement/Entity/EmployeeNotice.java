@@ -23,8 +23,8 @@ public class EmployeeNotice {
     private String noticeDescription;
     private LocalDate createdAt = LocalDate.now();
     private boolean isDeleted = false;
-    @Email(message = "Email should be valid")
-    private String email;
+//    @Email(message = "Email should be valid")
+//    private String email;
 
     @Email
     private String createdByEmail;
