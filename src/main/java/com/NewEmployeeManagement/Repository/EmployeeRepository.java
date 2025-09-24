@@ -100,4 +100,42 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
                                               @Param("startDate") LocalDate startDate,
                                               @Param("endDate") LocalDate endDate);
 
+
+    @Query("SELECT e.status, COUNT(e) FROM Employee e " +
+            "WHERE (:branchCode IS NULL OR e.branchCode = :branchCode) " +
+            "AND (:startDate IS NULL OR e.joiningDate >= :startDate OR e.rejoiningData >= :startDate OR e.terminatDate >= :startDate) " +
+            "AND (:endDate IS NULL OR e.joiningDate <= :endDate OR e.rejoiningData <= :endDate OR e.terminatDate <= :endDate) " +
+            "GROUP BY e.status")
+    List<Object[]> countByStatusWithBranch(@Param("branchCode") String branchCode,
+                                           @Param("startDate") LocalDate startDate,
+                                           @Param("endDate") LocalDate endDate);
+
+
+
+    @Query("SELECT e.department, COUNT(e) FROM Employee e " +
+            "WHERE (:branchCode IS NULL OR e.branchCode = :branchCode) " +
+            "AND (:startDate IS NULL OR ((e.joiningDate >= :startDate AND e.status IN ('Joined','Rejoined')) " +
+            "OR (e.rejoiningData >= :startDate AND e.status='Rejoined') " +
+            "OR (e.terminatDate >= :startDate AND e.status='Terminated'))) " +
+            "AND (:endDate IS NULL OR ((e.joiningDate <= :endDate AND e.status IN ('Joined','Rejoined')) " +
+            "OR (e.rejoiningData <= :endDate AND e.status='Rejoined') " +
+            "OR (e.terminatDate <= :endDate AND e.status='Terminated'))) " +
+            "GROUP BY e.department")
+    List<Object[]> countByDepartmentWithBranch(@Param("branchCode") String branchCode,
+                                               @Param("startDate") LocalDate startDate,
+                                               @Param("endDate") LocalDate endDate);
+
+    @Query("SELECT e.categoryName, COUNT(e) FROM Employee e " +
+            "WHERE (:branchCode IS NULL OR e.branchCode = :branchCode) " +
+            "AND (:startDate IS NULL OR ((e.joiningDate >= :startDate AND e.status IN ('Joined','Rejoined')) " +
+            "OR (e.rejoiningData >= :startDate AND e.status='Rejoined') " +
+            "OR (e.terminatDate >= :startDate AND e.status='Terminated'))) " +
+            "AND (:endDate IS NULL OR ((e.joiningDate <= :endDate AND e.status IN ('Joined','Rejoined')) " +
+            "OR (e.rejoiningData <= :endDate AND e.status='Rejoined') " +
+            "OR (e.terminatDate <= :endDate AND e.status='Terminated'))) " +
+            "GROUP BY e.categoryName")
+    List<Object[]> countByCategoryWithBranch(@Param("branchCode") String branchCode,
+                                             @Param("startDate") LocalDate startDate,
+                                             @Param("endDate") LocalDate endDate);
+
 }

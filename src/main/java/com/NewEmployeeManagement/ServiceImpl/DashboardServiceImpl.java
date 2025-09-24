@@ -20,6 +20,7 @@ import java.time.Month;
 import java.time.format.TextStyle;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.time.temporal.ChronoUnit.MONTHS;
 
@@ -44,76 +45,121 @@ public class DashboardServiceImpl implements DashboardService
     LeaveRequestRepository leaveRequestRepository;
 
     @Override
-    public EmployeeCountResponse getEmployeeCounts(String role, String email,String filter, LocalDate startDate, LocalDate endDate)
-    {
-        if (!permissionService.hasPermission(role, email, "GET")) {
-            throw new AccessDeniedException("No permission to view Get Count");
+    public EmployeeCountResponse getEmployeeCounts(String role, String email, String filter,
+                                                   LocalDate startDate, LocalDate endDate) {
+
+        if (!permissionService.hasPermission(role, email, "Get")) {
+            throw new AccessDeniedException("No permission to Get salary Report");
         }
+
         String branchCode = permissionService.fetchBranchCode(role, email);
-        LocalDate now = LocalDate.now();
+        List<Employee> employees = employeeRepository.findByIsDeletedFalse();
+
+        LocalDate today = LocalDate.now();
+        LocalDate fromDate = null;
+        LocalDate toDate = null;
+
+        // Apply filter
         switch (filter.toLowerCase()) {
-            case "today" -> {
-                startDate = now;
-                endDate = now;
-            }
-            case "7days" -> {
-                startDate = now.minusDays(6);
-                endDate = now;
-            }
-            case "30days" -> {
-                startDate = now.minusDays(29);
-                endDate = now;
-            }
-            case "365days" -> {
-                startDate = now.minusDays(364);
-                endDate = now;
-            }
-            case "all" -> {
-                startDate = LocalDate.of(2000, 1, 1);
-                endDate = now;
-            }
-            case "custom" -> {
-                if (startDate == null || endDate == null)
-                    throw new IllegalArgumentException("Custom filter requires startDate and endDate.");
-            }
-            default -> throw new IllegalArgumentException("Invalid filter type: " + filter);
+            case "today":
+                fromDate = today;
+                toDate = today;
+                break;
+            case "7days":
+                fromDate = today.minusDays(6);
+                toDate = today;
+                break;
+            case "30days":
+                fromDate = today.withDayOfMonth(1);
+                toDate = today.withDayOfMonth(today.lengthOfMonth());
+                break;
+            case "365days":
+                fromDate = today.withDayOfYear(1);
+                toDate = today.withDayOfYear(today.lengthOfYear());
+                break;
+            case "custom":
+                fromDate = startDate;
+                toDate = endDate;
+                break;
+            case "all":
+            default:
+                fromDate = employees.stream()
+                        .map(Employee::getJoiningDate)
+                        .filter(Objects::nonNull)
+                        .min(LocalDate::compareTo)
+                        .orElse(today);
+                toDate = today;
+                break;
         }
 
-        LocalDateTime startDateTime = startDate.atStartOfDay();
-        LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
+        // ✅ make them final copies for use in lambdas
+        final LocalDate start = fromDate;
+        final LocalDate end = toDate;
 
-        Long total = employeeRepository.countTotalEmployeesBetweenDatesAndBranchCode(startDateTime, endDateTime, branchCode);
+        // --- Status counts ---
+        long total = employees.size();
 
-        List<Object[]> statusList = employeeRepository.countByStatusBetweenDatesAndBranchCode(startDateTime, endDateTime,branchCode);
-        List<Object[]> deptList = employeeRepository.countByDepartmentJoinedBetweenDatesAndBranchCode(startDateTime, endDateTime,branchCode);
-        List<Object[]> categoryList = employeeRepository.countByCategoryJoinedBetweenDatesAndBranchCode(startDateTime, endDateTime,branchCode);
+        long joinedCount = employees.stream()
+                .filter(e ->
+                        (e.getJoiningDate() != null &&
+                                !e.getJoiningDate().isBefore(start) &&
+                                !e.getJoiningDate().isAfter(end))
+                                ||
+                                (e.getRejoiningData() != null &&
+                                        !e.getRejoiningData().isBefore(start) &&
+                                        !e.getRejoiningData().isAfter(end))
+                )
+                .count();
 
-        Map<String, Long> statusMap = new HashMap<>();
-        statusMap.put("Joined", 0L);
-        statusMap.put("Terminated", 0L);
+        long terminatedCount = employees.stream()
+                .filter(e -> {
+                    LocalDate td = e.getTerminatDate();
+                    return td != null && !td.isBefore(start) && !td.isAfter(end);
+                })
+                .count();
 
-        for (Object[] obj : statusList) {
-            String status = (String) obj[0];
-            Long count = (Long) obj[1];
-            statusMap.put(status, count);
-        }
+        Map<String, Long> statusCounts = new LinkedHashMap<>();
+        statusCounts.put("total", total);
+        statusCounts.put("Joined", joinedCount);
+        statusCounts.put("Terminated", terminatedCount);
 
-        statusMap.put("total", total);
+        // ✅ filter employees by the selected timeframe
+        List<Employee> filteredEmployees = employees.stream()
+                .filter(e ->
+                        (e.getJoiningDate() != null &&
+                                !e.getJoiningDate().isBefore(start) &&
+                                !e.getJoiningDate().isAfter(end))
+                                ||
+                                (e.getRejoiningData() != null &&
+                                        !e.getRejoiningData().isBefore(start) &&
+                                        !e.getRejoiningData().isAfter(end))
+                                ||
+                                (e.getTerminatDate() != null &&
+                                        !e.getTerminatDate().isBefore(start) &&
+                                        !e.getTerminatDate().isAfter(end))
+                )
+                .toList();
 
-        Map<String, Long> deptMap = new HashMap<>();
-        Map<String, Long> categoryMap = new HashMap<>();
+// --- Department counts (time-frame based) ---
+        Map<String, Long> departmentCounts = filteredEmployees.stream()
+                .filter(e -> e.getDepartment() != null)
+                .collect(Collectors.groupingBy(Employee::getDepartment, Collectors.counting()));
 
-        statusList.forEach(obj -> statusMap.put((String) obj[0], (Long) obj[1]));
-        deptList.forEach(obj -> deptMap.put((String) obj[0], (Long) obj[1]));
-        categoryList.forEach(obj -> categoryMap.put((String) obj[0], (Long) obj[1]));
+// --- Category counts (time-frame based) ---
+        Map<String, Long> categoryCounts = filteredEmployees.stream()
+                .filter(e -> e.getCategoryName() != null)
+                .collect(Collectors.groupingBy(Employee::getCategoryName, Collectors.counting()));
 
+
+        // Build response
         EmployeeCountResponse response = new EmployeeCountResponse();
-        response.setStatusCounts(statusMap);
-        response.setDepartmentCounts(deptMap);
-        response.setCategoryCounts(categoryMap);
+        response.setStatusCounts(statusCounts);
+        response.setDepartmentCounts(departmentCounts);
+        response.setCategoryCounts(categoryCounts);
 
         return response;
     }
+
 
     @Override
     public Map<String, Object> getSalarySummary(String role, String email, Integer month, Integer year)
@@ -302,26 +348,38 @@ public class DashboardServiceImpl implements DashboardService
         if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to view Get Count");
         }
+
         String branchCode = permissionService.fetchBranchCode(role, email);
 
         // --- apply filter ---
         LocalDate today = LocalDate.now();
-        LocalDate fromDate;
+        LocalDate fromDate = today;
         LocalDate toDate = today;
+
+        if (filter == null) {
+            throw new IllegalArgumentException("Filter cannot be null");
+        }
+
         switch (filter.toLowerCase()) {
             case "today" -> fromDate = today;
             case "7days" -> fromDate = today.minusDays(6);
             case "30days" -> fromDate = today.minusDays(29);
             case "365days" -> fromDate = today.minusDays(364);
             case "custom" -> {
+                if (startDate == null || endDate == null) {
+                    throw new IllegalArgumentException("StartDate and EndDate are required for custom filter");
+                }
                 fromDate = startDate;
                 toDate = endDate;
             }
-            default -> throw new IllegalArgumentException("Invalid filter.");
+            default -> throw new IllegalArgumentException("Invalid filter: " + filter);
         }
 
         // --- 1) employees active in this period ---
-        List<Employee> employees = employeeRepository.findEmployeesActiveBetween(branchCode, fromDate, toDate);
+        List<Employee> employees = Optional.ofNullable(
+                employeeRepository.findEmployeesActiveBetween(branchCode, fromDate, toDate)
+        ).orElse(Collections.emptyList());
+
         long totalEmployees = employees.size();
 
         // --- 2) calculate expected attendances ---
@@ -329,6 +387,7 @@ public class DashboardServiceImpl implements DashboardService
         for (Employee e : employees) {
             LocalDate empJoin = e.getJoiningDate();
             LocalDate empRejoin = e.getRejoiningData();
+
             LocalDate effectiveStart = (empRejoin != null && (empJoin == null || empRejoin.isAfter(empJoin)))
                     ? empRejoin : empJoin;
 
@@ -345,18 +404,33 @@ public class DashboardServiceImpl implements DashboardService
         }
 
         // --- 3) present counts ---
-        long onTimeCount = attendenceRepository.countOnTimeRecords(branchCode, fromDate, toDate);
-        long lateCount = attendenceRepository.countLateRecords(branchCode, fromDate, toDate);
+        long onTimeCount = Optional.ofNullable(
+                attendenceRepository.countOnTimeRecords(branchCode, fromDate, toDate)
+        ).orElse(0L);
+
+        long lateCount = Optional.ofNullable(
+                attendenceRepository.countLateRecords(branchCode, fromDate, toDate)
+        ).orElse(0L);
+
         long presentCount = onTimeCount + lateCount;
 
         // --- 4) leave days ---
         long leaveCount = 0L;
-        List<EmployeeLeaveRequest> leaves = leaveRequestRepository.findApprovedLeavesOverlapping(branchCode, fromDate, toDate);
+        List<EmployeeLeaveRequest> leaves = Optional.ofNullable(
+                leaveRequestRepository.findApprovedLeavesOverlapping(branchCode, fromDate, toDate)
+        ).orElse(Collections.emptyList());
+
         for (EmployeeLeaveRequest lr : leaves) {
+            if (lr == null) continue;
+
             LocalDate leaveStart = lr.getFromDate();
             LocalDate leaveEnd = lr.getToDate();
+
+            if (leaveStart == null || leaveEnd == null) continue;
+
             LocalDate overlapStart = (leaveStart.isAfter(fromDate)) ? leaveStart : fromDate;
             LocalDate overlapEnd = (leaveEnd.isBefore(toDate)) ? leaveEnd : toDate;
+
             if (!overlapStart.isAfter(overlapEnd)) {
                 leaveCount += ChronoUnit.DAYS.between(overlapStart, overlapEnd) + 1;
             }
@@ -365,7 +439,7 @@ public class DashboardServiceImpl implements DashboardService
         long absentCount = expectedAttendances - presentCount - leaveCount;
         if (absentCount < 0) absentCount = 0;
 
-        // --- 6) averages ---
+        // --- 6) averages / counts ---
         Map<String, Long> report = new HashMap<>();
         if (!filter.equalsIgnoreCase("today")) {
             // average PER EMPLOYEE
@@ -396,6 +470,7 @@ public class DashboardServiceImpl implements DashboardService
 
         return report;
     }
+
 
 
 }
