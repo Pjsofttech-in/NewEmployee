@@ -14,5 +14,10 @@ public interface DepartmentRepository extends JpaRepository<EmployeeDepartment, 
     @Query("SELECT d FROM EmployeeDepartment d WHERE d.branchCode = :branchCode ORDER BY d.id DESC")
     List<EmployeeDepartment> findAllByBranchCode(@Param("branchCode") String branchCode);
 
+    @Query("SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END " +
+            "FROM EmployeeDepartment d " +
+            "WHERE d.department = :department AND d.branchCode = :branchCode")
+    boolean existsByDepartmentNameAndBranchCode(@Param("department") String categoryName,
+                                              @Param("branchCode") String branchCode);
 
 }

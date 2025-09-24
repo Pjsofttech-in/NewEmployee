@@ -32,6 +32,13 @@ public class EmployeeCategoryServiceImpl implements EmployeeCategoryService {
         category.setCreatedByEmail(email);
         category.setBranchCode(branchCode);
 
+        boolean exists = employeeCategoryRepository.existsByCategoryNameAndBranchCode(
+                category.getCategoryName(), branchCode);
+
+        if (exists) {
+            throw new IllegalArgumentException("Category with name '" + category.getCategoryName() + "' already exists in this branch");
+        }
+
         convertToPercentage(category);
         return employeeCategoryRepository.save(category);
     }

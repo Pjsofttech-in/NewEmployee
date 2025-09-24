@@ -23,6 +23,10 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
     @Query("SELECT e FROM Employee e WHERE e.branchCode = :branchCode AND e.isDeleted = false")
     List<Employee> findAllByBranchCodeAndIsDeletedFalse(String branchCode);
 
+
+    @Query("SELECT e FROM Employee e WHERE e.email = :email")
+    Optional<Employee> findEmployeeByEmail(@Param("email") String email);
+
     Optional<Employee> findByIdAndIsDeletedFalse(Long id);
 
     List<Employee> findByIsDeletedFalse();
@@ -35,39 +39,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
     Optional<Employee> findByEmployeePhoto(@Param("photo") String photo);
 
     List<Employee> findByBranchCodeAndStatus(String branchCode, String status);
-
-    @Query("SELECT e.status, COUNT(e) " +
-            "FROM Employee e " +
-            "WHERE e.isDeleted = false " +
-            "AND e.createAt BETWEEN :startDate AND :endDate " +
-            "AND e.branchCode = :branchCode " +
-            "GROUP BY e.status")
-    List<Object[]> countByStatusBetweenDatesAndBranchCode(LocalDateTime startDate, LocalDateTime endDate, String branchCode);
-
-
-    @Query("SELECT e.department, COUNT(e) " +
-            "FROM Employee e " +
-            "WHERE e.status = 'Joined' " +
-            "AND e.isDeleted = false " +
-            "AND e.createAt BETWEEN :startDate AND :endDate " +
-            "AND e.branchCode = :branchCode " +
-            "GROUP BY e.department")
-    List<Object[]> countByDepartmentJoinedBetweenDatesAndBranchCode(LocalDateTime startDate, LocalDateTime endDate, String branchCode);
-
-
-    @Query("SELECT e.categoryName, COUNT(e) " +
-            "FROM Employee e " +
-            "WHERE e.status = 'Joined' " +
-            "AND e.isDeleted = false " +
-            "AND e.createAt BETWEEN :startDate AND :endDate " +
-            "AND e.branchCode = :branchCode " +
-            "GROUP BY e.categoryName")
-    List<Object[]> countByCategoryJoinedBetweenDatesAndBranchCode(LocalDateTime startDate, LocalDateTime endDate, String branchCode);
-
-
-    @Query("SELECT COUNT(e) FROM Employee e WHERE e.isDeleted = false AND e.createAt BETWEEN :startDate AND :endDate AND e.branchCode = :branchCode")
-    Long countTotalEmployeesBetweenDatesAndBranchCode(LocalDateTime startDate, LocalDateTime endDate, String branchCode);
-
 
     @Query("SELECT e FROM Employee e WHERE e.branchCode = :branchCode AND e.joiningDate <= :endDate AND e.isDeleted = false")
     List<Employee> findActiveEmployeesByBranchCodeAndJoiningDate(@Param("branchCode") String branchCode, @Param("endDate") LocalDate endDate);
@@ -100,42 +71,5 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
                                               @Param("startDate") LocalDate startDate,
                                               @Param("endDate") LocalDate endDate);
 
-
-    @Query("SELECT e.status, COUNT(e) FROM Employee e " +
-            "WHERE (:branchCode IS NULL OR e.branchCode = :branchCode) " +
-            "AND (:startDate IS NULL OR e.joiningDate >= :startDate OR e.rejoiningData >= :startDate OR e.terminatDate >= :startDate) " +
-            "AND (:endDate IS NULL OR e.joiningDate <= :endDate OR e.rejoiningData <= :endDate OR e.terminatDate <= :endDate) " +
-            "GROUP BY e.status")
-    List<Object[]> countByStatusWithBranch(@Param("branchCode") String branchCode,
-                                           @Param("startDate") LocalDate startDate,
-                                           @Param("endDate") LocalDate endDate);
-
-
-
-    @Query("SELECT e.department, COUNT(e) FROM Employee e " +
-            "WHERE (:branchCode IS NULL OR e.branchCode = :branchCode) " +
-            "AND (:startDate IS NULL OR ((e.joiningDate >= :startDate AND e.status IN ('Joined','Rejoined')) " +
-            "OR (e.rejoiningData >= :startDate AND e.status='Rejoined') " +
-            "OR (e.terminatDate >= :startDate AND e.status='Terminated'))) " +
-            "AND (:endDate IS NULL OR ((e.joiningDate <= :endDate AND e.status IN ('Joined','Rejoined')) " +
-            "OR (e.rejoiningData <= :endDate AND e.status='Rejoined') " +
-            "OR (e.terminatDate <= :endDate AND e.status='Terminated'))) " +
-            "GROUP BY e.department")
-    List<Object[]> countByDepartmentWithBranch(@Param("branchCode") String branchCode,
-                                               @Param("startDate") LocalDate startDate,
-                                               @Param("endDate") LocalDate endDate);
-
-    @Query("SELECT e.categoryName, COUNT(e) FROM Employee e " +
-            "WHERE (:branchCode IS NULL OR e.branchCode = :branchCode) " +
-            "AND (:startDate IS NULL OR ((e.joiningDate >= :startDate AND e.status IN ('Joined','Rejoined')) " +
-            "OR (e.rejoiningData >= :startDate AND e.status='Rejoined') " +
-            "OR (e.terminatDate >= :startDate AND e.status='Terminated'))) " +
-            "AND (:endDate IS NULL OR ((e.joiningDate <= :endDate AND e.status IN ('Joined','Rejoined')) " +
-            "OR (e.rejoiningData <= :endDate AND e.status='Rejoined') " +
-            "OR (e.terminatDate <= :endDate AND e.status='Terminated'))) " +
-            "GROUP BY e.categoryName")
-    List<Object[]> countByCategoryWithBranch(@Param("branchCode") String branchCode,
-                                             @Param("startDate") LocalDate startDate,
-                                             @Param("endDate") LocalDate endDate);
 
 }

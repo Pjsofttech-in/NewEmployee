@@ -125,4 +125,12 @@ public class PermissionServiceImpl implements PermissionService {
                 .bodyToMono(String.class)
                 .block();
     }
+
+    @Autowired
+    public String fetchEmployeeStatusByEmail(String email) {
+        return employeeRepository.findEmployeeByEmail(email)
+                .map(Employee::getStatus)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
+    }
+
 }

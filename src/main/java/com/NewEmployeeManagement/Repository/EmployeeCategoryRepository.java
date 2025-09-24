@@ -30,4 +30,10 @@ public interface EmployeeCategoryRepository extends JpaRepository<EmployeeCatego
     Optional<EmployeeCategory> findByCategoryNameAndBranchCode(String categoryName, String branchCode);
 
     long countByBranchCode(String branchCode);
+
+    @Query("SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END " +
+            "FROM EmployeeCategory c " +
+            "WHERE c.categoryName = :categoryName AND c.branchCode = :branchCode")
+    boolean existsByCategoryNameAndBranchCode(@Param("categoryName") String categoryName,
+                                              @Param("branchCode") String branchCode);
 }

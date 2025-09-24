@@ -39,6 +39,19 @@ public class NoticeServiceImpl implements NoticeService {
             throw new AccessDeniedException("No permission to view notices");
         }
         String branchCode = permissionService.fetchBranchCode(role, email);
+        if ("User".equalsIgnoreCase(role)) {
+
+            String employeeStatus = permissionService.fetchEmployeeStatusByEmail(email);
+
+            if (employeeStatus == null) {
+                throw new RuntimeException("Employee not found");
+            }
+
+            if (!employeeStatus.equalsIgnoreCase("Joined") && !employeeStatus.equalsIgnoreCase("Rejoined")) {
+                throw new RuntimeException("Employee is terminated or not active");
+            }
+        }
+
         return repository.findAllByBranchCode(branchCode);
     }
 
