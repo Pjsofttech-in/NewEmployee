@@ -24,7 +24,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
     List<Employee> findAllByBranchCodeAndIsDeletedFalse(String branchCode);
 
 
-    @Query("SELECT e FROM Employee e WHERE e.email = :email")
+    @Query("SELECT e FROM Employee e WHERE e.empEmail = :email")
     Optional<Employee> findEmployeeByEmail(@Param("email") String email);
 
     Optional<Employee> findByIdAndIsDeletedFalse(Long id);
@@ -70,6 +70,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
     List<Employee> findEmployeesActiveBetween(@Param("branchCode") String branchCode,
                                               @Param("startDate") LocalDate startDate,
                                               @Param("endDate") LocalDate endDate);
+
 
 
 }

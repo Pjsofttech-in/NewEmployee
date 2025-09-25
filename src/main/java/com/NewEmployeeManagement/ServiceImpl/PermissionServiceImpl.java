@@ -126,7 +126,7 @@ public class PermissionServiceImpl implements PermissionService {
                 .block();
     }
 
-    @Autowired
+    @Override
     public String fetchEmployeeStatusByEmail(String email) {
         return employeeRepository.findEmployeeByEmail(email)
                 .map(Employee::getStatus)

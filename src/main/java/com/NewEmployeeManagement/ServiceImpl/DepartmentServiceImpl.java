@@ -30,7 +30,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         employeeDepartment.setCreatedByEmail(email);
         employeeDepartment.setBranchCode(branchCode);
 
-        boolean exists = departmentRepository.existsByDepartmentNameAndBranchCode(
+        boolean exists = departmentRepository.existsByDepartmentAndBranchCode(
                 employeeDepartment.getDepartment(), branchCode);
 
         if (exists) {

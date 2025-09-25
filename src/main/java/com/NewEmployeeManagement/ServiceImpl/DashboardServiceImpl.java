@@ -66,7 +66,7 @@ public class DashboardServiceImpl implements DashboardService
                 toDate = today;
                 break;
             case "7days":
-                fromDate = today.minusDays(6);
+                fromDate = today.minusDays(6); // include today + 6 previous days
                 toDate = today;
                 break;
             case "30days":

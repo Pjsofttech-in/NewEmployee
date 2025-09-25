@@ -12,4 +12,5 @@ public interface NoticeRepository extends JpaRepository<EmployeeNotice, Long> {
     @Query("SELECT n FROM EmployeeNotice n WHERE n.branchCode = :branchCode AND n.isDeleted = false ORDER BY n.id DESC")
     List<EmployeeNotice> findAllByBranchCode(@Param("branchCode") String branchCode);
 
+
 }
