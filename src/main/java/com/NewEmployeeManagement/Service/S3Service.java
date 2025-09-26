@@ -5,6 +5,7 @@ import com.NewEmployeeManagement.Repository.EmployeeRepository;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import org.springframework.beans.factory.annotation.Value;
@@ -75,10 +76,29 @@ public class S3Service {
 
         return String.format("https://%s.s3.amazonaws.com/%s", bucketName, key);
     }
-    public Void deleteFile(String filename){
-        s3Client.deleteObject(bucketName,filename);
-        return null;
+
+    public boolean deleteImage(String bucketName, String fileUrl) {
+        try {
+            String key = fileUrl;
+
+            // Extract key from full URL
+            if (fileUrl.startsWith("http")) {
+                int index = fileUrl.indexOf(bucketName) + bucketName.length() + 1;
+                key = fileUrl.substring(index); // e.g., BCH193/employee-sys/attendance_faces/2.JPG
+            }
+
+            DeleteObjectRequest request = new DeleteObjectRequest(bucketName, key);
+            s3Client.deleteObject(request);
+
+            System.out.println("✅ Deleted from S3: " + key);
+            return true;
+        } catch (AmazonServiceException e) {
+            System.err.println("❌ S3 Delete Error: " + e.getMessage());
+            return false;
+        }
     }
+
+
 
     // ✅ Upload face image directly to attendance_faces/
     public String uploadEmployeeFaceImage(MultipartFile file, String branchCode, Long employeeId) throws IOException {

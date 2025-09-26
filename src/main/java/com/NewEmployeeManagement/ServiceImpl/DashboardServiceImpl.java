@@ -53,7 +53,8 @@ public class DashboardServiceImpl implements DashboardService
         }
 
         String branchCode = permissionService.fetchBranchCode(role, email);
-        List<Employee> employees = employeeRepository.findByIsDeletedFalse();
+
+        List<Employee> employees = employeeRepository.findAllByBranchCode(branchCode);
 
         LocalDate today = LocalDate.now();
         LocalDate fromDate = null;
@@ -92,7 +93,6 @@ public class DashboardServiceImpl implements DashboardService
                 break;
         }
 
-        // ✅ make them final copies for use in lambdas
         final LocalDate start = fromDate;
         final LocalDate end = toDate;
 
@@ -140,16 +140,15 @@ public class DashboardServiceImpl implements DashboardService
                 )
                 .toList();
 
-// --- Department counts (time-frame based) ---
+        // --- Department counts (time-frame based) ---
         Map<String, Long> departmentCounts = filteredEmployees.stream()
                 .filter(e -> e.getDepartment() != null)
                 .collect(Collectors.groupingBy(Employee::getDepartment, Collectors.counting()));
 
-// --- Category counts (time-frame based) ---
+        // --- Category counts (time-frame based) ---
         Map<String, Long> categoryCounts = filteredEmployees.stream()
                 .filter(e -> e.getCategoryName() != null)
                 .collect(Collectors.groupingBy(Employee::getCategoryName, Collectors.counting()));
-
 
         // Build response
         EmployeeCountResponse response = new EmployeeCountResponse();

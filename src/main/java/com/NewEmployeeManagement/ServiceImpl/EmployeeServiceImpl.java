@@ -14,6 +14,7 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -63,7 +64,8 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Autowired
      EmployeeMapper employeeMapper;
 
-
+    @Value("${aws.s3.bucket-name}")
+    private String bucketName;
 
 
     private String saveFileToStorageOrReturnName(MultipartFile file) {
@@ -170,13 +172,16 @@ public class EmployeeServiceImpl implements EmployeeService {
             savedEmployee.setEmployeeDocument(employeeDocument);
 
             savedEmployee = repository.save(savedEmployee);
-            refreshCacheUpload("employee-sys", branchCode, savedEmployee.getId());
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to upload documents", e); // rollback will be triggered
         }
 
-        return savedEmployee;
+        Employee savedEmployee2 = repository.save(savedEmployee);
+
+        refreshCacheFrom("employee-sys", savedEmployee.getBranchCode(), String.valueOf(savedEmployee.getId()));
+
+        return savedEmployee2;
 
     }
 
@@ -296,45 +301,48 @@ public class EmployeeServiceImpl implements EmployeeService {
                 String systemName = String.valueOf(existing.getId());
 
                 if (idProof != null && !idProof.isEmpty()) {
-                    s3Service.deleteFile(idProof.getName());
+                    s3Service.deleteImage(bucketName,idProof.getName());
                     String idProofUrl = s3Service.uploadEmployeeDocument(idProof, branchCode, systemName);
                     document.setIdProof(idProofUrl);
                 }
 
                 if (employeePhoto != null && !employeePhoto.isEmpty()) {
-                    s3Service.deleteFile(employeePhoto.getName());
+                    s3Service.deleteImage(bucketName,employeePhoto.getName());
                     String photoUrl = s3Service.uploadEmployeeFaceImage(employeePhoto, branchCode, existing.getId());
                     document.setEmployeePhoto(photoUrl);
                     existing.setFaceEncoding(photoUrl); // optional
                 }
 
                 if (resume != null && !resume.isEmpty()) {
-                    s3Service.deleteFile(resume.getName());
+                    s3Service.deleteImage(bucketName,resume.getName());
                     String resumeUrl = s3Service.uploadEmployeeDocument(resume, branchCode, systemName);
                     document.setResume(resumeUrl);
                 }
 
                 if (addressProof != null && !addressProof.isEmpty()) {
-                    s3Service.deleteFile(addressProof.getName());
+                    s3Service.deleteImage(bucketName,addressProof.getName());
                     String addressProofUrl = s3Service.uploadEmployeeDocument(addressProof, branchCode, systemName);
                     document.setAddressProof(addressProofUrl);
                 }
 
                 if (experienceLetter != null && !experienceLetter.isEmpty()) {
-                    s3Service.deleteFile(experienceLetter.getName());
+                    s3Service.deleteImage(bucketName,experienceLetter.getName());
                     String experienceLetterUrl = s3Service.uploadEmployeeDocument(experienceLetter, branchCode, systemName);
                     document.setExperienceLetter(experienceLetterUrl);
                 }
 
                 document.setEmployee(existing);
                 existing.setEmployeeDocument(document);
-                refreshCacheUpload("employee-sys", branchCode, existing.getId());
 
 //            }
         } catch (IOException e) {
             throw new RuntimeException("File upload failed: " + e.getMessage(), e);
         }
-     return repository.save(existing);
+        Employee savedEmployee = repository.save(existing);
+
+        refreshCacheFrom("employee-sys", savedEmployee.getBranchCode(), String.valueOf(savedEmployee.getId()));
+
+        return savedEmployee;
     }
 
     private <T> void updateIfNotNull(Consumer<T> setter, T value) {
@@ -345,14 +353,27 @@ public class EmployeeServiceImpl implements EmployeeService {
 
 
     @Override
+    @Transactional
     public void deleteEmployee(Long id, String role, String email) {
-        if (!permissionService.hasPermission(role, email, "DELETE")) throw new AccessDeniedException("No permission");
-        Employee emp = repository.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
+        if (!permissionService.hasPermission(role, email, "DELETE")) {
+            throw new AccessDeniedException("No permission");
+        }
+
+        Employee emp = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
+
         String branchCode = permissionService.fetchBranchCode(role, email);
-        emp.setDeleted(true);
-        refreshCacheUpload("employee-sys", branchCode, emp.getId());
-        repository.save(emp);
+
+
+        if (emp.getEmployeeDocument() != null && emp.getEmployeeDocument().getEmployeePhoto() != null) {
+            s3Service.deleteImage(bucketName, emp.getEmployeeDocument().getEmployeePhoto());
+        }
+
+        repository.delete(emp);
+
+        refreshCacheFrom("employee-sys", branchCode, String.valueOf(emp.getId()));
     }
+
 
     @Override
     public void carryForwardLeavesForEligibleEmployees() {
@@ -414,27 +435,35 @@ public class EmployeeServiceImpl implements EmployeeService {
         return employee.getBranchCode();
     }
 
-    private void refreshCacheUpload(String systemName, String branchCode, Long empId) {
+    public void refreshCacheFrom(String systemName, String branchCode, String empIdOrRollNo) {
         try {
             String url = "https://pjsofttech.in:51443/refresh-cache-upload";
 
+            // Headers for form-urlencoded
             HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            // Prepare body
+            MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
             body.add("system_name", systemName);
             body.add("branch_code", branchCode);
-            body.add("empid", String.valueOf(empId));
+
+            if ("employee-sys".equals(systemName)) {
+                body.add("empid", empIdOrRollNo);
+            } else {
+                body.add("rollno", empIdOrRollNo);
+            }
+
             body.add("token", "python-java-token-123");
 
-            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+            HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
 
             RestTemplate restTemplate = new RestTemplate();
             ResponseEntity<String> response = restTemplate.postForEntity(url, requestEntity, String.class);
 
             System.out.println("Python API response: " + response.getBody());
         } catch (Exception e) {
-            System.out.println("Error calling Python API: " + e.getMessage());
+            System.err.println("Error calling Python API: " + e.getMessage());
             e.printStackTrace();
         }
     }
