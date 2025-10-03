@@ -24,6 +24,7 @@ public class EmployeeDocument {
     private String resume;
     private String addressProof;
     private String experienceLetter;
+    private String slipImage;
 
     @OneToOne
     @JsonIgnore

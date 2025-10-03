@@ -52,7 +52,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
             WHERE e.branch_code = :branchCode
               AND DATE_FORMAT(e.dob, '%m-%d') 
                   BETWEEN DATE_FORMAT(CURDATE(), '%m-%d') 
-                  AND DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 7 DAY), '%m-%d')
+                  AND DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 30 DAY), '%m-%d')
             """, nativeQuery = true)
     List<EmployeeBirthdayDTO> findUpcomingBirthdays(@Param("branchCode") String branchCode);
 

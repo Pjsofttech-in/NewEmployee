@@ -91,6 +91,13 @@ public class Employee {
     private String faceEncoding;
     private String empRole;
 
+    private String bankName;
+    private String bankBranch;
+    private String ifscCode;
+    private String accountHolderName;
+    private String accountType;
+    private Long accountNumber;
+
     @Email
     private String createdByEmail;
     private String role;

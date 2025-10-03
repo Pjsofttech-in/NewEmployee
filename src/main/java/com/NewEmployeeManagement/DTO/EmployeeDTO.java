@@ -60,6 +60,12 @@ public class EmployeeDTO
     private boolean isDeleted = false;
     private String faceEncoding;
     private String empRole;
+    private String bankName;
+    private String bankBranch;
+    private String ifscCode;
+    private String accountHolderName;
+    private String accountType;
+    private Long accountNumber;
 
     private String createdByEmail;
     private String role;

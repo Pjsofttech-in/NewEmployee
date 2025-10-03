@@ -53,6 +53,13 @@ public class EmployeeCreateDTO {
     private Double carryForwardedLeaves =0.0;
     private Double unpaidleaves;
 
+    private String bankName;
+    private String bankBranch;
+    private String ifscCode;
+    private String accountHolderName;
+    private String accountType;
+    private Long accountNumber;
+
     @JsonProperty("isDeleted")
     private boolean isDeleted = false;
 

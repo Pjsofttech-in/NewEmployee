@@ -60,9 +60,16 @@ public class EmployeeMapper {
                 employee.isDeleted(),
                 employee.getFaceEncoding(),
                 employee.getEmpRole(),
+                employee.getBankName(),
+                employee.getBankBranch(),
+                employee.getIfscCode(),
+                employee.getAccountHolderName(),
+                employee.getAccountType(),
+                employee.getAccountNumber(),
                 employee.getCreatedByEmail(),
                 employee.getRole(),
                 employee.getBranchCode()
+
         );
 
         // Map document
@@ -75,7 +82,8 @@ public class EmployeeMapper {
                     document.getEmployeePhoto(),
                     document.getResume(),
                     document.getAddressProof(),
-                    document.getExperienceLetter()
+                    document.getExperienceLetter(),
+                    document.getSlipImage()
             );
         }
 

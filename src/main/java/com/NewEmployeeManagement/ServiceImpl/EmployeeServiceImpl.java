@@ -84,7 +84,8 @@ public class EmployeeServiceImpl implements EmployeeService {
                                    MultipartFile employeePhoto,
                                    MultipartFile resume,
                                    MultipartFile addressProof,
-                                   MultipartFile experienceLetter) {
+                                   MultipartFile experienceLetter,
+                                   MultipartFile slipImage) {
 
         if (!permissionService.hasPermission(role, email, "POST")) {
             throw new AccessDeniedException("No permission");
@@ -167,6 +168,10 @@ public class EmployeeServiceImpl implements EmployeeService {
                 String faceImageUrl = s3Service.uploadEmployeeFaceImage(employeePhoto, branchCode, savedEmployee.getId());
                 employeeDocument.setEmployeePhoto(faceImageUrl);
             }
+            if (slipImage != null && !slipImage.isEmpty()) {
+                String url = s3Service.uploadEmployeeDocument(slipImage, branchCode, systemName);
+                employeeDocument.setSlipImage(url);
+            }
 
             employeeDocument.setEmployee(savedEmployee);
             savedEmployee.setEmployeeDocument(employeeDocument);
@@ -214,7 +219,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     public Employee updateEmployee(
             Long id, EmployeeCreateDTO dto, String role, String email, Long departmentId, Long categoryId,
-            MultipartFile idProof, MultipartFile employeePhoto, MultipartFile resume, MultipartFile addressProof, MultipartFile experienceLetter) {
+            MultipartFile idProof, MultipartFile employeePhoto, MultipartFile resume, MultipartFile addressProof, MultipartFile experienceLetter, MultipartFile slipImage) {
         if (!permissionService.hasPermission(role, email, "PUT")) {
             throw new AccessDeniedException("No permission");
         }
@@ -263,9 +268,15 @@ public class EmployeeServiceImpl implements EmployeeService {
         updateIfNotNull(existing::setCreatedByEmail, dto.getCreatedByEmail());
         updateIfNotNull(existing::setRole, dto.getRole());
         updateIfNotNull(existing::setBranchCode, dto.getBranchCode());
+
+        updateIfNotNull(existing::setBankName,dto.getBankName());
+        updateIfNotNull(existing::setIfscCode,dto.getIfscCode());
+        updateIfNotNull(existing::setBankBranch,dto.getBankBranch());
+        updateIfNotNull(existing::setAccountType,dto.getAccountType());
+        updateIfNotNull(existing::setAccountNumber,dto.getAccountNumber());
+        updateIfNotNull(existing::setAccountHolderName,dto.getAccountHolderName());
         existing.setDeleted(dto.isDeleted());
 
-        // Update Address
         if (dto.getAddress() != null) {
             EmployeeAddress address = existing.getEmployeeAddress() != null ? existing.getEmployeeAddress() : new EmployeeAddress();
             AddressDTO dtoAddress = dto.getAddress();
@@ -330,6 +341,12 @@ public class EmployeeServiceImpl implements EmployeeService {
                     String experienceLetterUrl = s3Service.uploadEmployeeDocument(experienceLetter, branchCode, systemName);
                     document.setExperienceLetter(experienceLetterUrl);
                 }
+
+            if (slipImage != null && !slipImage.isEmpty()) {
+                s3Service.deleteImage(bucketName,slipImage.getName());
+                String slipImageUrl = s3Service.uploadEmployeeDocument(slipImage, branchCode, systemName);
+                document.setExperienceLetter(slipImageUrl);
+            }
 
                 document.setEmployee(existing);
                 existing.setEmployeeDocument(document);

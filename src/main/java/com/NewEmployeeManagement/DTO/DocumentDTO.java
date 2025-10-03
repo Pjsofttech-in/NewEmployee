@@ -17,4 +17,5 @@ public class DocumentDTO
     private String resume;
     private String addressProof;
     private String experienceLetter;
+    private String slipImage;
 }

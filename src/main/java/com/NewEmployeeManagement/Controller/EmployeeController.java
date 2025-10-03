@@ -43,7 +43,8 @@ public class EmployeeController {
             @RequestParam(value = "employeePhoto", required = false) MultipartFile employeePhoto,
             @RequestParam(value = "resume", required = false) MultipartFile resume,
             @RequestParam(value = "addressProof", required = false) MultipartFile addressProof,
-            @RequestParam(value = "experienceLetter", required = false) MultipartFile experienceLetter
+            @RequestParam(value = "experienceLetter", required = false) MultipartFile experienceLetter,
+            @RequestParam(value = "slipImage", required = false) MultipartFile slipImage
     ) {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
@@ -58,8 +59,7 @@ public class EmployeeController {
 
         Employee createdEmployee = service.createEmployee(
                 dto, role, email, departmentId, categoryId,
-                idProof, employeePhoto, resume, addressProof, experienceLetter
-        );
+                idProof, employeePhoto, resume, addressProof, experienceLetter,slipImage);
 
         return new ResponseEntity<>(createdEmployee, HttpStatus.CREATED);
     }
@@ -103,12 +103,12 @@ public class EmployeeController {
             @RequestParam("email") String email,
             @RequestParam(value = "departmentId",required = false) Long departmentId,
             @RequestParam(value = "categoryId",required = false) Long categoryId,
-
             @RequestParam(value = "idProof", required = false) MultipartFile idProof,
             @RequestParam(value = "employeePhoto", required = false) MultipartFile employeePhoto,
             @RequestParam(value = "resume", required = false) MultipartFile resume,
             @RequestParam(value = "addressProof", required = false) MultipartFile addressProof,
-            @RequestParam(value = "experienceLetter", required = false) MultipartFile experienceLetter
+            @RequestParam(value = "experienceLetter", required = false) MultipartFile experienceLetter,
+            @RequestParam(value = "slipImage", required = false) MultipartFile slipImage
     ) {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
@@ -123,7 +123,7 @@ public class EmployeeController {
 
         Employee updatedEmployee = service.updateEmployee(
                 id, dto, role, email, departmentId, categoryId,
-                idProof, employeePhoto, resume, addressProof, experienceLetter
+                idProof, employeePhoto, resume, addressProof, experienceLetter,slipImage
         );
         return new ResponseEntity<>(updatedEmployee, HttpStatus.OK);
     }

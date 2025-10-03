@@ -16,7 +16,8 @@ public interface EmployeeService {
                             MultipartFile employeePhoto,
                             MultipartFile resume,
                             MultipartFile addressProof,
-                            MultipartFile experienceLetter);
+                            MultipartFile experienceLetter,
+                            MultipartFile slipImage);
 
     Page<Employee> getFilteredEmployees(String role, String email, EmployeeFilterDTO filter, String timeFrame, LocalDate startDate, LocalDate endDate, Pageable pageable);
     EmployeeResponseDTO getEmployeeById(Long id, String role, String email);
@@ -24,8 +25,8 @@ public interface EmployeeService {
     Employee updateEmployee(
             Long id, EmployeeCreateDTO dto, String role,
             String email, Long departmentId,Long categoryId, MultipartFile idProof,
-            MultipartFile employeePhoto, MultipartFile resume, MultipartFile addressProof, MultipartFile experienceLetter
-    );
+            MultipartFile employeePhoto, MultipartFile resume, MultipartFile addressProof,
+            MultipartFile experienceLetter, MultipartFile slipImage);
 
     void deleteEmployee(Long id, String role, String email);
     void carryForwardLeavesForEligibleEmployees();
