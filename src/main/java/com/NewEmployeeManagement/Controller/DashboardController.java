@@ -7,6 +7,7 @@ import com.NewEmployeeManagement.Service.SalaryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -67,11 +68,17 @@ public class DashboardController
     }
 
     @GetMapping("/getSalaryRevenewByMonthofYear")
-    public ResponseEntity<Map<String, BigDecimal>> getMonthlySalaryTotals(
+    public Map<String, Map<String, Object>> getMonthlySalaryTotals(
             @RequestParam String role,
             @RequestParam String email,
             @RequestParam int year) {
-        return ResponseEntity.ok(dashboardService.getMonthlySalaryTotals(role,email,year));
+        try {
+            return dashboardService.getMonthlySalaryTotals(role, email, year);
+        } catch (AccessDeniedException e) {
+            throw new RuntimeException("Access denied: " + e.getMessage());
+        } catch (Exception e) {
+            throw new RuntimeException("Error fetching salary report: " + e.getMessage());
+        }
     }
 
 

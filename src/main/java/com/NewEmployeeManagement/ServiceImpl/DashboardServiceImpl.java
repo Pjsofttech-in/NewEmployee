@@ -237,27 +237,45 @@ public class DashboardServiceImpl implements DashboardService
     }
 
     @Override
-    public Map<String, BigDecimal> getMonthlySalaryTotals(String role, String email,int year)
-    {
+    public Map<String, Map<String, Object>> getMonthlySalaryTotals(String role, String email, int year) {
         if (!permissionService.hasPermission(role, email, "Get")) {
-            throw new AccessDeniedException("No permission to Get salary Report");
+            throw new AccessDeniedException("No permission to get salary report");
         }
 
         String branchCode = permissionService.fetchBranchCode(role, email);
-        List<Object[]> monthlyData = salaryRepository.getMonthlySalaryTotalsByYear(year,branchCode);
+        List<Object[]> monthlyData = salaryRepository.getMonthlySalaryTotalsByYear(year, branchCode);
 
-        Map<String, BigDecimal> result = new LinkedHashMap<>();
+        // Structure: { "January" -> { "PaidTotal": 10000, "PendingTotal": 2000, "PaidCount": 3, "PendingCount": 1 } }
+        Map<String, Map<String, Object>> result = new LinkedHashMap<>();
 
+        // Initialize all months with 0 values
         for (int i = 1; i <= 12; i++) {
             String monthName = Month.of(i).getDisplayName(TextStyle.FULL, Locale.ENGLISH);
-            result.put(monthName, BigDecimal.ZERO);
+            Map<String, Object> monthData = new LinkedHashMap<>();
+            monthData.put("PaidTotal", BigDecimal.ZERO);
+            monthData.put("PendingTotal", BigDecimal.ZERO);
+            monthData.put("PaidCount", 0L);
+            monthData.put("PendingCount", 0L);
+            result.put(monthName, monthData);
         }
 
+        // Fill actual data
         for (Object[] row : monthlyData) {
             int month = (int) row[0];
-            BigDecimal total = (BigDecimal) row[1];
+            BigDecimal paidTotal = (BigDecimal) row[1];
+            BigDecimal pendingTotal = (BigDecimal) row[2];
+            Long paidCount = ((Number) row[3]).longValue();
+            Long pendingCount = ((Number) row[4]).longValue();
+
             String monthName = Month.of(month).getDisplayName(TextStyle.FULL, Locale.ENGLISH);
-            result.put(monthName, total);
+
+            Map<String, Object> monthData = new LinkedHashMap<>();
+            monthData.put("PaidTotal", paidTotal != null ? paidTotal : BigDecimal.ZERO);
+            monthData.put("PendingTotal", pendingTotal != null ? pendingTotal : BigDecimal.ZERO);
+            monthData.put("PaidCount", paidCount != null ? paidCount : 0L);
+            monthData.put("PendingCount", pendingCount != null ? pendingCount : 0L);
+
+            result.put(monthName, monthData);
         }
 
         return result;
@@ -297,10 +315,8 @@ public class DashboardServiceImpl implements DashboardService
             );
         }
 
-        // Fetch salaries grouped by month from DB
         List<Object[]> results = salaryRepository.getSalaryByYear(empId, year);
 
-        // Update salaryMap with actual totals
         for (Object[] row : results) {
             int monthNumber = (int) row[0]; // month number (1–12)
             Double total = ((Number) row[1]).doubleValue();

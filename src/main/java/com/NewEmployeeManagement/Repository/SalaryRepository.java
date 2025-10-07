@@ -120,16 +120,31 @@ public interface SalaryRepository extends JpaRepository<EmployeeSalary,Long>, Jp
     BigDecimal getTotalNetSalaryByYear(@Param("year") int year,
                                        @Param("branchCode") String branchCode);
 
-    @Query("SELECT e.month, COALESCE(SUM(e.finalNetSalary), 0) " +
-            "FROM EmployeeSalary e " +
-            "WHERE e.year = :year " +
-            "AND e.isDeleted = false " +
-            "AND e.branchCode = :branchCode " +
-            "GROUP BY e.month " +
-            "ORDER BY e.branchCode ASC, e.month ASC")
-    List<Object[]> getMonthlySalaryTotalsByYear(@Param("year") int year,
-                                                @Param("branchCode") String branchCode);
+//    @Query("SELECT e.month, COALESCE(SUM(e.finalNetSalary), 0) " +
+//            "FROM EmployeeSalary e " +
+//            "WHERE e.year = :year " +
+//            "AND e.isDeleted = false " +
+//            "AND e.branchCode = :branchCode " +
+//            "GROUP BY e.month " +
+//            "ORDER BY e.branchCode ASC, e.month ASC")
+//    List<Object[]> getMonthlySalaryTotalsByYear(@Param("year") int year,
+//                                                @Param("branchCode") String branchCode);
 
+    @Query("""
+        SELECT 
+            e.month AS month,
+            COALESCE(SUM(CASE WHEN e.status = 'Paid' THEN e.finalNetSalary ELSE 0 END), 0) AS paidTotal,
+            COALESCE(SUM(CASE WHEN e.status = 'Pending' THEN e.finalNetSalary ELSE 0 END), 0) AS pendingTotal,
+            COUNT(CASE WHEN e.status = 'Paid' THEN 1 END) AS paidCount,
+            COUNT(CASE WHEN e.status = 'Pending' THEN 1 END) AS pendingCount
+        FROM EmployeeSalary e
+        WHERE e.year = :year AND e.branchCode = :branchCode AND e.isDeleted = false
+        GROUP BY e.month
+        ORDER BY e.month
+    """)
+    List<Object[]> getMonthlySalaryTotalsByYear(
+            @Param("year") int year,
+            @Param("branchCode") String branchCode);
 
 
     @Query("SELECT e.month, SUM(e.finalNetSalary) " +
