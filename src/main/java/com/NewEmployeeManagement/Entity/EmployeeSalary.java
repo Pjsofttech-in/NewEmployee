@@ -61,9 +61,5 @@ public class EmployeeSalary {
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate paymentDate;
 
-//
-//    @ManyToOne
-//    @JoinColumn(name = "employee_id")
-//    private Employee employee;
 
 }

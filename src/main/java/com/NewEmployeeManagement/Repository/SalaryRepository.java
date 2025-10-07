@@ -137,4 +137,8 @@ public interface SalaryRepository extends JpaRepository<EmployeeSalary,Long>, Jp
             "WHERE e.empId = :empId AND e.year = :year AND e.isDeleted = false " +
             "GROUP BY e.month")
     List<Object[]> getSalaryByYear(@Param("empId") Long empId, @Param("year") int year);
+
+
+    @Query("SELECT e FROM EmployeeSalary e WHERE e.month = :month AND e.year = :year AND e.isDeleted = false")
+    List<EmployeeSalary> findByMonthAndYear(int month, int year);
 }

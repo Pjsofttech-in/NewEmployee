@@ -208,6 +208,24 @@ public class AttendenceServiceImpl implements AttendenceService {
                 attendance.setTotalMinutesWorked(workedMinutes);
             }
 
+            if (attendance.getShiftEndTime() != null) {
+                try {
+                    LocalTime shiftEnd = LocalTime.parse(attendance.getShiftEndTime());
+
+                    if (logoutTime.isAfter(shiftEnd)) {
+                        long overtimeMinutes = Duration.between(shiftEnd, logoutTime).toMinutes();
+                        attendance.setOverTime(overtimeMinutes);
+                    } else {
+                        attendance.setOverTime(0L);
+                    }
+                } catch (Exception e) {
+                    System.err.println("Invalid shiftEndTime format for employee " + empId + ": " + attendance.getShiftEndTime());
+                    attendance.setOverTime(0L);
+                }
+            } else {
+                attendance.setOverTime(0L);
+            }
+
             attendenceRepository.save(attendance);
 
             return "Logout successful for Emp ID: " + empId + " Name: " + attendance.getName();

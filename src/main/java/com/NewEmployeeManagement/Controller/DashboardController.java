@@ -1,7 +1,9 @@
 package com.NewEmployeeManagement.Controller;
 
 import com.NewEmployeeManagement.DTO.EmployeeCountResponse;
+import com.NewEmployeeManagement.DTO.MonthSalaryResponse;
 import com.NewEmployeeManagement.Service.DashboardService;
+import com.NewEmployeeManagement.Service.SalaryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +23,9 @@ public class DashboardController
 {
     @Autowired
     DashboardService dashboardService;
+
+    @Autowired
+    SalaryService salaryService;
 
     @GetMapping("/getEmployeeCountForCardsAndGraph")
     public ResponseEntity<EmployeeCountResponse> getEmployeeCounts(
@@ -114,5 +119,12 @@ public class DashboardController
     ) {
         Map<String, Long> report = dashboardService.getAttendanceReport(role, email, filter, startDate, endDate);
         return ResponseEntity.ok(report);
+    }
+
+    @GetMapping("/getPaidPendingSalaryByMonth")
+    public MonthSalaryResponse getSalarySummary( @RequestParam String role,
+                                                 @RequestParam String email,
+                                                 @RequestParam int month, @RequestParam int year) {
+        return salaryService.getSalarySummary(role,email,month, year);
     }
 }

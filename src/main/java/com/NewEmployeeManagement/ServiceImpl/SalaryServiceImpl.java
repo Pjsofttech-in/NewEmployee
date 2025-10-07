@@ -1,6 +1,7 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
 import com.NewEmployeeManagement.DTO.EmployeeSalaryFilterDTO;
+import com.NewEmployeeManagement.DTO.MonthSalaryResponse;
 import com.NewEmployeeManagement.DTO.SalarySummaryResponseDTO;
 import com.NewEmployeeManagement.Entity.Employee;
 import com.NewEmployeeManagement.Entity.EmployeeCategory;
@@ -273,6 +274,34 @@ public class SalaryServiceImpl implements SalaryService
         } else {
             throw new RuntimeException("Salary record not found or already deleted with ID " + salaryId);
         }
+    }
+
+
+    @Override
+    public MonthSalaryResponse getSalarySummary(String role, String email, int month, int year)
+    {
+        if (!permissionService.hasPermission(role, email, "Get")) {
+            throw new AccessDeniedException("No permission to View salary Graph");
+        }
+
+        List<EmployeeSalary> salaryList = employeeSalaryRepository.findByMonthAndYear(month, year);
+
+        BigDecimal paidAmount = BigDecimal.ZERO;
+        BigDecimal pendingAmount = BigDecimal.ZERO;
+        long paidCount = 0;
+        long pendingCount = 0;
+
+        for (EmployeeSalary salary : salaryList) {
+            if ("Paid".equalsIgnoreCase(salary.getStatus())) {
+                paidAmount = paidAmount.add(salary.getFinalNetSalary() != null ? salary.getFinalNetSalary() : BigDecimal.ZERO);
+                paidCount++;
+            } else if ("Pending".equalsIgnoreCase(salary.getStatus())) {
+                pendingAmount = pendingAmount.add(salary.getFinalNetSalary() != null ? salary.getFinalNetSalary() : BigDecimal.ZERO);
+                pendingCount++;
+            }
+        }
+
+        return new MonthSalaryResponse(paidAmount, pendingAmount, paidCount, pendingCount);
     }
 
 }
