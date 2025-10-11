@@ -364,7 +364,7 @@ public class AttendenceServiceImpl implements AttendenceService {
             Pageable pageable)
     {
         if (!permissionService.hasPermission(role, email, "Post")) {
-            throw new AccessDeniedException("No permission to view Get Attendace");
+            throw new AccessDeniedException("No permission to view Get Attendance");
         }
 
         // 1. Determine date range
@@ -375,35 +375,13 @@ public class AttendenceServiceImpl implements AttendenceService {
         String branchCode = permissionService.fetchBranchCode(role, email);
 
         switch (timeFrame != null ? timeFrame.toLowerCase() : "all") {
-            case "today" -> {
-                startDate = today;
-                endDate = today;
-            }
-            case "7days" -> {
-                startDate = today.minusDays(6);
-                endDate = today;
-            }
-            case "30days" -> {
-                startDate = today.minusDays(29);
-                endDate = today;
-            }
-            case "365days" -> {
-                startDate = today.minusDays(364);
-                endDate = today;
-            }
-            case "custom" -> {
-                if (customStartDate != null && customEndDate != null) {
-                    startDate = customStartDate;
-                    endDate = customEndDate;
-                }
-            }
-            case "all" -> {
-                startDate = employeeRepository.findEarliestJoiningDate()
-                        .orElse(today.minusYears(1));
-                endDate = today;
-            }
+            case "today" -> { startDate = today; endDate = today; }
+            case "7days" -> { startDate = today.minusDays(6); endDate = today; }
+            case "30days" -> { startDate = today.minusDays(29); endDate = today; }
+            case "365days" -> { startDate = today.minusDays(364); endDate = today; }
+            case "custom" -> { if (customStartDate != null && customEndDate != null) { startDate = customStartDate; endDate = customEndDate; } }
+            case "all" -> { startDate = employeeRepository.findEarliestJoiningDate().orElse(today.minusYears(1)); endDate = today; }
         }
-
 
         // 2. Fetch employees
         List<Employee> employees = employeeRepository.findActiveEmployeesByBranchCodeAndJoiningDate(branchCode, endDate);
@@ -417,7 +395,7 @@ public class AttendenceServiceImpl implements AttendenceService {
         }
 
         // 4. Attendance from DB
-        var spec = AttendanceSpecification.build(filterDTO, timeFrame, branchCode,customStartDate, customEndDate);
+        var spec = AttendanceSpecification.build(filterDTO, timeFrame, branchCode, customStartDate, customEndDate);
         List<EmployeeAttendence> attendances = attendenceRepository.findAll(spec);
 
         // 5. Map attendance
@@ -433,10 +411,29 @@ public class AttendenceServiceImpl implements AttendenceService {
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
             for (Employee emp : employees) {
                 if (emp.getJoiningDate() != null && !date.isBefore(emp.getJoiningDate())) {
+
+                    // ===== NEW TERMINATION / REJOIN LOGIC START =====
+                    LocalDate terminatedDate = emp.getTerminatDate();
+                    LocalDate rejoiningDate = emp.getRejoiningData();
+                    String empStatus = emp.getStatus() != null ? emp.getStatus().trim().toLowerCase() : "";
+
+                    if (terminatedDate != null && !"rejoined".equalsIgnoreCase(empStatus)
+                            && date.isAfter(terminatedDate)) {
+                        continue;
+                    }
+                    // Skip attendance before rejoining date for rejoined employees
+                    if ("rejoined".equalsIgnoreCase(empStatus)
+                            && rejoiningDate != null
+                            && date.isBefore(rejoiningDate)) {
+                        continue;
+                    }
+                    // ===== NEW TERMINATION / REJOIN LOGIC END =====
+
                     String key = emp.getId() + "_" + date;
                     EmployeeAttendence att = attendanceMap.get(key);
 
                     EmployeeAttendanceDTO dto;
+
                     if (date.getDayOfWeek() == DayOfWeek.SUNDAY) {
                         dto = new EmployeeAttendanceDTO(emp.getId(), emp.getFullName(), emp.getEmpEmail(), date,
                                 "Sunday", null, null, null, null, 0L);
@@ -454,8 +451,23 @@ public class AttendenceServiceImpl implements AttendenceService {
                                 att.getBreakMinutes()
                         );
                     } else {
-                        dto = new EmployeeAttendanceDTO(emp.getId(), emp.getFullName(), emp.getEmpEmail(), date,
-                                "Absent", null, null, null, null, 0L);
+                        // Handle absent case
+                        if ("today".equalsIgnoreCase(timeFrame)) {
+                            dto = new EmployeeAttendanceDTO(emp.getId(), emp.getFullName(), emp.getEmpEmail(), date,
+                                    "Absent", null, null, null, null, 0L);
+                        } else {
+                            if (terminatedDate != null && !"rejoined".equalsIgnoreCase(empStatus)
+                                    && date.isAfter(terminatedDate)) {
+                                continue;
+                            } else if ("rejoined".equalsIgnoreCase(empStatus)
+                                    && rejoiningDate != null
+                                    && date.isBefore(rejoiningDate)) {
+                                continue;
+                            } else {
+                                dto = new EmployeeAttendanceDTO(emp.getId(), emp.getFullName(), emp.getEmpEmail(), date,
+                                        "Absent", null, null, null, null, 0L);
+                            }
+                        }
                     }
 
                     combinedList.add(dto);
@@ -463,12 +475,15 @@ public class AttendenceServiceImpl implements AttendenceService {
             }
         }
 
-
         // 7. Filter by status
-        if (filterDTO != null && filterDTO.getStatus() != null && !filterDTO.getStatus().equalsIgnoreCase("All")) {
-            String status = filterDTO.getStatus().toLowerCase();
+        if (filterDTO != null && filterDTO.getStatus() != null &&
+                !filterDTO.getStatus().equalsIgnoreCase("All")) {
+
+            String status = filterDTO.getStatus().trim().toLowerCase();
+
             combinedList = combinedList.stream()
-                    .filter(dto -> dto.getStatus() != null && dto.getStatus().toLowerCase().equals(status))
+                    .filter(dto -> dto.getStatus() != null &&
+                            dto.getStatus().trim().toLowerCase().equals(status))
                     .toList();
         }
 
@@ -476,7 +491,6 @@ public class AttendenceServiceImpl implements AttendenceService {
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), combinedList.size());
         List<EmployeeAttendanceDTO> paged = (start < end) ? combinedList.subList(start, end) : List.of();
-
 
         return new PageImpl<>(paged, pageable, combinedList.size());
     }

@@ -22,9 +22,9 @@ public class AttendanceSpecification
                 if (filter.getName() != null && !filter.getName().isBlank()) {
                     predicates.add(cb.like(cb.lower(root.get("name")), "%" + filter.getName().toLowerCase() + "%"));
                 }
-                if (filter.getStatus() != null && !filter.getStatus().equalsIgnoreCase("All")) {
-                    predicates.add(cb.equal(cb.lower(root.get("status")), filter.getStatus().toLowerCase()));
-                }
+//                if (filter.getStatus() != null && !filter.getStatus().equalsIgnoreCase("All")) {
+//                    predicates.add(cb.equal(cb.lower(root.get("status")), filter.getStatus().toLowerCase()));
+//                }
             }
             predicates.add(cb.equal(root.get("branchCode"), branchCode));
 
