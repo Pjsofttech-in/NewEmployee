@@ -491,4 +491,46 @@ public class EmployeeServiceImpl implements EmployeeService {
         return repository.findUpcomingBirthdays(branchCode);
     }
 
+
+    @Override
+    public EmployeeAttendaceResponse getEmployeeAttendaceById(Long id, String role, String email) {
+        if (!permissionService.hasPermission(role, email, "GET"))
+            throw new AccessDeniedException("No permission");
+
+        Employee employee = repository.findByIdAndIsDeletedFalse(id)
+                .orElseThrow(() -> new RuntimeException("Employee not found or has been deleted"));
+
+        return mapToEmployeeAttendanceDTO(employee);
+    }
+
+    public EmployeeAttendaceResponse mapToEmployeeAttendanceDTO(Employee employee) {
+        if (employee == null) {
+            return null;
+        }
+
+        EmployeeAttendaceResponse dto = new EmployeeAttendaceResponse();
+
+        dto.setId(employee.getId());
+        dto.setFullName(employee.getFullName());
+        dto.setBloodGroup(employee.getBloodGroup());
+        dto.setGender(employee.getGender());
+        dto.setEmpEmail(employee.getEmpEmail());
+        dto.setDob(employee.getDob());
+        dto.setMobileNo(employee.getMobileNo());
+        dto.setJoiningDate(employee.getJoiningDate());
+        dto.setDepartment(employee.getDepartment() != null ? employee.getDepartment() : null);
+        dto.setWorkLocation(employee.getWorkLocation());
+        dto.setDesignation(employee.getDesignation());
+        dto.setDutyType(employee.getDutyType());
+        dto.setEmployeeType(employee.getEmployeeType());
+        dto.setShift(employee.getShift());
+        dto.setShiftStartTime(employee.getShiftStartTime());
+        dto.setShiftEndTime(employee.getShiftEndTime());
+        dto.setCategoryName(employee.getCategoryName() != null ? employee.getCategoryName() : null);
+        dto.setEmpRole(employee.getEmpRole());
+
+        return dto;
+    }
+
+
 }

@@ -28,6 +28,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.net.InetAddress;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -49,7 +50,7 @@ public class AttendenceServiceImpl implements AttendenceService {
     private PermissionService permissionService;
 
     @Override
-    public String markEmployeeAttendanceFromFace(MultipartFile image, String branchCode) {
+    public String markEmployeeAttendanceFromFace(MultipartFile image, String branchCode, String clientIp) {
         try {
             String fastApiUrl = "https://pjsofttech.in:51443/auto-branch-scan";
 
@@ -135,6 +136,8 @@ public class AttendenceServiceImpl implements AttendenceService {
             attendance.setShift(employee.getShift());
             attendance.setShiftStartTime(employee.getShiftStartTime());
             attendance.setShiftEndTime(employee.getShiftEndTime());
+            attendance.setSystemIP(InetAddress.getLocalHost().getHostAddress()); // server IP
+            attendance.setIP(clientIp);
 
             attendenceRepository.save(attendance);
 
@@ -201,7 +204,7 @@ public class AttendenceServiceImpl implements AttendenceService {
 
             LocalTime logoutTime = LocalTime.now();
             attendance.setLogoutTime(logoutTime);
-            attendance.setIP(logoutIp); // 👈 set logout IP (or system IP field if applicable)
+            attendance.setLogoutIP(logoutIp); // 👈 set logout IP (or system IP field if applicable)
 
             if (attendance.getLoginTime() != null) {
                 Integer workedMinutes = Math.toIntExact(Duration.between(attendance.getLoginTime(), logoutTime).toMinutes());

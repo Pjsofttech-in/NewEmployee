@@ -162,4 +162,12 @@ public class EmployeeController {
     public List<EmployeeBirthdayDTO> getUpcomingBirthdays(@RequestParam String branchCode) {
         return service.getUpcomingBirthdays(branchCode);
     }
+
+
+    @GetMapping("/getEmployeeAttendaceResponesId/{id}")
+    public ResponseEntity<EmployeeAttendaceResponse> getEmployeeById(@PathVariable Long id,
+                                                       @RequestParam String role,
+                                                       @RequestParam String email) {
+        return ResponseEntity.ok(service.getEmployeeAttendaceById(id, role, email));
+    }
 }

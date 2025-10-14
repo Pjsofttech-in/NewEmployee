@@ -16,7 +16,7 @@ import java.util.Map;
 
 public interface AttendenceService {
 
-    String markEmployeeAttendanceFromFace(MultipartFile image, String branchCode);
+    String markEmployeeAttendanceFromFace(MultipartFile image, String branchCode, String clientIp);
     String logoutEmployeeFromFace(MultipartFile image, String branchCode, String logoutIp);
     String breakInEmployeeFromFace(MultipartFile image, String branchCode);
     String breakOutEmployeeFromFace(MultipartFile image, String branchCode);

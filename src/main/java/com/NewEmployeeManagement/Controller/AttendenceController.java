@@ -34,8 +34,14 @@ public class AttendenceController {
     @PostMapping(value = "/markAttendanceForEmployee", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> markEmployeeAttendanceFromFace(
             @RequestParam("image") MultipartFile image,
-            @RequestParam("branchCode") String branchCode) {
-        String result = attendenceService.markEmployeeAttendanceFromFace(image, branchCode);
+            @RequestParam("branchCode") String branchCode,
+            HttpServletRequest request)
+    {
+        String clientIp = request.getHeader("X-Forwarded-For");
+        if (clientIp == null || clientIp.isEmpty()) {
+            clientIp = request.getRemoteAddr();
+        }
+        String result = attendenceService.markEmployeeAttendanceFromFace(image, branchCode,clientIp);
         return ResponseEntity.ok(result);
     }
 
@@ -45,7 +51,10 @@ public class AttendenceController {
         @RequestParam String branchCode,
         HttpServletRequest request) {
 
-    String logoutIp = request.getRemoteAddr();
+        String logoutIp = request.getHeader("X-Forwarded-For");
+        if (logoutIp == null || logoutIp.isEmpty()) {
+            logoutIp = request.getRemoteAddr();
+        }
     String result = attendenceService.logoutEmployeeFromFace(image, branchCode, logoutIp);
     return ResponseEntity.ok(result);
 }

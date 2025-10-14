@@ -31,6 +31,7 @@ public interface EmployeeService {
     void deleteEmployee(Long id, String role, String email);
     void carryForwardLeavesForEligibleEmployees();
 
+    EmployeeAttendaceResponse getEmployeeAttendaceById(Long id, String role, String email);
     String getBranchCodeByEmail(String email);
     Employee updateStatus(String role, String email,Long id, String status, LocalDate date);
 
