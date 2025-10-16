@@ -91,4 +91,23 @@ public class StaffService
     }
 
 
+    public String getInstituteEmailByBranchCode(String branchCode) {
+        try {
+            String emailResponse = webClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/instituteEmailByBranchCode")
+                            .queryParam("branchCode", branchCode)
+                            .build())
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block(); // blocking, like your getInstituteDetails
+
+            return emailResponse != null ? emailResponse : "No email found";
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Error fetching institute email: " + e.getMessage();
+        }
+    }
+
 }

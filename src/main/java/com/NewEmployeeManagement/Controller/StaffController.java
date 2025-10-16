@@ -5,6 +5,7 @@ import com.NewEmployeeManagement.JWT.LoginRequest;
 import com.NewEmployeeManagement.JWT.LoginResponse;
 import com.NewEmployeeManagement.ServiceImpl.StaffService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
@@ -51,6 +52,12 @@ public class StaffController
     public ResponseEntity<List<InstituteLoginResponse>> getInstitute(@RequestParam String instituteEmail) {
         List<InstituteLoginResponse> response = staffLoginService.getInstituteDetailsOnly(instituteEmail);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/getEmailByBranchCode")
+    public ResponseEntity<String> getEmailByBranchCode(@RequestParam String branchCode) {
+        String email = staffLoginService.getInstituteEmailByBranchCode(branchCode);
+        return ResponseEntity.ok(email);
     }
 
 }
