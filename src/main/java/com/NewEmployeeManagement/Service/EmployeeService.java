@@ -36,4 +36,6 @@ public interface EmployeeService {
     Employee updateStatus(String role, String email,Long id, String status, LocalDate date);
 
     List<EmployeeBirthdayDTO> getUpcomingBirthdays(String branchCode);
+
+
 }

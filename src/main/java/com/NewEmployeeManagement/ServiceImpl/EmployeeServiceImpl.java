@@ -33,6 +33,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -70,7 +71,6 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private String saveFileToStorageOrReturnName(MultipartFile file) {
         if (file != null && !file.isEmpty()) {
-            // For real project, save the file to disk or S3, etc.
             return file.getOriginalFilename();
         }
         return null;

@@ -27,8 +27,8 @@ public class EmployeeDTO
     private Long adharNo;
     private String panNo;
     private String mobileNo;
-    private int otp;
-    private Date otpExpiry;
+//    private int otp;
+//    private Date otpExpiry;
     private String parentNo;
     private LocalDate joiningDate;
     private String department;

@@ -3,7 +3,10 @@ package com.NewEmployeeManagement.Controller;
 import com.NewEmployeeManagement.DTO.*;
 import com.NewEmployeeManagement.Entity.Employee;
 import com.NewEmployeeManagement.Pageination.EmployeeSpecification;
+import com.NewEmployeeManagement.Repository.EmployeeRepository;
 import com.NewEmployeeManagement.Service.EmployeeService;
+import com.NewEmployeeManagement.ServiceImpl.EmailService;
+import com.NewEmployeeManagement.ServiceImpl.OtpService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -17,12 +20,14 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @CrossOrigin(origins = "https://pjsofttech.in")
@@ -31,6 +36,14 @@ public class EmployeeController {
     @Autowired
     private EmployeeService service;
 
+    @Autowired
+    private EmployeeRepository employeeRepository;
+    @Autowired
+    EmailService emailService;
+    @Autowired
+    PasswordEncoder passwordEncoder;
+    @Autowired
+    OtpService otpService;
 
     @PostMapping(value = "/createEmployee", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Employee> createEmployee(
@@ -169,5 +182,36 @@ public class EmployeeController {
                                                        @RequestParam String role,
                                                        @RequestParam String email) {
         return ResponseEntity.ok(service.getEmployeeAttendaceById(id, role, email));
+    }
+
+    @PostMapping("/sendOtpToEmployee")
+    public String requestOtp(@RequestParam String email) {
+        Optional<Employee> user = employeeRepository.findEmployeeByEmail(email);
+
+        if (user.isEmpty()) {
+            return "Email not found";
+        }
+
+        String otp = otpService.generateOtp(email);
+        emailService.sendOtpEmail(email, otp);
+        return "OTP sent to email";
+    }
+
+    @PostMapping("/resetEmployeePassword")
+    public String resetPassword(@RequestParam String email, @RequestParam String otp, @RequestParam String newPassword) {
+        if (!otpService.validateOtp(email, otp)) {
+            return "Invalid or expired OTP";
+        }
+
+        Optional<Employee> userOpt = employeeRepository.findEmployeeByEmail(email);
+        if (userOpt.isEmpty()) {
+            return "User not found";
+        }
+
+        Employee user = userOpt.get();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        employeeRepository.save(user);
+
+        return "Password reset successful";
     }
 }
