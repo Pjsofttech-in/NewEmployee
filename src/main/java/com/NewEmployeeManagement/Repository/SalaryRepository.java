@@ -29,7 +29,7 @@ public interface SalaryRepository extends JpaRepository<EmployeeSalary,Long>, Jp
                                               @Param("month") int month,
                                               @Param("year") int year);
 
-    @Query("SELECT s FROM EmployeeSalary s WHERE s.branchCode = :branchCode AND s.isDeleted = false")
+    @Query("SELECT s FROM EmployeeSalary s WHERE s.branchCode = :branchCode AND s.isDeleted = false ORDER BY s.id DESC")
     Page<EmployeeSalary> findAllByBranchCode(@Param("branchCode") String branchCode, Pageable pageable);
 
     @Query("SELECT s FROM EmployeeSalary s WHERE s.empId = :empId AND s.isDeleted = false ORDER BY s.year DESC, s.month DESC")
