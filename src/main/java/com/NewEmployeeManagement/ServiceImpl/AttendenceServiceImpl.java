@@ -210,19 +210,35 @@ public class AttendenceServiceImpl implements AttendenceService {
                 Integer workedMinutes = Math.toIntExact(Duration.between(attendance.getLoginTime(), logoutTime).toMinutes());
                 attendance.setTotalMinutesWorked(workedMinutes);
             }
+            if (attendance.getLoginTime() != null
+                    && attendance.getLogoutTime() != null
+                    && attendance.getShiftStartTime() != null
+                    && attendance.getShiftEndTime() != null) {
 
-            if (attendance.getShiftEndTime() != null) {
                 try {
+                    // Parse shift times (e.g. "09:30", "18:30")
+                    LocalTime shiftStart = LocalTime.parse(attendance.getShiftStartTime());
                     LocalTime shiftEnd = LocalTime.parse(attendance.getShiftEndTime());
 
-                    if (logoutTime.isAfter(shiftEnd)) {
-                        long overtimeMinutes = Duration.between(shiftEnd, logoutTime).toMinutes();
-                        attendance.setOverTime(overtimeMinutes);
-                    } else {
-                        attendance.setOverTime(0L);
-                    }
+                    // Calculate shift duration in minutes
+                    long shiftMinutes = Duration.between(shiftStart, shiftEnd).toMinutes();
+
+                    // Calculate actual worked minutes
+                    long workedMinutes = Duration.between(attendance.getLoginTime(), attendance.getLogoutTime()).toMinutes();
+
+                    // Subtract break minutes if any
+//                    if (attendance.getBreakMinutes() != null) {
+//                        workedMinutes -= attendance.getBreakMinutes();
+//                    }
+
+                    // Calculate overtime = worked - shift
+                    long overtimeMinutes = workedMinutes - shiftMinutes;
+
+                    // Never show negative overtime
+                    attendance.setOverTime(Math.max(overtimeMinutes, 0L));
+
                 } catch (Exception e) {
-                    System.err.println("Invalid shiftEndTime format for employee " + empId + ": " + attendance.getShiftEndTime());
+                    System.err.println("Error calculating overtime for Emp ID " + empId + ": " + e.getMessage());
                     attendance.setOverTime(0L);
                 }
             } else {

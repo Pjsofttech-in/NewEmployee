@@ -100,7 +100,7 @@ public class S3Service {
 
 
 
-    // ✅ Upload face image directly to attendance_faces/
+    // ✅ Upload face image directly  to attendance_faces/
     public String uploadEmployeeFaceImage(MultipartFile file, String branchCode, Long employeeId) throws IOException {
         if (branchCode == null || branchCode.isEmpty()) {
             logger.error("BranchCode is required");

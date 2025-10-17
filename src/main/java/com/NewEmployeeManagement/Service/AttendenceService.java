@@ -26,4 +26,6 @@ public interface AttendenceService {
     Long getAttendanceCount(Long empId, int month, int year);
     String markEmployeeAttendanceManually(List<Long> empIds, String role, String email);
 
+
+
 }

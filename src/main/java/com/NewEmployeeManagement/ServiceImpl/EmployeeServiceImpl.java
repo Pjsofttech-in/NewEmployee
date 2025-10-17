@@ -509,6 +509,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
 
         EmployeeAttendaceResponse dto = new EmployeeAttendaceResponse();
+        EmployeeDocument document =new EmployeeDocument();
 
         dto.setId(employee.getId());
         dto.setFullName(employee.getFullName());
@@ -528,6 +529,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         dto.setShiftEndTime(employee.getShiftEndTime());
         dto.setCategoryName(employee.getCategoryName() != null ? employee.getCategoryName() : null);
         dto.setEmpRole(employee.getEmpRole());
+        dto.setEmployeePhoto(employee.getEmployeeDocument().getEmployeePhoto());
 
         return dto;
     }

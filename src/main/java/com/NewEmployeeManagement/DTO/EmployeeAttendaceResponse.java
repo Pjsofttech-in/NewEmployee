@@ -31,5 +31,6 @@ public class EmployeeAttendaceResponse
     private String shiftEndTime;
     private String categoryName;
     private String empRole;
+    private String employeePhoto;
 
 }
