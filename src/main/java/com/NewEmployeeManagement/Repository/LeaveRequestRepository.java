@@ -49,4 +49,18 @@ public interface LeaveRequestRepository extends JpaRepository<EmployeeLeaveReque
                                                      @Param("toDate") LocalDate toDate);
 
 
+
+    @Query("SELECT COUNT(l) FROM EmployeeLeaveRequest l " +
+            "WHERE l.empId = :empId AND l.isDeleted = false")
+    long countByEmpId(@Param("empId") Long empId);
+
+
+    @Query("SELECT COUNT(l) FROM EmployeeLeaveRequest l " +
+            "WHERE l.empId = :empId AND l.isDeleted = false " +
+            "AND (l.fromDate <= :endDate AND l.toDate >= :startDate)")
+    long countByEmpIdAndDateRange(@Param("empId") Long empId,
+                                  @Param("startDate") LocalDate startDate,
+                                  @Param("endDate") LocalDate endDate);
+
+
 }

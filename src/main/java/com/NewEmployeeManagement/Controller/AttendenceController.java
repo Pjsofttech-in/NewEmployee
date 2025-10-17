@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 
 @RestController
@@ -101,7 +102,7 @@ public class AttendenceController {
     }
 
     @GetMapping("/getAttendanceByEmpId")
-    public ResponseEntity<Page<EmployeeAttendence>> getAttendanceByEmpId(
+    public ResponseEntity<Map<String, Object>> getAttendanceByEmpId(
             @RequestParam Long empId,
             @RequestParam String role,
             @RequestParam String email,
@@ -112,9 +113,14 @@ public class AttendenceController {
             @RequestParam(defaultValue = "10") int size
     ) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("todaysDate").descending());
-        Page<EmployeeAttendence> attendances = attendenceService.getAttendanceByEmpId(empId, role, email, timeFrame, customStartDate, customEndDate, pageable);
-        return ResponseEntity.ok(attendances);
+
+        Map<String, Object> response = attendenceService.getAttendanceByEmpId(
+                empId, role, email, timeFrame, customStartDate, customEndDate, pageable
+        );
+
+        return ResponseEntity.ok(response);
     }
+
 
     @GetMapping("/getAttendaceCountForSalaryCalculation")
     public Long getAttendanceCount(

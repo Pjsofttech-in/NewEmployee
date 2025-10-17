@@ -8,6 +8,7 @@ import com.NewEmployeeManagement.Entity.Employee;
 import com.NewEmployeeManagement.Pageination.AttendanceSpecification;
 import com.NewEmployeeManagement.Repository.AttendenceRepository;
 import com.NewEmployeeManagement.Repository.EmployeeRepository;
+import com.NewEmployeeManagement.Repository.LeaveRequestRepository;
 import com.NewEmployeeManagement.Service.AttendenceService;
 import com.NewEmployeeManagement.Service.PermissionService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -48,6 +49,9 @@ public class AttendenceServiceImpl implements AttendenceService {
 
     @Autowired
     private PermissionService permissionService;
+
+    @Autowired
+    LeaveRequestRepository leaveRequestRepository;
 
     @Override
     public String markEmployeeAttendanceFromFace(MultipartFile image, String branchCode, String clientIp) {
@@ -546,10 +550,12 @@ public class AttendenceServiceImpl implements AttendenceService {
     }
 
     @Override
-    public Page<EmployeeAttendence> getAttendanceByEmpId(Long empId, String role, String email,String timeFrame, LocalDate customStartDate, LocalDate customEndDate, Pageable pageable) {
+    public Map<String, Object> getAttendanceByEmpId(Long empId, String role, String email,
+                                                    String timeFrame, LocalDate customStartDate,
+                                                    LocalDate customEndDate, Pageable pageable) {
 
         if (!permissionService.hasPermission(role, email, "Get")) {
-            throw new AccessDeniedException("No permission to view Get Attendace");
+            throw new AccessDeniedException("No permission to view Get Attendance");
         }
 
         LocalDate today = LocalDate.now();
@@ -557,35 +563,53 @@ public class AttendenceServiceImpl implements AttendenceService {
         LocalDate endDate = today;
 
         if (timeFrame == null || timeFrame.equalsIgnoreCase("all")) {
-            return attendenceRepository.findByEmployeeId(empId, pageable);
-        }
-
-        switch (timeFrame.toLowerCase()) {
-            case "today" -> {
-                startDate = today;
-            }
-            case "7days" -> {
-                startDate = today.minusDays(6);
-            }
-            case "30days" -> {
-                startDate = today.minusDays(29);
-            }
-            case "365days" -> {
-                startDate = today.minusDays(364);
-            }
-            case "custom" -> {
-                if (customStartDate != null && customEndDate != null) {
-                    startDate = customStartDate;
-                    endDate = customEndDate;
-                } else {
-                    throw new IllegalArgumentException("Custom date range requires both start and end dates.");
+            startDate = LocalDate.of(1970, 1, 1); // very old date
+            endDate = today;
+        } else {
+            switch (timeFrame.toLowerCase()) {
+                case "today" -> startDate = today;
+                case "7days" -> startDate = today.minusDays(6);
+                case "30days" -> startDate = today.minusDays(29);
+                case "365days" -> startDate = today.minusDays(364);
+                case "custom" -> {
+                    if (customStartDate != null && customEndDate != null) {
+                        startDate = customStartDate;
+                        endDate = customEndDate;
+                    } else {
+                        throw new IllegalArgumentException("Custom date range requires both start and end dates.");
+                    }
                 }
+                default -> throw new IllegalArgumentException("Invalid time frame value.");
             }
-            default -> throw new IllegalArgumentException("Invalid time frame value.");
         }
 
-        return attendenceRepository.findByEmployeeIdAndTodaysDateBetween(empId, startDate, endDate, pageable);
+        // Fetch paginated attendance
+        Page<EmployeeAttendence> attendancePage =
+                attendenceRepository.findByEmployeeIdAndTodaysDateBetween(empId, startDate, endDate, pageable);
+
+        // Count OnTime / Late
+        long onTimeCount = attendenceRepository.countByEmployeeIdAndStatusIgnoreCaseAndTodaysDateBetween(
+                empId, "OnTime", startDate, endDate);
+
+        long lateCount = attendenceRepository.countByEmployeeIdAndStatusIgnoreCaseAndTodaysDateBetween(
+                empId, "Late", startDate, endDate);
+
+        // Count leave using date range
+        long leaveCount = leaveRequestRepository.countByEmpIdAndDateRange(empId, startDate, endDate);
+
+        // Wrap in a single response map
+        Map<String, Object> response = new HashMap<>();
+        response.put("attendance", attendancePage.getContent());
+        response.put("onTimeCount", onTimeCount);
+        response.put("lateCount", lateCount);
+        response.put("leaveCount", leaveCount);
+        response.put("totalPages", attendancePage.getTotalPages());
+        response.put("totalElements", attendancePage.getTotalElements());
+        response.put("currentPage", attendancePage.getNumber());
+
+        return response;
     }
+
 
     @Override
     public Long getAttendanceCount(Long empId, int month, int year) {

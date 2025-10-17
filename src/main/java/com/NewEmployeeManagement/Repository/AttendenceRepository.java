@@ -108,4 +108,28 @@ public interface AttendenceRepository extends JpaRepository<EmployeeAttendence, 
                                   @Param("fromDate") LocalDate fromDate,
                                   @Param("toDate") LocalDate toDate);
 
+
+    @Query("SELECT COUNT(a) FROM EmployeeAttendence a WHERE a.employee.id = :empId AND LOWER(a.status) = LOWER(:status)")
+    long countByEmployeeIdAndStatusIgnoreCase(@Param("empId") Long empId, @Param("status") String status);
+
+    // Count OnTime/Late within date range
+    @Query("SELECT COUNT(a) FROM EmployeeAttendence a " +
+            "WHERE a.employee.id = :empId AND LOWER(a.status) = LOWER(:status) " +
+            "AND a.todaysDate BETWEEN :startDate AND :endDate")
+    long countByEmployeeIdAndStatusIgnoreCaseAndTodaysDateBetween(@Param("empId") Long empId,
+                                                                  @Param("status") String status,
+                                                                  @Param("startDate") LocalDate startDate,
+                                                                  @Param("endDate") LocalDate endDate);
+
+//    // Paginated attendance without date filter
+//    @Query("SELECT a FROM EmployeeAttendence a WHERE a.employee.id = :empId")
+//    Page<EmployeeAttendence> findByEmployeeId(@Param("empId") Long empId, Pageable pageable);
+//
+//    // Paginated attendance with date filter
+//    @Query("SELECT a FROM EmployeeAttendence a WHERE a.employee.id = :empId AND a.todaysDate BETWEEN :startDate AND :endDate")
+//    Page<EmployeeAttendence> findByEmployeeIdAndTodaysDateBetween(@Param("empId") Long empId,
+//                                                                  @Param("startDate") LocalDate startDate,
+//                                                                  @Param("endDate") LocalDate endDate,
+//                                                                  Pageable pageable);
+
 }
