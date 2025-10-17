@@ -186,6 +186,13 @@ public class DashboardServiceImpl implements DashboardService
         paidSum = (paidSum != null) ? paidSum : BigDecimal.ZERO;
         pendingSum = (pendingSum != null) ? pendingSum : BigDecimal.ZERO;
 
+        if (pendingSum.compareTo(BigDecimal.ZERO) < 0 ||
+                pendingSum.compareTo(totalSum) > 0 ||
+                pendingSum.add(paidSum).compareTo(totalSum) != 0) {
+
+            pendingSum = totalSum.subtract(paidSum);
+        }
+
         result.put("totalSum", totalSum);
         result.put("paidSum", paidSum);
         result.put("pendingSum", pendingSum);
