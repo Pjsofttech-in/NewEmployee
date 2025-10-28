@@ -1,5 +1,6 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
+import com.NewEmployeeManagement.DTO.BranchAddressDTO;
 import com.NewEmployeeManagement.DTO.InstituteClientWrapperResponse;
 import com.NewEmployeeManagement.DTO.InstituteLoginResponse;
 import com.NewEmployeeManagement.JWT.LoginRequest;
@@ -108,6 +109,25 @@ public class StaffService
             e.printStackTrace();
             return "Error fetching institute email: " + e.getMessage();
         }
+    }
+
+    public BranchAddressDTO getBranchAddressDetails(String branchCode) {
+        return webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/branchAddressDetailsByBranchCode")
+                        .queryParam("branchCode", branchCode)
+                        .build())
+                .retrieve()
+                .onStatus(
+                        status -> status.is4xxClientError() || status.is5xxServerError(),
+                        response -> response.bodyToMono(String.class)
+                                .flatMap(error -> {
+                                    System.err.println("SuperAdmin error: " + error);
+                                    return Mono.error(new RuntimeException("Failed to fetch branch details"));
+                                })
+                )
+                .bodyToMono(BranchAddressDTO.class)
+                .block(); // ✅ convert reactive response to blocking for MVC app
     }
 
 }

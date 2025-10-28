@@ -1,5 +1,6 @@
 package com.NewEmployeeManagement.Controller;
 
+import com.NewEmployeeManagement.DTO.BranchAddressDTO;
 import com.NewEmployeeManagement.DTO.InstituteLoginResponse;
 import com.NewEmployeeManagement.JWT.LoginRequest;
 import com.NewEmployeeManagement.JWT.LoginResponse;
@@ -60,4 +61,17 @@ public class StaffController
         return ResponseEntity.ok(email);
     }
 
+    @GetMapping("/getBranchAddress")
+    public ResponseEntity<BranchAddressDTO> getBranchAddress(@RequestParam String branchCode) {
+        try {
+            BranchAddressDTO branchDetails = staffLoginService.getBranchAddressDetails(branchCode);
+            return ResponseEntity.ok(branchDetails);
+        } catch (Exception e) {
+            // Log the error and return a friendly message
+            System.err.println("Error fetching branch details: " + e.getMessage());
+            return ResponseEntity
+                    .status(500)
+                    .body(null); // You can replace null with a custom error DTO if needed
+        }
+    }
 }
