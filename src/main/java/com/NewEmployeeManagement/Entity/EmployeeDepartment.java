@@ -27,7 +27,7 @@ public class EmployeeDepartment {
     private String role;
     private String branchCode;
 
-    @OneToMany(mappedBy = "employeeDepartment", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "employeeDepartment")
     @JsonIgnore
     private List<Employee> employees = new ArrayList<>();
 }

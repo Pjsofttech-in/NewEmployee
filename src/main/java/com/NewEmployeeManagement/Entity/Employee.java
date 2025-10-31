@@ -47,7 +47,9 @@ public class Employee {
     @Size(min = 10, max = 10, message = "Mobile number must be exactly 10 digits")
     @Pattern(regexp = "\\d{10}", message = "Mobile number must be 10 digits")
     private String mobileNo;
+    @Column(nullable = true)
     private Integer otp;
+
     private Date otpExpiry;
     @Column(name = "pMobile_no")
     private String parentNo;

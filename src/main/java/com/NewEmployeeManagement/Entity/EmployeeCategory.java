@@ -41,7 +41,7 @@ public class EmployeeCategory {
     private String role;
     private String branchCode;
 
-    @OneToMany(mappedBy = "employeeCategory", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "employeeCategory")
     @JsonIgnore
     private List<Employee> employees = new ArrayList<>();
 
