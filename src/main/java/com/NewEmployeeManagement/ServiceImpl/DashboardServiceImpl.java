@@ -20,6 +20,7 @@ import java.time.Month;
 import java.time.format.TextStyle;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.time.temporal.ChronoUnit.MONTHS;
@@ -44,6 +45,7 @@ public class DashboardServiceImpl implements DashboardService
     @Autowired
     LeaveRequestRepository leaveRequestRepository;
 
+
     @Override
     public EmployeeCountResponse getEmployeeCounts(String role, String email, String filter,
                                                    LocalDate startDate, LocalDate endDate) {
@@ -53,21 +55,20 @@ public class DashboardServiceImpl implements DashboardService
         }
 
         String branchCode = permissionService.fetchBranchCode(role, email);
-
         List<Employee> employees = employeeRepository.findAllByBranchCode(branchCode);
 
         LocalDate today = LocalDate.now();
-        LocalDate fromDate = null;
-        LocalDate toDate = null;
+        LocalDate fromDate;
+        LocalDate toDate;
 
-        // Apply filter
+        // -------- FILTER HANDLING --------
         switch (filter.toLowerCase()) {
             case "today":
                 fromDate = today;
                 toDate = today;
                 break;
             case "7days":
-                fromDate = today.minusDays(6); // include today + 6 previous days
+                fromDate = today.minusDays(6);
                 toDate = today;
                 break;
             case "30days":
@@ -96,65 +97,91 @@ public class DashboardServiceImpl implements DashboardService
         final LocalDate start = fromDate;
         final LocalDate end = toDate;
 
-        // --- Status counts ---
-        long total = employees.size();
+        System.out.println("📅 Date Range -> From: " + start + "  To: " + end);
 
-        long joinedCount = employees.stream()
-                .filter(e ->
-                        (e.getJoiningDate() != null &&
-                                !e.getJoiningDate().isBefore(start) &&
-                                !e.getJoiningDate().isAfter(end))
-                                ||
-                                (e.getRejoiningData() != null &&
-                                        !e.getRejoiningData().isBefore(start) &&
-                                        !e.getRejoiningData().isAfter(end))
-                )
-                .count();
-
-        long terminatedCount = employees.stream()
+        // -------- TOTAL (Employees joined before or on end date) --------
+        long total = employees.stream()
                 .filter(e -> {
-                    LocalDate td = e.getTerminatDate();
-                    return td != null && !td.isBefore(start) && !td.isAfter(end);
+                    LocalDate join = e.getJoiningDate();
+                    LocalDate terminate = e.getTerminatDate();
+                    if (join == null) return false;
+
+                    // ignore terminate before join (invalid)
+                    if (terminate != null && terminate.isBefore(join)) terminate = null;
+
+                    boolean joinedBeforeEnd = !join.isAfter(end);
+                    boolean notTerminatedBeforeEnd = (terminate == null || terminate.isAfter(end));
+                    return joinedBeforeEnd && notTerminatedBeforeEnd;
                 })
                 .count();
 
+        System.out.println("✅ Total Employees Counted: " + total);
+
+        // -------- JOINED (Joining or Rejoining in Range) --------
+        long joinedCount = employees.stream()
+                .filter(e -> {
+                    LocalDate jd = e.getJoiningDate();
+                    LocalDate rjd = e.getRejoiningData();
+                    boolean joinedInRange = jd != null && !jd.isBefore(start) && !jd.isAfter(end);
+                    boolean rejoinedInRange = rjd != null && !rjd.isBefore(start) && !rjd.isAfter(end);
+                    return joinedInRange || rejoinedInRange;
+                })
+                .count();
+
+        System.out.println("✅ Joined Employees (Including Rejoined): " + joinedCount);
+
+        // -------- TERMINATED (Termination in Range) --------
+        long terminatedCount = employees.stream()
+                .filter(e -> {
+                    LocalDate td = e.getTerminatDate();
+                    LocalDate jd = e.getJoiningDate();
+                    if (td == null) return false;
+                    // ignore invalid terminate before join
+                    if (jd != null && td.isBefore(jd)) return false;
+                    return !td.isBefore(start) && !td.isAfter(end);
+                })
+                .count();
+
+        System.out.println("✅ Terminated Employees: " + terminatedCount);
+
+        // -------- ACTIVE EMPLOYEES (For Department/Category) --------
+        List<Employee> activeEmployees = employees.stream()
+                .filter(e -> {
+                    LocalDate td = e.getTerminatDate();
+                    LocalDate jd = e.getJoiningDate();
+                    // active if joined and not terminated yet
+                    return jd != null && (td == null || td.isAfter(today));
+                })
+                .collect(Collectors.toList());
+
+        System.out.println("✅ Active Employees Count: " + activeEmployees.size());
+
+        // -------- DEPARTMENT COUNTS --------
+        Map<String, Long> departmentCounts = activeEmployees.stream()
+                .filter(e -> e.getDepartment() != null && !e.getDepartment().isEmpty())
+                .collect(Collectors.groupingBy(Employee::getDepartment, Collectors.counting()));
+
+        System.out.println("🏢 Department Counts: " + departmentCounts);
+
+        // -------- CATEGORY COUNTS --------
+        Map<String, Long> categoryCounts = activeEmployees.stream()
+                .filter(e -> e.getCategoryName() != null && !e.getCategoryName().isEmpty())
+                .collect(Collectors.groupingBy(Employee::getCategoryName, Collectors.counting()));
+
+        System.out.println("📚 Category Counts: " + categoryCounts);
+
+        // -------- BUILD RESPONSE --------
         Map<String, Long> statusCounts = new LinkedHashMap<>();
         statusCounts.put("total", total);
         statusCounts.put("Joined", joinedCount);
         statusCounts.put("Terminated", terminatedCount);
 
-        // ✅ filter employees by the selected timeframe
-        List<Employee> filteredEmployees = employees.stream()
-                .filter(e ->
-                        (e.getJoiningDate() != null &&
-                                !e.getJoiningDate().isBefore(start) &&
-                                !e.getJoiningDate().isAfter(end))
-                                ||
-                                (e.getRejoiningData() != null &&
-                                        !e.getRejoiningData().isBefore(start) &&
-                                        !e.getRejoiningData().isAfter(end))
-                                ||
-                                (e.getTerminatDate() != null &&
-                                        !e.getTerminatDate().isBefore(start) &&
-                                        !e.getTerminatDate().isAfter(end))
-                )
-                .toList();
-
-        // --- Department counts (time-frame based) ---
-        Map<String, Long> departmentCounts = filteredEmployees.stream()
-                .filter(e -> e.getDepartment() != null)
-                .collect(Collectors.groupingBy(Employee::getDepartment, Collectors.counting()));
-
-        // --- Category counts (time-frame based) ---
-        Map<String, Long> categoryCounts = filteredEmployees.stream()
-                .filter(e -> e.getCategoryName() != null)
-                .collect(Collectors.groupingBy(Employee::getCategoryName, Collectors.counting()));
-
-        // Build response
         EmployeeCountResponse response = new EmployeeCountResponse();
         response.setStatusCounts(statusCounts);
         response.setDepartmentCounts(departmentCounts);
         response.setCategoryCounts(categoryCounts);
+
+        System.out.println("📊 Final Response: " + response);
 
         return response;
     }

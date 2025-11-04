@@ -193,7 +193,6 @@ public class AttendenceServiceImpl implements AttendenceService {
                     .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + empId));
 
             LocalDate today = LocalDate.now();
-
             Optional<EmployeeAttendence> optional = attendenceRepository.findByEmployeeAndTodaysDate(employee, today);
 
             if (optional.isEmpty()) {
@@ -208,37 +207,41 @@ public class AttendenceServiceImpl implements AttendenceService {
 
             LocalTime logoutTime = LocalTime.now();
             attendance.setLogoutTime(logoutTime);
-            attendance.setLogoutIP(logoutIp); // 👈 set logout IP (or system IP field if applicable)
+            attendance.setLogoutIP(logoutIp); // set logout IP
 
+            // ✅ Calculate total worked minutes
             if (attendance.getLoginTime() != null) {
-                Integer workedMinutes = Math.toIntExact(Duration.between(attendance.getLoginTime(), logoutTime).toMinutes());
+                int workedMinutes = (int) Duration.between(attendance.getLoginTime(), logoutTime).toMinutes();
                 attendance.setTotalMinutesWorked(workedMinutes);
             }
+
+            // ✅ Calculate overtime correctly
             if (attendance.getLoginTime() != null
                     && attendance.getLogoutTime() != null
                     && attendance.getShiftStartTime() != null
                     && attendance.getShiftEndTime() != null) {
 
                 try {
-                    // Parse shift times (e.g. "09:30", "18:30")
-                    LocalTime shiftStart = LocalTime.parse(attendance.getShiftStartTime());
-                    LocalTime shiftEnd = LocalTime.parse(attendance.getShiftEndTime());
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
 
-                    // Calculate shift duration in minutes
+                    LocalTime shiftStart = LocalTime.parse(attendance.getShiftStartTime(), formatter);
+                    LocalTime shiftEnd = LocalTime.parse(attendance.getShiftEndTime(), formatter);
+
+                    // Handle night shifts
+                    if (shiftEnd.isBefore(shiftStart)) {
+                        shiftEnd = shiftEnd.plusHours(24);
+                    }
+
                     long shiftMinutes = Duration.between(shiftStart, shiftEnd).toMinutes();
-
-                    // Calculate actual worked minutes
                     long workedMinutes = Duration.between(attendance.getLoginTime(), attendance.getLogoutTime()).toMinutes();
 
-                    // Subtract break minutes if any
+                    // Subtract break minutes if available
 //                    if (attendance.getBreakMinutes() != null) {
 //                        workedMinutes -= attendance.getBreakMinutes();
 //                    }
 
-                    // Calculate overtime = worked - shift
+                    // Calculate overtime (positive difference)
                     long overtimeMinutes = workedMinutes - shiftMinutes;
-
-                    // Never show negative overtime
                     attendance.setOverTime(Math.max(overtimeMinutes, 0L));
 
                 } catch (Exception e) {
