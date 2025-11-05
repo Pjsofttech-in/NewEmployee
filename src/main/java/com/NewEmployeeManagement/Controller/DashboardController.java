@@ -123,10 +123,11 @@ public class DashboardController
             @RequestParam String role,
             @RequestParam String email,
             @RequestParam String filter,
+            @RequestParam(required = false) String branchCode,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
-        Map<String, Long> report = dashboardService.getAttendanceReport(role, email, filter, startDate, endDate);
+        Map<String, Long> report = dashboardService.getAttendanceReport(role, email, filter, startDate, endDate,branchCode);
         return ResponseEntity.ok(report);
     }
 

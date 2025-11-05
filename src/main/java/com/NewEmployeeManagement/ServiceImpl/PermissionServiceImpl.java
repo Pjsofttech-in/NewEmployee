@@ -114,8 +114,6 @@ public class PermissionServiceImpl implements PermissionService {
         };
     }
 
-
-
     public String fetchBranchCode(String role, String email) {
         Map<String, String> roleToEndpoint = Map.of(
                 "branch", "/branch/getbranchcode",

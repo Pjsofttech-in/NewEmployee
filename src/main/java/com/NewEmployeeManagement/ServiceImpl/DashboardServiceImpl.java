@@ -446,15 +446,31 @@ public class DashboardServiceImpl implements DashboardService
 
     @Override
     public Map<String, Long> getAttendanceReport(String role, String email, String filter,
-                                                 LocalDate startDate, LocalDate endDate) {
+                                                 LocalDate startDate, LocalDate endDate,
+                                                 @Nullable String branchCodeFilter) {
 
         if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to view Get Count");
         }
 
-        String branchCode = permissionService.fetchBranchCode(role, email);
+        List<String> branchCodesToProcess = new ArrayList<>();
 
-        // --- apply filter ---
+        // ✅ Handle SuperAdmin
+        if ("SUPERADMIN".equalsIgnoreCase(role)) {
+            if (branchCodeFilter != null && !branchCodeFilter.isBlank()) {
+                // --- if SuperAdmin provided a specific branch ---
+                branchCodesToProcess.add(branchCodeFilter);
+            } else {
+                // --- fetch all branches under this SuperAdmin’s institute ---
+                branchCodesToProcess = staffService.getBranchCodesByInstituteEmail(email);
+            }
+        } else {
+            // ✅ For all other roles, use the original branch logic
+            String branchCode = permissionService.fetchBranchCode(role, email);
+            branchCodesToProcess.add(branchCode);
+        }
+
+        // --- Apply filter ---
         LocalDate today = LocalDate.now();
         LocalDate fromDate = today;
         LocalDate toDate = today;
@@ -478,74 +494,82 @@ public class DashboardServiceImpl implements DashboardService
             default -> throw new IllegalArgumentException("Invalid filter: " + filter);
         }
 
-        // --- 1) employees active in this period ---
-        List<Employee> employees = Optional.ofNullable(
-                employeeRepository.findEmployeesActiveBetween(branchCode, fromDate, toDate)
-        ).orElse(Collections.emptyList());
-
-        long totalEmployees = employees.size();
-
-        // --- 2) calculate expected attendances ---
+        // --- initialize totals for possible multiple branches ---
+        long totalEmployees = 0L;
         long expectedAttendances = 0L;
-        for (Employee e : employees) {
-            LocalDate empJoin = e.getJoiningDate();
-            LocalDate empRejoin = e.getRejoiningData();
+        long onTimeCount = 0L;
+        long lateCount = 0L;
+        long leaveCount = 0L;
 
-            LocalDate effectiveStart = (empRejoin != null && (empJoin == null || empRejoin.isAfter(empJoin)))
-                    ? empRejoin : empJoin;
+        // ✅ Loop through all branches if SuperAdmin
+        for (String branchCode : branchCodesToProcess) {
+            if (branchCode == null || branchCode.isBlank()) continue;
 
-            if (effectiveStart == null) continue;
-            LocalDate effectiveEnd = (e.getTerminatDate() != null) ? e.getTerminatDate() : toDate;
+            // --- 1) employees active in this period ---
+            List<Employee> employees = Optional.ofNullable(
+                    employeeRepository.findEmployeesActiveBetween(branchCode, fromDate, toDate)
+            ).orElse(Collections.emptyList());
 
-            LocalDate overlapStart = effectiveStart.isAfter(fromDate) ? effectiveStart : fromDate;
-            LocalDate overlapEnd = effectiveEnd.isBefore(toDate) ? effectiveEnd : toDate;
+            totalEmployees += employees.size();
 
-            if (!overlapStart.isAfter(overlapEnd)) {
-                long days = ChronoUnit.DAYS.between(overlapStart, overlapEnd) + 1;
-                expectedAttendances += days;
+            // --- 2) calculate expected attendances ---
+            for (Employee e : employees) {
+                LocalDate empJoin = e.getJoiningDate();
+                LocalDate empRejoin = e.getRejoiningData();
+
+                LocalDate effectiveStart = (empRejoin != null && (empJoin == null || empRejoin.isAfter(empJoin)))
+                        ? empRejoin : empJoin;
+
+                if (effectiveStart == null) continue;
+                LocalDate effectiveEnd = (e.getTerminatDate() != null) ? e.getTerminatDate() : toDate;
+
+                LocalDate overlapStart = effectiveStart.isAfter(fromDate) ? effectiveStart : fromDate;
+                LocalDate overlapEnd = effectiveEnd.isBefore(toDate) ? effectiveEnd : toDate;
+
+                if (!overlapStart.isAfter(overlapEnd)) {
+                    long days = ChronoUnit.DAYS.between(overlapStart, overlapEnd) + 1;
+                    expectedAttendances += days;
+                }
+            }
+
+            // --- 3) present counts ---
+            onTimeCount += Optional.ofNullable(
+                    attendenceRepository.countOnTimeRecords(branchCode, fromDate, toDate)
+            ).orElse(0L);
+
+            lateCount += Optional.ofNullable(
+                    attendenceRepository.countLateRecords(branchCode, fromDate, toDate)
+            ).orElse(0L);
+
+            // --- 4) leave days ---
+            List<EmployeeLeaveRequest> leaves = Optional.ofNullable(
+                    leaveRequestRepository.findApprovedLeavesOverlapping(branchCode, fromDate, toDate)
+            ).orElse(Collections.emptyList());
+
+            for (EmployeeLeaveRequest lr : leaves) {
+                if (lr == null) continue;
+
+                LocalDate leaveStart = lr.getFromDate();
+                LocalDate leaveEnd = lr.getToDate();
+
+                if (leaveStart == null || leaveEnd == null) continue;
+
+                LocalDate overlapStart = (leaveStart.isAfter(fromDate)) ? leaveStart : fromDate;
+                LocalDate overlapEnd = (leaveEnd.isBefore(toDate)) ? leaveEnd : toDate;
+
+                if (!overlapStart.isAfter(overlapEnd)) {
+                    leaveCount += ChronoUnit.DAYS.between(overlapStart, overlapEnd) + 1;
+                }
             }
         }
-
-        // --- 3) present counts ---
-        long onTimeCount = Optional.ofNullable(
-                attendenceRepository.countOnTimeRecords(branchCode, fromDate, toDate)
-        ).orElse(0L);
-
-        long lateCount = Optional.ofNullable(
-                attendenceRepository.countLateRecords(branchCode, fromDate, toDate)
-        ).orElse(0L);
 
         long presentCount = onTimeCount + lateCount;
-
-        // --- 4) leave days ---
-        long leaveCount = 0L;
-        List<EmployeeLeaveRequest> leaves = Optional.ofNullable(
-                leaveRequestRepository.findApprovedLeavesOverlapping(branchCode, fromDate, toDate)
-        ).orElse(Collections.emptyList());
-
-        for (EmployeeLeaveRequest lr : leaves) {
-            if (lr == null) continue;
-
-            LocalDate leaveStart = lr.getFromDate();
-            LocalDate leaveEnd = lr.getToDate();
-
-            if (leaveStart == null || leaveEnd == null) continue;
-
-            LocalDate overlapStart = (leaveStart.isAfter(fromDate)) ? leaveStart : fromDate;
-            LocalDate overlapEnd = (leaveEnd.isBefore(toDate)) ? leaveEnd : toDate;
-
-            if (!overlapStart.isAfter(overlapEnd)) {
-                leaveCount += ChronoUnit.DAYS.between(overlapStart, overlapEnd) + 1;
-            }
-        }
-
         long absentCount = expectedAttendances - presentCount - leaveCount;
         if (absentCount < 0) absentCount = 0;
 
         // --- 6) averages / counts ---
         Map<String, Long> report = new HashMap<>();
         if (!filter.equalsIgnoreCase("today")) {
-            // average PER EMPLOYEE
             if (totalEmployees > 0) {
                 report.put("avgTotalEmployees", totalEmployees);
                 report.put("avgExpectedAttendances", expectedAttendances / totalEmployees);
@@ -562,7 +586,6 @@ public class DashboardServiceImpl implements DashboardService
                 report.put("avgLeaveCount", 0L);
             }
         } else {
-            // today's raw counts
             report.put("totalEmployees", totalEmployees);
             report.put("expectedAttendances", expectedAttendances);
             report.put("presentCount", presentCount);
@@ -573,7 +596,6 @@ public class DashboardServiceImpl implements DashboardService
 
         return report;
     }
-
 
 
 }
