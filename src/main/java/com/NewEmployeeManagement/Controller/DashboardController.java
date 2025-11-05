@@ -33,10 +33,11 @@ public class DashboardController
            @RequestParam String role,
            @RequestParam String email,
             @RequestParam String filter,
+           @RequestParam(required = false) String branchCode,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
 
-        EmployeeCountResponse response = dashboardService.getEmployeeCounts(role, email,filter, startDate, endDate);
+        EmployeeCountResponse response = dashboardService.getEmployeeCounts(role, email,filter, startDate, endDate,branchCode);
         return ResponseEntity.ok(response);
     }
 
@@ -45,8 +46,9 @@ public class DashboardController
             @RequestParam String role,
             @RequestParam String email,
             @RequestParam(required = false) Integer month,
-            @RequestParam(required = false) Integer year) {
-        return dashboardService.getSalarySummary(role,email,month, year);
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) String branchCode) {
+        return dashboardService.getSalarySummary(role,email,month, year,branchCode);
     }
 
     @GetMapping("/SalaryComparisonBetweenTwoMonth")

@@ -16,6 +16,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -130,4 +131,44 @@ public class StaffService
                 .block(); // ✅ convert reactive response to blocking for MVC app
     }
 
+
+    public List<String> getBranchCodesByInstituteEmail(String instituteEmail) {
+        Map<String, String> branchMap = webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/getBranchCodesByinstituteEmail")
+                        .queryParam("instituteEmail", instituteEmail)
+                        .build())
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<Map<String, String>>() {})
+                .block();
+
+        return branchMap != null
+                ? new ArrayList<>(branchMap.values())
+                : Collections.emptyList();
+    }
+
+
+
+    public Map<String, String> getBranchCodesWithNameByInstituteEmail(String instituteEmail) {
+        return webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/getBranchCodesByinstituteEmail")
+                        .queryParam("instituteEmail", instituteEmail)
+                        .build())
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<Map<String, String>>() {})
+                .block();
+    }
+
+
+    public boolean isClientEmailExist(String email) {
+        return Boolean.TRUE.equals(webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/checkClientEmailExist")
+                        .queryParam("email", email)
+                        .build())
+                .retrieve()
+                .bodyToMono(Boolean.class)
+                .block());
+    }
 }

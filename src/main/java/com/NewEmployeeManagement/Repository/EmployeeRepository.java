@@ -69,6 +69,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
                                               @Param("startDate") LocalDate startDate,
                                               @Param("endDate") LocalDate endDate);
 
+    @Query("SELECT e FROM Employee e WHERE e.branchCode IN :branchCodes AND e.isDeleted = false")
+    List<Employee> findAllByBranchCodeIn(@Param("branchCodes") List<String> branchCodes);
 
 
 }

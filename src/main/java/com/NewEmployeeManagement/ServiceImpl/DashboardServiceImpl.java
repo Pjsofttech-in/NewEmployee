@@ -9,6 +9,7 @@ import com.NewEmployeeManagement.Repository.LeaveRequestRepository;
 import com.NewEmployeeManagement.Repository.SalaryRepository;
 import com.NewEmployeeManagement.Service.DashboardService;
 import com.NewEmployeeManagement.Service.PermissionService;
+import jakarta.annotation.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,9 @@ public class DashboardServiceImpl implements DashboardService
     SalaryRepository salaryRepository;
 
     @Autowired
+    StaffService staffService;
+
+    @Autowired
     AttendenceRepository attendenceRepository;
 
 
@@ -48,14 +52,41 @@ public class DashboardServiceImpl implements DashboardService
 
     @Override
     public EmployeeCountResponse getEmployeeCounts(String role, String email, String filter,
-                                                   LocalDate startDate, LocalDate endDate) {
+                                                   LocalDate startDate, LocalDate endDate,
+                                                   @Nullable String branchCodeFilter) {
 
         if (!permissionService.hasPermission(role, email, "Get")) {
             throw new AccessDeniedException("No permission to Get salary Report");
         }
 
-        String branchCode = permissionService.fetchBranchCode(role, email);
-        List<Employee> employees = employeeRepository.findAllByBranchCode(branchCode);
+        // -------- BRANCH CODE RESOLUTION --------
+        List<String> branchCodes;
+
+        if (role.equalsIgnoreCase("superadmin")) {
+            // ✅ If branchCodeFilter is given, use that single branch
+            if (branchCodeFilter != null && !branchCodeFilter.isEmpty()) {
+                branchCodes = Collections.singletonList(branchCodeFilter);
+            } else {
+                // ✅ Otherwise fetch all branches for that institute email
+                branchCodes = staffService.getBranchCodesByInstituteEmail(email);
+            }
+
+            if (branchCodes == null || branchCodes.isEmpty()) {
+                throw new IllegalArgumentException("No branch codes found for Superadmin email: " + email);
+            }
+
+        } else {
+            // ✅ For BranchAdmin or other roles, fetch only one branch code
+            String branchCode = permissionService.fetchBranchCode(role, email);
+            branchCodes = (branchCode != null)
+                    ? Collections.singletonList(branchCode)
+                    : Collections.emptyList();
+        }
+
+        System.out.println("🏢 Branch Codes -> " + branchCodes);
+
+        // ✅ Fetch employees from all relevant branches
+        List<Employee> employees = employeeRepository.findAllByBranchCodeIn(branchCodes);
 
         LocalDate today = LocalDate.now();
         LocalDate fromDate;
@@ -99,82 +130,72 @@ public class DashboardServiceImpl implements DashboardService
 
         System.out.println("📅 Date Range -> From: " + start + "  To: " + end);
 
-        // -------- TOTAL (Employees joined before or on end date) --------
-        long total = employees.stream()
-                .filter(e -> {
-                    LocalDate join = e.getJoiningDate();
-                    LocalDate terminate = e.getTerminatDate();
-                    if (join == null) return false;
+        // -------- TOTAL EMPLOYEES --------
+        long total = employees.size();
 
-                    // ignore terminate before join (invalid)
-                    if (terminate != null && terminate.isBefore(join)) terminate = null;
+        // -------- JOINED EMPLOYEES --------
+        long joinedCount;
+        if (filter.equalsIgnoreCase("all")) {
+            joinedCount = employees.stream()
+                    .filter(e -> {
+                        LocalDate jd = e.getJoiningDate();
+                        LocalDate rjd = e.getRejoiningData();
+                        LocalDate td = e.getTerminatDate();
+                        boolean hasJoinOrRejoin = (jd != null || rjd != null);
+                        boolean activeOrRejoined = (td == null) || (rjd != null && rjd.isAfter(td));
+                        return hasJoinOrRejoin && activeOrRejoined;
+                    })
+                    .count();
+        } else {
+            joinedCount = employees.stream()
+                    .filter(e -> {
+                        LocalDate jd = e.getJoiningDate();
+                        LocalDate rjd = e.getRejoiningData();
+                        LocalDate td = e.getTerminatDate();
+                        boolean joinedInRange = jd != null && !jd.isBefore(start) && !jd.isAfter(end);
+                        boolean rejoinedInRange = rjd != null && !rjd.isBefore(start) && !rjd.isAfter(end);
+                        boolean notTerminatedBeforeEnd = (td == null || td.isAfter(end));
+                        return (joinedInRange || rejoinedInRange) && notTerminatedBeforeEnd;
+                    })
+                    .count();
+        }
 
-                    boolean joinedBeforeEnd = !join.isAfter(end);
-                    boolean notTerminatedBeforeEnd = (terminate == null || terminate.isAfter(end));
-                    return joinedBeforeEnd && notTerminatedBeforeEnd;
-                })
-                .count();
-
-        System.out.println("✅ Total Employees Counted: " + total);
-
-        // -------- JOINED (Joining or Rejoining in Range) --------
-        long joinedCount = employees.stream()
-                .filter(e -> {
-                    LocalDate jd = e.getJoiningDate();
-                    LocalDate rjd = e.getRejoiningData();
-                    boolean joinedInRange = jd != null && !jd.isBefore(start) && !jd.isAfter(end);
-                    boolean rejoinedInRange = rjd != null && !rjd.isBefore(start) && !rjd.isAfter(end);
-                    return joinedInRange || rejoinedInRange;
-                })
-                .count();
-
-        System.out.println("✅ Joined Employees (Including Rejoined): " + joinedCount);
-
-        // -------- TERMINATED (Termination in Range) --------
+        // -------- TERMINATED EMPLOYEES --------
         long terminatedCount = employees.stream()
                 .filter(e -> {
                     LocalDate td = e.getTerminatDate();
                     LocalDate jd = e.getJoiningDate();
                     if (td == null) return false;
-                    // ignore invalid terminate before join
                     if (jd != null && td.isBefore(jd)) return false;
                     return !td.isBefore(start) && !td.isAfter(end);
                 })
                 .count();
 
-        System.out.println("✅ Terminated Employees: " + terminatedCount);
-
-        // -------- ACTIVE EMPLOYEES (For Department/Category) --------
+        // -------- ACTIVE EMPLOYEES --------
         List<Employee> activeEmployees = employees.stream()
                 .filter(e -> {
                     LocalDate td = e.getTerminatDate();
                     LocalDate jd = e.getJoiningDate();
-                    // active if joined and not terminated yet
                     return jd != null && (td == null || td.isAfter(today));
                 })
                 .collect(Collectors.toList());
-
-        System.out.println("✅ Active Employees Count: " + activeEmployees.size());
 
         // -------- DEPARTMENT COUNTS --------
         Map<String, Long> departmentCounts = activeEmployees.stream()
                 .filter(e -> e.getDepartment() != null && !e.getDepartment().isEmpty())
                 .collect(Collectors.groupingBy(Employee::getDepartment, Collectors.counting()));
 
-        System.out.println("🏢 Department Counts: " + departmentCounts);
-
         // -------- CATEGORY COUNTS --------
         Map<String, Long> categoryCounts = activeEmployees.stream()
                 .filter(e -> e.getCategoryName() != null && !e.getCategoryName().isEmpty())
                 .collect(Collectors.groupingBy(Employee::getCategoryName, Collectors.counting()));
 
-        System.out.println("📚 Category Counts: " + categoryCounts);
-
         // -------- BUILD RESPONSE --------
         Map<String, Long> statusCounts = new LinkedHashMap<>();
-        statusCounts.put("total", total);
+        statusCounts.put("Total", total);
         statusCounts.put("Joined", joinedCount);
         statusCounts.put("Terminated", terminatedCount);
+        statusCounts.put("Active", (long) activeEmployees.size());
 
         EmployeeCountResponse response = new EmployeeCountResponse();
         response.setStatusCounts(statusCounts);
@@ -182,50 +203,84 @@ public class DashboardServiceImpl implements DashboardService
         response.setCategoryCounts(categoryCounts);
 
         System.out.println("📊 Final Response: " + response);
-
         return response;
     }
 
 
+
     @Override
-    public Map<String, Object> getSalarySummary(String role, String email, Integer month, Integer year)
-    {
+    public Map<String, Object> getSalarySummary(String role, String email, Integer month, Integer year, @Nullable String branchCodeFilter) {
         if (!permissionService.hasPermission(role, email, "Get")) {
             throw new AccessDeniedException("No permission to Get salary Report");
         }
 
-        String branchCode = permissionService.fetchBranchCode(role, email);
         Map<String, Object> result = new HashMap<>();
 
-        long totalCount = salaryRepository.countAllSalaries(month, year,branchCode);
-        long paidCount = salaryRepository.countPaidSalaries(month, year,branchCode);
-        long pendingCount = salaryRepository.countPendingSalaries(month, year,branchCode);
+        long totalCount = 0;
+        long paidCount = 0;
+        long pendingCount = 0;
 
-        BigDecimal totalSum = salaryRepository.sumAllFinalNetSalary(month, year,branchCode);
-        BigDecimal paidSum = salaryRepository.sumPaidFinalNetSalary(month, year,branchCode);
-        BigDecimal pendingSum = salaryRepository.sumPendingFinalNetSalary(month, year,branchCode);
+        BigDecimal totalSum = BigDecimal.ZERO;
+        BigDecimal paidSum = BigDecimal.ZERO;
+        BigDecimal pendingSum = BigDecimal.ZERO;
 
-        result.put("totalCount", totalCount);
-        result.put("paidCount", paidCount);
-        result.put("pendingCount", pendingCount);
+        // ✅ Case 1: SUPERADMIN role
+        if (role.equalsIgnoreCase("superadmin")) {
 
-        totalSum = (totalSum != null) ? totalSum : BigDecimal.ZERO;
-        paidSum = (paidSum != null) ? paidSum : BigDecimal.ZERO;
-        pendingSum = (pendingSum != null) ? pendingSum : BigDecimal.ZERO;
+            if (branchCodeFilter != null && !branchCodeFilter.isEmpty()) {
+                totalCount = salaryRepository.countAllSalaries(month, year, branchCodeFilter);
+                paidCount = salaryRepository.countPaidSalaries(month, year, branchCodeFilter);
+                pendingCount = salaryRepository.countPendingSalaries(month, year, branchCodeFilter);
 
+                totalSum = Optional.ofNullable(salaryRepository.sumAllFinalNetSalary(month, year, branchCodeFilter)).orElse(BigDecimal.ZERO);
+                paidSum = Optional.ofNullable(salaryRepository.sumPaidFinalNetSalary(month, year, branchCodeFilter)).orElse(BigDecimal.ZERO);
+                pendingSum = Optional.ofNullable(salaryRepository.sumPendingFinalNetSalary(month, year, branchCodeFilter)).orElse(BigDecimal.ZERO);
+            } else {
+                // ✅ (B) If no branchCodeFilter → combine all branches under this SuperAdmin’s institute
+                List<String> branchCodes = staffService.getBranchCodesByInstituteEmail(email);
+
+                for (String branchCode : branchCodes) {
+                    totalCount += salaryRepository.countAllSalaries(month, year, branchCode);
+                    paidCount += salaryRepository.countPaidSalaries(month, year, branchCode);
+                    pendingCount += salaryRepository.countPendingSalaries(month, year, branchCode);
+
+                    totalSum = totalSum.add(Optional.ofNullable(salaryRepository.sumAllFinalNetSalary(month, year, branchCode)).orElse(BigDecimal.ZERO));
+                    paidSum = paidSum.add(Optional.ofNullable(salaryRepository.sumPaidFinalNetSalary(month, year, branchCode)).orElse(BigDecimal.ZERO));
+                    pendingSum = pendingSum.add(Optional.ofNullable(salaryRepository.sumPendingFinalNetSalary(month, year, branchCode)).orElse(BigDecimal.ZERO));
+                }
+            }
+
+        } else {
+            // ✅ Case 2: Non-superadmin roles (Admin, Manager, etc.)
+            String branchCode = permissionService.fetchBranchCode(role, email);
+
+            totalCount = salaryRepository.countAllSalaries(month, year, branchCode);
+            paidCount = salaryRepository.countPaidSalaries(month, year, branchCode);
+            pendingCount = salaryRepository.countPendingSalaries(month, year, branchCode);
+
+            totalSum = Optional.ofNullable(salaryRepository.sumAllFinalNetSalary(month, year, branchCode)).orElse(BigDecimal.ZERO);
+            paidSum = Optional.ofNullable(salaryRepository.sumPaidFinalNetSalary(month, year, branchCode)).orElse(BigDecimal.ZERO);
+            pendingSum = Optional.ofNullable(salaryRepository.sumPendingFinalNetSalary(month, year, branchCode)).orElse(BigDecimal.ZERO);
+        }
+
+        // ✅ Final validation to avoid mismatch
         if (pendingSum.compareTo(BigDecimal.ZERO) < 0 ||
                 pendingSum.compareTo(totalSum) > 0 ||
                 pendingSum.add(paidSum).compareTo(totalSum) != 0) {
-
             pendingSum = totalSum.subtract(paidSum);
         }
 
+        // ✅ Same output structure as your previous response
         result.put("totalSum", totalSum);
-        result.put("paidSum", paidSum);
+        result.put("pendingCount", pendingCount);
         result.put("pendingSum", pendingSum);
+        result.put("paidSum", paidSum);
+        result.put("paidCount", paidCount);
+        result.put("totalCount", totalCount);
 
         return result;
     }
+
 
     @Override
     public Map<String, BigDecimal> getSalaryComparison(String role, String email,int month, int year)
