@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,6 +22,9 @@ public class EmployeeCategoryServiceImpl implements EmployeeCategoryService {
 
     @Autowired
     private PermissionService permissionService;
+
+    @Autowired
+    private StaffService staffService;
 
     @Override
     public EmployeeCategory createCategory(EmployeeCategory category, String role, String email) {
@@ -47,6 +51,24 @@ public class EmployeeCategoryServiceImpl implements EmployeeCategoryService {
     public List<EmployeeCategory> getAllCategories(String role, String email) {
         if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to view categories");
+        }
+        if ("Superadmin".equalsIgnoreCase(role)) {
+            boolean emailExists = staffService.isClientEmailExist(email);
+            if (!emailExists) {
+                throw new AccessDeniedException("Institute email does not exist: " + email);
+            }
+
+            List<String> branchCodes = staffService.getBranchCodesByInstituteEmail(email);
+
+            if (branchCodes == null || branchCodes.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            List<EmployeeCategory> list = employeeCategoryRepository.findAllByBranchCodeIn(branchCodes);
+
+            list.forEach(this::convertToIntegerValues);
+
+            return list;
         }
         String branchCode = permissionService.fetchBranchCode(role, email);
         List<EmployeeCategory> list = employeeCategoryRepository.findAllByBranchCode(branchCode);

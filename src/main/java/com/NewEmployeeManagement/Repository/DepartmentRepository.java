@@ -20,4 +20,7 @@ public interface DepartmentRepository extends JpaRepository<EmployeeDepartment, 
     boolean existsByDepartmentAndBranchCode(@Param("department") String department,
                                             @Param("branchCode") String branchCode);
 
+    @Query("SELECT e FROM EmployeeDepartment e WHERE e.branchCode IN :branchCodes")
+    List<EmployeeDepartment> findAllByBranchCodeIn(@Param("branchCodes") List<String> branchCodes);
+
 }

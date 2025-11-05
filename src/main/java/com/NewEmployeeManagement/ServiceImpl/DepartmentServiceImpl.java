@@ -1,5 +1,6 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
+import com.NewEmployeeManagement.Entity.EmployeeCategory;
 import com.NewEmployeeManagement.Entity.EmployeeDepartment;
 import com.NewEmployeeManagement.Repository.DepartmentRepository;
 import com.NewEmployeeManagement.Service.DepartmentService;
@@ -8,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -18,6 +20,9 @@ public class DepartmentServiceImpl implements DepartmentService {
 
     @Autowired
     private PermissionService permissionService;
+
+    @Autowired
+    private StaffService staffService;
 
     @Override
     public EmployeeDepartment createDepartment(EmployeeDepartment employeeDepartment, String role, String email) {
@@ -46,7 +51,22 @@ public class DepartmentServiceImpl implements DepartmentService {
         if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to view departments");
         }
+        if ("Superadmin".equalsIgnoreCase(role)) {
+            boolean emailExists = staffService.isClientEmailExist(email);
+            if (!emailExists) {
+                throw new AccessDeniedException("Institute email does not exist: " + email);
+            }
 
+            List<String> branchCodes = staffService.getBranchCodesByInstituteEmail(email);
+
+            if (branchCodes == null || branchCodes.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            List<EmployeeDepartment> list = departmentRepository.findAllByBranchCodeIn(branchCodes);
+
+            return list;
+        }
         String branchCode = permissionService.fetchBranchCode(role, email);
         return departmentRepository.findAllByBranchCode(branchCode);
     }

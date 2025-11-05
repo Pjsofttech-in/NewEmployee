@@ -36,4 +36,8 @@ public interface EmployeeCategoryRepository extends JpaRepository<EmployeeCatego
             "WHERE c.categoryName = :categoryName AND c.branchCode = :branchCode")
     boolean existsByCategoryNameAndBranchCode(@Param("categoryName") String categoryName,
                                               @Param("branchCode") String branchCode);
+
+    @Query("SELECT e FROM EmployeeCategory e WHERE e.branchCode IN :branchCodes")
+    List<EmployeeCategory> findAllByBranchCodeIn(@Param("branchCodes") List<String> branchCodes);
+
 }
