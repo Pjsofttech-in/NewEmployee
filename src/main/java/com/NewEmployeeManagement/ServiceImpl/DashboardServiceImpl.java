@@ -59,15 +59,12 @@ public class DashboardServiceImpl implements DashboardService
             throw new AccessDeniedException("No permission to Get salary Report");
         }
 
-        // -------- BRANCH CODE RESOLUTION --------
         List<String> branchCodes;
 
         if (role.equalsIgnoreCase("superadmin")) {
-            // ✅ If branchCodeFilter is given, use that single branch
             if (branchCodeFilter != null && !branchCodeFilter.isEmpty()) {
                 branchCodes = Collections.singletonList(branchCodeFilter);
             } else {
-                // ✅ Otherwise fetch all branches for that institute email
                 branchCodes = staffService.getBranchCodesByInstituteEmail(email);
             }
 
@@ -76,23 +73,18 @@ public class DashboardServiceImpl implements DashboardService
             }
 
         } else {
-            // ✅ For BranchAdmin or other roles, fetch only one branch code
             String branchCode = permissionService.fetchBranchCode(role, email);
             branchCodes = (branchCode != null)
                     ? Collections.singletonList(branchCode)
                     : Collections.emptyList();
         }
 
-        System.out.println("🏢 Branch Codes -> " + branchCodes);
-
-        // ✅ Fetch employees from all relevant branches
         List<Employee> employees = employeeRepository.findAllByBranchCodeIn(branchCodes);
 
         LocalDate today = LocalDate.now();
         LocalDate fromDate;
         LocalDate toDate;
 
-        // -------- FILTER HANDLING --------
         switch (filter.toLowerCase()) {
             case "today":
                 fromDate = today;
@@ -128,12 +120,8 @@ public class DashboardServiceImpl implements DashboardService
         final LocalDate start = fromDate;
         final LocalDate end = toDate;
 
-        System.out.println("📅 Date Range -> From: " + start + "  To: " + end);
-
-        // -------- TOTAL EMPLOYEES --------
         long total = employees.size();
 
-        // -------- JOINED EMPLOYEES --------
         long joinedCount;
         if (filter.equalsIgnoreCase("all")) {
             joinedCount = employees.stream()
@@ -160,7 +148,6 @@ public class DashboardServiceImpl implements DashboardService
                     .count();
         }
 
-        // -------- TERMINATED EMPLOYEES --------
         long terminatedCount = employees.stream()
                 .filter(e -> {
                     LocalDate td = e.getTerminatDate();
@@ -171,7 +158,6 @@ public class DashboardServiceImpl implements DashboardService
                 })
                 .count();
 
-        // -------- ACTIVE EMPLOYEES --------
         List<Employee> activeEmployees = employees.stream()
                 .filter(e -> {
                     LocalDate td = e.getTerminatDate();
@@ -180,17 +166,27 @@ public class DashboardServiceImpl implements DashboardService
                 })
                 .collect(Collectors.toList());
 
-        // -------- DEPARTMENT COUNTS --------
-        Map<String, Long> departmentCounts = activeEmployees.stream()
+        List<Employee> joinedOrRejoinedEmployees = employees.stream()
+                .filter(e -> {
+                    LocalDate jd = e.getJoiningDate();
+                    LocalDate rjd = e.getRejoiningData();
+                    LocalDate td = e.getTerminatDate();
+
+                    boolean hasJoinOrRejoin = (jd != null || rjd != null);
+                    boolean notTerminated = (td == null || (rjd != null && rjd.isAfter(td)));
+
+                    return hasJoinOrRejoin && notTerminated;
+                })
+                .collect(Collectors.toList());
+
+        Map<String, Long> departmentCounts = joinedOrRejoinedEmployees.stream()
                 .filter(e -> e.getDepartment() != null && !e.getDepartment().isEmpty())
                 .collect(Collectors.groupingBy(Employee::getDepartment, Collectors.counting()));
 
-        // -------- CATEGORY COUNTS --------
-        Map<String, Long> categoryCounts = activeEmployees.stream()
+        Map<String, Long> categoryCounts = joinedOrRejoinedEmployees.stream()
                 .filter(e -> e.getCategoryName() != null && !e.getCategoryName().isEmpty())
                 .collect(Collectors.groupingBy(Employee::getCategoryName, Collectors.counting()));
 
-        // -------- BUILD RESPONSE --------
         Map<String, Long> statusCounts = new LinkedHashMap<>();
         statusCounts.put("Total", total);
         statusCounts.put("Joined", joinedCount);
@@ -202,7 +198,6 @@ public class DashboardServiceImpl implements DashboardService
         response.setDepartmentCounts(departmentCounts);
         response.setCategoryCounts(categoryCounts);
 
-        System.out.println("📊 Final Response: " + response);
         return response;
     }
 
