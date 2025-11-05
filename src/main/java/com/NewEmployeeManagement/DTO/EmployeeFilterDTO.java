@@ -14,5 +14,6 @@ public class EmployeeFilterDTO {
     private String dutyType;
     private String shift;
     private String employeeType;
+    private String branchCode;
 
 }

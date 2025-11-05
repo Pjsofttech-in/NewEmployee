@@ -20,7 +20,9 @@ public class EmployeeSpecification
             List<Predicate> predicates = new ArrayList<>();
 
             // Required filters
-            predicates.add(cb.equal(root.get("branchCode"), branchCode));
+            if (branchCode != null && !branchCode.isEmpty()) {
+                predicates.add(cb.equal(root.get("branchCode"), branchCode));
+            }
             predicates.add(cb.equal(root.get("isDeleted"), false));
 
             // Optional filters

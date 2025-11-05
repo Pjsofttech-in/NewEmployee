@@ -10,6 +10,7 @@ import com.NewEmployeeManagement.Repository.EmployeeRepository;
 import com.NewEmployeeManagement.Service.EmployeeService;
 import com.NewEmployeeManagement.Service.PermissionService;
 import com.NewEmployeeManagement.Service.S3Service;
+import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.BeanUtils;
@@ -31,6 +32,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import jakarta.persistence.criteria.CriteriaBuilder;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -61,6 +63,9 @@ public class EmployeeServiceImpl implements EmployeeService {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private S3Service s3Service;
+
+    @Autowired
+    private StaffService staffService;
 
     @Autowired
      EmployeeMapper employeeMapper;
@@ -192,12 +197,54 @@ public class EmployeeServiceImpl implements EmployeeService {
 
 
     @Override
-    public Page<Employee> getFilteredEmployees(String role, String email, EmployeeFilterDTO filter, String timeFrame,
-                                               LocalDate startDate, LocalDate endDate,Pageable pageable)
-    {
-        if (!permissionService.hasPermission(role, email, "POST")) {
+    public Page<Employee> getFilteredEmployees(String role, String email, EmployeeFilterDTO filter,
+                                               String timeFrame, LocalDate startDate, LocalDate endDate,
+                                               Pageable pageable) {
+
+        if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission");
         }
+
+        if ("SuperAdmin".equalsIgnoreCase(role)) {
+
+            if (!staffService.isClientEmailExist(email)) {
+                throw new AccessDeniedException("Client email not found for SuperAdmin: " + email);
+            }
+
+            List<String> branchCodes = staffService.getBranchCodesByInstituteEmail(email);
+            if (branchCodes == null || branchCodes.isEmpty()) {
+                throw new AccessDeniedException("No branches found for SuperAdmin email: " + email);
+            }
+
+            Specification<Employee> spec;
+
+            if (filter != null && filter.getBranchCode() != null && !filter.getBranchCode().isEmpty()) {
+                spec = EmployeeSpecification.build(filter, filter.getBranchCode(), timeFrame, startDate, endDate);
+            } else {
+                spec = (root, query, cb) -> {
+                    List<Predicate> predicates = new ArrayList<>();
+
+                    predicates.add(cb.isFalse(root.get("isDeleted")));
+
+                    CriteriaBuilder.In<String> branchIn = cb.in(root.get("branchCode"));
+                    for (String code : branchCodes) {
+                        branchIn.value(code);
+                    }
+                    predicates.add(branchIn);
+
+                    Specification<Employee> innerSpec = EmployeeSpecification.build(filter, null, timeFrame, startDate, endDate);
+                    Predicate innerPredicate = innerSpec.toPredicate(root, query, cb);
+                    if (innerPredicate != null) {
+                        predicates.add(innerPredicate);
+                    }
+
+                    return cb.and(predicates.toArray(new Predicate[0]));
+                };
+            }
+
+            return repository.findAll(spec, pageable);
+        }
+
         String branchCode = permissionService.fetchBranchCode(role, email);
         Specification<Employee> spec = EmployeeSpecification.build(filter, branchCode, timeFrame, startDate, endDate);
         return repository.findAll(spec, pageable);
