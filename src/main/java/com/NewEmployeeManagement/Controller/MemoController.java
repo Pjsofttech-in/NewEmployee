@@ -3,6 +3,10 @@ package com.NewEmployeeManagement.Controller;
 import com.NewEmployeeManagement.Entity.EmployeeMemo;
 import com.NewEmployeeManagement.Service.MemoService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,10 +27,21 @@ public class MemoController {
     }
 
     @GetMapping("/getAllMemos")
-    public ResponseEntity<List<EmployeeMemo>> getAllMemos(@RequestParam String role,
-                                                          @RequestParam String email) {
-        return ResponseEntity.ok(service.getAllMemos(role, email));
+    public ResponseEntity<Page<EmployeeMemo>> getAllMemos(
+            @RequestParam String role,
+            @RequestParam String email,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String emailFilter,
+            @RequestParam(required = false) String branchCode,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<EmployeeMemo> memos = service.getAllMemos(role, email, name, emailFilter, branchCode, pageable);
+        return ResponseEntity.ok(memos);
     }
+
+
 
     @GetMapping("/getMemoById/{id}")
     public ResponseEntity<EmployeeMemo> getMemoById(@PathVariable Long id,

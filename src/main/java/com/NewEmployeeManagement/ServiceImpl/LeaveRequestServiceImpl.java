@@ -1,18 +1,26 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
 import com.NewEmployeeManagement.DTO.EmployeeLeaveSummaryDTO;
+import com.NewEmployeeManagement.DTO.LeaveRequestsResponse;
 import com.NewEmployeeManagement.Entity.Employee;
 import com.NewEmployeeManagement.Entity.EmployeeCategory;
 import com.NewEmployeeManagement.Entity.EmployeeLeaveRequest;
+import com.NewEmployeeManagement.Pageination.LeaveRequestSpecification;
 import com.NewEmployeeManagement.Repository.EmployeeRepository;
 import com.NewEmployeeManagement.Repository.LeaveRequestRepository;
 import com.NewEmployeeManagement.Service.LeaveRequestService;
 import com.NewEmployeeManagement.Service.PermissionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class LeaveRequestServiceImpl implements LeaveRequestService {
@@ -25,6 +33,9 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
 
     @Autowired
     private EmployeeRepository employeeRepository;
+
+    @Autowired
+    StaffService staffService;
 
 
 
@@ -66,12 +77,52 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
 
 
     @Override
-    public List<EmployeeLeaveRequest> getAllLeaveRequests(String role, String email) {
+    public LeaveRequestsResponse getAllLeaveRequests(String role, String email, String name, String status, String branchCodeFilter, Pageable pageable) {
+        // permission check
         if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to view leave requests");
         }
-        String branchCode = permissionService.fetchBranchCode(role, email);
-        return repository.findAllByBranchCode(branchCode);
+
+        boolean isSuperAdmin = role != null && role.equalsIgnoreCase("superadmin");
+
+        List<String> branchCodes = new ArrayList<>();
+
+        if (isSuperAdmin) {
+            boolean exists = staffService.isClientEmailExist(email);
+            if (!exists) {
+                throw new AccessDeniedException("Institute email not found for SuperAdmin");
+            }
+
+            if (branchCodeFilter != null && !branchCodeFilter.isBlank()) {
+                branchCodes.add(branchCodeFilter);
+            } else {
+                List<String> fetched = staffService.getBranchCodesByInstituteEmail(email);
+                if (fetched != null && !fetched.isEmpty()) {
+                    branchCodes.addAll(fetched);
+                }
+            }
+        } else {
+            if (branchCodeFilter != null && !branchCodeFilter.isBlank()) {
+                branchCodes.add(branchCodeFilter);
+            } else {
+                String branchCode = permissionService.fetchBranchCode(role, email);
+                if (branchCode != null) branchCodes.add(branchCode);
+            }
+        }
+
+        Specification<EmployeeLeaveRequest> spec = LeaveRequestSpecification.build(name, status, branchCodes);
+
+        Page<EmployeeLeaveRequest> page = repository.findAll(spec, pageable);
+
+        Specification<EmployeeLeaveRequest> specForCounts = LeaveRequestSpecification.build(name, null, branchCodes);
+        List<EmployeeLeaveRequest> allMatchingForCounts = repository.findAll(specForCounts);
+        Map<String, Long> statusCounts = allMatchingForCounts.stream()
+                .collect(Collectors.groupingBy(
+                        lr -> lr.getStatus() == null ? "Unknown" : lr.getStatus().trim(),
+                        Collectors.counting()
+                ));
+
+        return new LeaveRequestsResponse(page, statusCounts);
     }
 
     @Override

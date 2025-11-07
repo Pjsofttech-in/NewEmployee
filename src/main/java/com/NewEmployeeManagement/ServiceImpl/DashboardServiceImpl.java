@@ -278,43 +278,111 @@ public class DashboardServiceImpl implements DashboardService
 
 
     @Override
-    public Map<String, BigDecimal> getSalaryComparison(String role, String email,int month, int year)
+    public Map<String, BigDecimal> getSalaryComparison(String role, String email, int month, int year, String branchFilter)
     {
         if (!permissionService.hasPermission(role, email, "Get")) {
             throw new AccessDeniedException("No permission to Get salary Report");
         }
 
-        String branchCode = permissionService.fetchBranchCode(role, email);
         int previousMonth = (month == 1) ? 12 : month - 1;
         int previousYear = (month == 1) ? year - 1 : year;
 
-        BigDecimal prevMonthSalary = salaryRepository
-                .getTotalNetSalaryByMonthAndYear(previousMonth, previousYear,branchCode);
-        BigDecimal currentMonthSalary = salaryRepository
-                .getTotalNetSalaryByMonthAndYear(month, year,branchCode);
+        List<String> branchCodes = new ArrayList<>();
+        boolean isSuperAdmin = role != null && role.equalsIgnoreCase("superadmin");
+
+        if (branchFilter != null && !branchFilter.isBlank()) {
+            branchCodes.add(branchFilter);
+        } else if (isSuperAdmin) {
+            boolean exists = staffService.isClientEmailExist(email);
+            if (!exists) {
+                throw new AccessDeniedException("Institute email not found or no permission for SuperAdmin with this email");
+            }
+
+            List<String> fetched = staffService.getBranchCodesByInstituteEmail(email);
+            if (fetched != null && !fetched.isEmpty()) {
+                branchCodes.addAll(fetched);
+            }
+        } else {
+            String branchCode = permissionService.fetchBranchCode(role, email);
+            if (branchCode != null && !branchCode.isBlank()) {
+                branchCodes.add(branchCode);
+            }
+        }
+
+        BigDecimal prevMonthSalary = BigDecimal.ZERO;
+        BigDecimal currentMonthSalary = BigDecimal.ZERO;
+
+        if (branchCodes.isEmpty()) {
+            prevMonthSalary = BigDecimal.ZERO;
+            currentMonthSalary = BigDecimal.ZERO;
+        } else {
+            for (String bc : branchCodes) {
+                if (bc == null) continue;
+                BigDecimal p = salaryRepository.getTotalNetSalaryByMonthAndYear(previousMonth, previousYear, bc);
+                BigDecimal c = salaryRepository.getTotalNetSalaryByMonthAndYear(month, year, bc);
+                if (p != null) prevMonthSalary = prevMonthSalary.add(p);
+                if (c != null) currentMonthSalary = currentMonthSalary.add(c);
+            }
+        }
 
         String prevMonthName = Month.of(previousMonth).getDisplayName(TextStyle.FULL, Locale.ENGLISH);
         String currentMonthName = Month.of(month).getDisplayName(TextStyle.FULL, Locale.ENGLISH);
 
-        Map<String, BigDecimal> result = new HashMap<>();
+        BigDecimal difference = currentMonthSalary.subtract(prevMonthSalary);
+
+        Map<String, BigDecimal> result = new LinkedHashMap<>();
         result.put(prevMonthName, prevMonthSalary);
         result.put(currentMonthName, currentMonthSalary);
-        result.put("Difference", currentMonthSalary.subtract(prevMonthSalary));
+        result.put("Difference", difference);
 
         return result;
     }
 
 
     @Override
-    public Map<String, BigDecimal> getYearlyComparison(String role, String email,int year1, int year2)
+    public Map<String, BigDecimal> getYearlyComparison(String role, String email, int year1, int year2, String branchFilter)
     {
         if (!permissionService.hasPermission(role, email, "Get")) {
             throw new AccessDeniedException("No permission to Get salary Report");
         }
 
-        String branchCode = permissionService.fetchBranchCode(role, email);
-        BigDecimal totalYear1 = salaryRepository.getTotalNetSalaryByYear(year1,branchCode);
-        BigDecimal totalYear2 = salaryRepository.getTotalNetSalaryByYear(year2,branchCode);
+        boolean isSuperAdmin = role != null && role.equalsIgnoreCase("superadmin");
+
+        List<String> branchCodes = new ArrayList<>();
+
+        if (branchFilter != null && !branchFilter.isBlank()) {
+            branchCodes.add(branchFilter);
+        } else if (isSuperAdmin) {
+            boolean exists = staffService.isClientEmailExist(email);
+            if (!exists) {
+                throw new AccessDeniedException("Institute email not found or no permission for SuperAdmin with this email");
+            }
+            List<String> fetched = staffService.getBranchCodesByInstituteEmail(email);
+            if (fetched != null && !fetched.isEmpty()) {
+                branchCodes.addAll(fetched);
+            }
+        } else {
+            String branchCode = permissionService.fetchBranchCode(role, email);
+            if (branchCode != null && !branchCode.isBlank()) {
+                branchCodes.add(branchCode);
+            }
+        }
+
+        BigDecimal totalYear1 = BigDecimal.ZERO;
+        BigDecimal totalYear2 = BigDecimal.ZERO;
+
+        if (branchCodes.isEmpty()) {
+            totalYear1 = BigDecimal.ZERO;
+            totalYear2 = BigDecimal.ZERO;
+        } else {
+            for (String bc : branchCodes) {
+                if (bc == null) continue;
+                BigDecimal t1 = salaryRepository.getTotalNetSalaryByYear(year1, bc);
+                BigDecimal t2 = salaryRepository.getTotalNetSalaryByYear(year2, bc);
+                if (t1 != null) totalYear1 = totalYear1.add(t1);
+                if (t2 != null) totalYear2 = totalYear2.add(t2);
+            }
+        }
 
         Map<String, BigDecimal> result = new LinkedHashMap<>();
         result.put(String.valueOf(year1), totalYear1);
@@ -324,30 +392,49 @@ public class DashboardServiceImpl implements DashboardService
         return result;
     }
 
+
     @Override
-    public Map<String, Map<String, Object>> getMonthlySalaryTotals(String role, String email, int year) {
+    public Map<String, Map<String, Object>> getMonthlySalaryTotals(String role, String email, int year, @Nullable String branchFilter) {
+
         if (!permissionService.hasPermission(role, email, "Get")) {
             throw new AccessDeniedException("No permission to get salary report");
         }
 
-        String branchCode = permissionService.fetchBranchCode(role, email);
-        List<Object[]> monthlyData = salaryRepository.getMonthlySalaryTotalsByYear(year, branchCode);
+        List<String> branchCodes = new ArrayList<>();
 
-        // Structure: { "January" -> { "PaidTotal": 10000, "PendingTotal": 2000, "PaidCount": 3, "PendingCount": 1 } }
-        Map<String, Map<String, Object>> result = new LinkedHashMap<>();
-
-        // Initialize all months with 0 values
-        for (int i = 1; i <= 12; i++) {
-            String monthName = Month.of(i).getDisplayName(TextStyle.FULL, Locale.ENGLISH);
-            Map<String, Object> monthData = new LinkedHashMap<>();
-            monthData.put("PaidTotal", BigDecimal.ZERO);
-            monthData.put("PendingTotal", BigDecimal.ZERO);
-            monthData.put("PaidCount", 0L);
-            monthData.put("PendingCount", 0L);
-            result.put(monthName, monthData);
+        if ("SuperAdmin".equalsIgnoreCase(role)) {
+            if (branchFilter != null && !branchFilter.isBlank()) {
+                branchCodes.add(branchFilter);
+            } else {
+                branchCodes = staffService.getBranchCodesByInstituteEmail(email);
+            }
+        } else {
+            branchCodes.add(permissionService.fetchBranchCode(role, email));
         }
 
-        // Fill actual data
+        Map<String, Map<String, Object>> result = new LinkedHashMap<>();
+        for (int i = 1; i <= 12; i++) {
+            result.put(Month.of(i).getDisplayName(TextStyle.FULL, Locale.ENGLISH), createEmptyMonthData());
+        }
+
+        for (String branchCode : branchCodes) {
+            List<Object[]> monthlyData = salaryRepository.getMonthlySalaryTotalsByYear(year, branchCode);
+            mergeMonthlyData(result, monthlyData);
+        }
+
+        return result;
+    }
+
+    private Map<String, Object> createEmptyMonthData() {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("PaidTotal", BigDecimal.ZERO);
+        map.put("PendingTotal", BigDecimal.ZERO);
+        map.put("PaidCount", 0L);
+        map.put("PendingCount", 0L);
+        return map;
+    }
+
+    private void mergeMonthlyData(Map<String, Map<String, Object>> result, List<Object[]> monthlyData) {
         for (Object[] row : monthlyData) {
             int month = (int) row[0];
             BigDecimal paidTotal = (BigDecimal) row[1];
@@ -356,18 +443,15 @@ public class DashboardServiceImpl implements DashboardService
             Long pendingCount = ((Number) row[4]).longValue();
 
             String monthName = Month.of(month).getDisplayName(TextStyle.FULL, Locale.ENGLISH);
+            Map<String, Object> existing = result.get(monthName);
 
-            Map<String, Object> monthData = new LinkedHashMap<>();
-            monthData.put("PaidTotal", paidTotal != null ? paidTotal : BigDecimal.ZERO);
-            monthData.put("PendingTotal", pendingTotal != null ? pendingTotal : BigDecimal.ZERO);
-            monthData.put("PaidCount", paidCount != null ? paidCount : 0L);
-            monthData.put("PendingCount", pendingCount != null ? pendingCount : 0L);
-
-            result.put(monthName, monthData);
+            existing.put("PaidTotal", ((BigDecimal) existing.get("PaidTotal")).add(paidTotal != null ? paidTotal : BigDecimal.ZERO));
+            existing.put("PendingTotal", ((BigDecimal) existing.get("PendingTotal")).add(pendingTotal != null ? pendingTotal : BigDecimal.ZERO));
+            existing.put("PaidCount", ((Long) existing.get("PaidCount")) + (paidCount != null ? paidCount : 0L));
+            existing.put("PendingCount", ((Long) existing.get("PendingCount")) + (pendingCount != null ? pendingCount : 0L));
         }
-
-        return result;
     }
+
 
 
     @Override

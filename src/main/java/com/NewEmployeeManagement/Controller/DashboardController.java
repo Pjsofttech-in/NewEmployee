@@ -56,8 +56,9 @@ public class DashboardController
             @RequestParam String role,
             @RequestParam String email,
             @RequestParam int month,
-            @RequestParam int year) {
-        return ResponseEntity.ok(dashboardService.getSalaryComparison(role,email,month, year));
+            @RequestParam int year,
+            @RequestParam(required = false) String branchCode) {
+        return ResponseEntity.ok(dashboardService.getSalaryComparison(role,email,month, year,branchCode));
     }
 
     @GetMapping("/SalaryComparisonByYears")
@@ -65,17 +66,19 @@ public class DashboardController
             @RequestParam String role,
             @RequestParam String email,
             @RequestParam int year1,
-            @RequestParam int year2) {
-        return ResponseEntity.ok(dashboardService.getYearlyComparison(role,email,year1, year2));
+            @RequestParam int year2,
+            @RequestParam(required = false) String branchCode) {
+        return ResponseEntity.ok(dashboardService.getYearlyComparison(role,email,year1, year2,branchCode));
     }
 
     @GetMapping("/getSalaryRevenewByMonthofYear")
     public Map<String, Map<String, Object>> getMonthlySalaryTotals(
             @RequestParam String role,
             @RequestParam String email,
-            @RequestParam int year) {
+            @RequestParam int year,
+            @RequestParam(required = false) String branchCode) {
         try {
-            return dashboardService.getMonthlySalaryTotals(role, email, year);
+            return dashboardService.getMonthlySalaryTotals(role, email, year,branchCode);
         } catch (AccessDeniedException e) {
             throw new RuntimeException("Access denied: " + e.getMessage());
         } catch (Exception e) {

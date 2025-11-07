@@ -1,9 +1,13 @@
 package com.NewEmployeeManagement.Controller;
 
 import com.NewEmployeeManagement.DTO.EmployeeLeaveSummaryDTO;
+import com.NewEmployeeManagement.DTO.LeaveRequestsResponse;
 import com.NewEmployeeManagement.Entity.EmployeeLeaveRequest;
 import com.NewEmployeeManagement.Service.LeaveRequestService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,11 +34,19 @@ public class LeaveRequestController {
     }
 
     @GetMapping("/getAllLeaveRequests")
-    public List<EmployeeLeaveRequest> getAllLeaveRequests(@RequestParam String role,
-                                                          @RequestParam String email) {
-        return leaveRequestService.getAllLeaveRequests(role, email);
-    }
+    public ResponseEntity<LeaveRequestsResponse> getAllLeaveRequests(
+            @RequestParam String role,
+            @RequestParam String email,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String branchCode,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
+        Pageable pageable = PageRequest.of(page, size, Sort.by("fromDate").descending());
+        LeaveRequestsResponse resp = leaveRequestService.getAllLeaveRequests(role, email, name, status, branchCode, pageable);
+        return ResponseEntity.ok(resp);
+    }
     @GetMapping("/getLeaveRequestById/{id}")
     public EmployeeLeaveRequest getLeaveRequestById(@PathVariable Long id,
                                                     @RequestParam String role, @RequestParam String email) {

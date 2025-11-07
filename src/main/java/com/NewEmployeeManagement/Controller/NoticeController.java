@@ -3,9 +3,12 @@ package com.NewEmployeeManagement.Controller;
 import com.NewEmployeeManagement.Entity.EmployeeNotice;
 import com.NewEmployeeManagement.Service.NoticeService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -23,10 +26,19 @@ public class NoticeController {
     }
 
     @GetMapping("/getAllNotices")
-    public ResponseEntity<List<EmployeeNotice>> getAllNotices(@RequestParam String role,
-                                                              @RequestParam String email) {
-        return ResponseEntity.ok(service.getAllNotices(role, email));
+    public ResponseEntity<Page<EmployeeNotice>> getAllNotices(
+            @RequestParam String role,
+            @RequestParam String email,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) String branchCode,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Page<EmployeeNotice> notices = service.getAllNotices(role, email, startDate, endDate, branchCode, page, size);
+        return ResponseEntity.ok(notices);
     }
+
 
     @GetMapping("/getNoticeById/{id}")
     public ResponseEntity<EmployeeNotice> getNoticeById(@PathVariable Long id,

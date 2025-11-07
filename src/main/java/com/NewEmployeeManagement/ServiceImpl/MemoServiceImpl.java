@@ -4,10 +4,14 @@ import com.NewEmployeeManagement.Entity.EmployeeMemo;
 import com.NewEmployeeManagement.Repository.MemoRepository;
 import com.NewEmployeeManagement.Service.MemoService;
 import com.NewEmployeeManagement.Service.PermissionService;
+import jakarta.annotation.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -18,6 +22,9 @@ public class MemoServiceImpl implements MemoService {
 
     @Autowired
     private PermissionService permissionService;
+
+    @Autowired
+    private StaffService staffService;
 
     @Override
     public EmployeeMemo createMemo(EmployeeMemo employeeMemo, String role, String email) {
@@ -33,18 +40,34 @@ public class MemoServiceImpl implements MemoService {
     }
 
     @Override
-    public List<EmployeeMemo> getAllMemos(String role, String email) {
+    public Page<EmployeeMemo> getAllMemos(String role, String email, @Nullable String nameFilter,
+                                          @Nullable String emailFilter, @Nullable String branchFilter, Pageable pageable) {
+
         if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to view memos");
         }
 
-        if("USER".equalsIgnoreCase(role)){
-            return repository.findAllByEmail(email);
+        if ("USER".equalsIgnoreCase(role)) {
+            return repository.findAllByEmail(email, pageable);
         }
-        else{
-            String branchCode = permissionService.fetchBranchCode(role, email);
-            return repository.findAllByBranchCode(branchCode);
+        boolean isSuperAdmin = role != null && role.equalsIgnoreCase("superadmin");
+        List<String> branchCodes = new ArrayList<>();
+            if (branchFilter != null && !branchFilter.isBlank()) {
+                branchCodes.add(branchFilter);
+            } else if (isSuperAdmin) {
+                boolean exists = staffService.isClientEmailExist(email);
+                if (!exists) {
+                    throw new AccessDeniedException("Institute email not found or no permission for SuperAdmin with this email");
+                }
+                List<String> fetched = staffService.getBranchCodesByInstituteEmail(email);
+                if (fetched != null && !fetched.isEmpty()) {
+                    branchCodes.addAll(fetched);
+                }
+            }  else {
+            branchCodes.add(permissionService.fetchBranchCode(role, email));
         }
+
+        return repository.findAllByFilters(branchCodes, nameFilter, emailFilter, pageable);
     }
 
     @Override

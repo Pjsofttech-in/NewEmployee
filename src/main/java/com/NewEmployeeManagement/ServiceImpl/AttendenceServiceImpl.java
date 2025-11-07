@@ -48,6 +48,9 @@ public class AttendenceServiceImpl implements AttendenceService {
     private EmployeeRepository employeeRepository;
 
     @Autowired
+    private StaffService staffService;
+
+    @Autowired
     private PermissionService permissionService;
 
     @Autowired
@@ -389,16 +392,13 @@ public class AttendenceServiceImpl implements AttendenceService {
             LocalDate customEndDate,
             Pageable pageable)
     {
-        if (!permissionService.hasPermission(role, email, "Post")) {
+        if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to view Get Attendance");
         }
 
-        // 1. Determine date range
         LocalDate today = LocalDate.now();
         LocalDate startDate = today;
         LocalDate endDate = today;
-
-        String branchCode = permissionService.fetchBranchCode(role, email);
 
         switch (timeFrame != null ? timeFrame.toLowerCase() : "all") {
             case "today" -> { startDate = today; endDate = today; }
@@ -409,10 +409,65 @@ public class AttendenceServiceImpl implements AttendenceService {
             case "all" -> { startDate = employeeRepository.findEarliestJoiningDate().orElse(today.minusYears(1)); endDate = today; }
         }
 
-        // 2. Fetch employees
-        List<Employee> employees = employeeRepository.findActiveEmployeesByBranchCodeAndJoiningDate(branchCode, endDate);
+        boolean isSuperAdmin = role != null && role.equalsIgnoreCase("superadmin");
 
-        // 3. Filter by name (optional)
+        List<String> branchCodeList = new ArrayList<>();
+        String branchCodeForSpec = null;
+        if (isSuperAdmin) {
+            boolean exists = staffService.isClientEmailExist(email);
+            if (!exists) {
+                throw new AccessDeniedException("Institute email not found or no permission for SuperAdmin with this email");
+            }
+
+            if (filterDTO != null && filterDTO.getBranchCode() != null && !filterDTO.getBranchCode().isBlank()) {
+                branchCodeList.add(filterDTO.getBranchCode());
+                branchCodeForSpec = filterDTO.getBranchCode();
+            } else {
+                List<String> result = staffService.getBranchCodesByInstituteEmail(email);
+                if (result != null) {
+                    branchCodeList.addAll(result);
+                }
+                if (branchCodeList.size() == 1) {
+                    branchCodeForSpec = branchCodeList.get(0);
+                } else {
+                    branchCodeForSpec = null;
+                }
+            }
+        } else {
+            String branchCode = permissionService.fetchBranchCode(role, email);
+            branchCodeList.add(branchCode);
+            branchCodeForSpec = branchCode;
+        }
+
+        Map<Long, Employee> employeeMap = new LinkedHashMap<>();
+        for (String bc : branchCodeList) {
+            if (bc == null) continue;
+            List<Employee> empList = employeeRepository.findActiveEmployeesByBranchCodeAndJoiningDate(bc, endDate);
+            if (empList != null) {
+                for (Employee e : empList) {
+                    if (e != null && e.getId() != null) {
+                        employeeMap.putIfAbsent(e.getId(), e);
+                    }
+                }
+            }
+        }
+        if (branchCodeList.isEmpty()) {
+            String fallbackBranch = permissionService.fetchBranchCode(role, email);
+            if (fallbackBranch != null) {
+                List<Employee> empList = employeeRepository.findActiveEmployeesByBranchCodeAndJoiningDate(fallbackBranch, endDate);
+                if (empList != null) {
+                    for (Employee e : empList) {
+                        if (e != null && e.getId() != null) {
+                            employeeMap.putIfAbsent(e.getId(), e);
+                        }
+                    }
+                }
+                branchCodeForSpec = fallbackBranch;
+            }
+        }
+
+        List<Employee> employees = new ArrayList<>(employeeMap.values());
+
         if (filterDTO != null && filterDTO.getName() != null && !filterDTO.getName().isBlank()) {
             String name = filterDTO.getName().toLowerCase();
             employees = employees.stream()
@@ -420,25 +475,23 @@ public class AttendenceServiceImpl implements AttendenceService {
                     .collect(Collectors.toList());
         }
 
-        // 4. Attendance from DB
-        var spec = AttendanceSpecification.build(filterDTO, timeFrame, branchCode, customStartDate, customEndDate);
+        var spec = AttendanceSpecification.build(filterDTO, timeFrame, branchCodeForSpec, customStartDate, customEndDate);
         List<EmployeeAttendence> attendances = attendenceRepository.findAll(spec);
 
-        // 5. Map attendance
         Map<String, EmployeeAttendence> attendanceMap = attendances.stream()
+                .filter(a -> a.getEmployee() != null && a.getTodaysDate() != null)
                 .collect(Collectors.toMap(
                         a -> a.getEmployee().getId() + "_" + a.getTodaysDate(),
-                        a -> a
+                        a -> a,
+                        (existing, replacement) -> existing // in case of duplicates keep first
                 ));
 
         List<EmployeeAttendanceDTO> combinedList = new ArrayList<>();
 
-        // 6. Combine employee + attendance for each date
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
             for (Employee emp : employees) {
                 if (emp.getJoiningDate() != null && !date.isBefore(emp.getJoiningDate())) {
 
-                    // ===== NEW TERMINATION / REJOIN LOGIC START =====
                     LocalDate terminatedDate = emp.getTerminatDate();
                     LocalDate rejoiningDate = emp.getRejoiningData();
                     String empStatus = emp.getStatus() != null ? emp.getStatus().trim().toLowerCase() : "";
@@ -447,13 +500,11 @@ public class AttendenceServiceImpl implements AttendenceService {
                             && date.isAfter(terminatedDate)) {
                         continue;
                     }
-                    // Skip attendance before rejoining date for rejoined employees
                     if ("rejoined".equalsIgnoreCase(empStatus)
                             && rejoiningDate != null
                             && date.isBefore(rejoiningDate)) {
                         continue;
                     }
-                    // ===== NEW TERMINATION / REJOIN LOGIC END =====
 
                     String key = emp.getId() + "_" + date;
                     EmployeeAttendence att = attendanceMap.get(key);
@@ -477,7 +528,6 @@ public class AttendenceServiceImpl implements AttendenceService {
                                 att.getBreakMinutes()
                         );
                     } else {
-                        // Handle absent case
                         if ("today".equalsIgnoreCase(timeFrame)) {
                             dto = new EmployeeAttendanceDTO(emp.getId(), emp.getFullName(), emp.getEmpEmail(), date,
                                     "Absent", null, null, null, null, 0L);
@@ -501,7 +551,6 @@ public class AttendenceServiceImpl implements AttendenceService {
             }
         }
 
-        // 7. Filter by status
         if (filterDTO != null && filterDTO.getStatus() != null &&
                 !filterDTO.getStatus().equalsIgnoreCase("All")) {
 
@@ -513,7 +562,6 @@ public class AttendenceServiceImpl implements AttendenceService {
                     .toList();
         }
 
-        // 8. Pagination
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), combinedList.size());
         List<EmployeeAttendanceDTO> paged = (start < end) ? combinedList.subList(start, end) : List.of();
