@@ -14,4 +14,5 @@ public class EmployeeSalaryFilterDTO
     private Integer month;
     private Integer year;
     private String status;
+    private String branchCode;
 }

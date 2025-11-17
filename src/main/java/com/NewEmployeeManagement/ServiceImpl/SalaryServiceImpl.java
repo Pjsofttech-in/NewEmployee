@@ -40,6 +40,10 @@ public class SalaryServiceImpl implements SalaryService
     @Autowired
     SalaryRepository employeeSalaryRepository;
 
+
+    @Autowired
+    StaffService staffService;
+
     @Autowired
      AttendenceRepository attendanceRepository;
 
@@ -284,14 +288,50 @@ public class SalaryServiceImpl implements SalaryService
     }
 
     @Override
-    public SalarySummaryResponseDTO getFilteredSalaries(EmployeeSalaryFilterDTO filter, int page, int size, String role, String email) {
-        if (!permissionService.hasPermission(role, email, "Get")) {
+    public SalarySummaryResponseDTO getFilteredSalaries(
+            EmployeeSalaryFilterDTO filter, int page, int size, String role, String email) {
+
+        if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to Get salary");
         }
 
-        String branchCode = permissionService.fetchBranchCode(role, email);
+        List<String> effectiveBranchCodes = new ArrayList<>();
 
-        Specification<EmployeeSalary> spec = EmployeeSalarySpecification.filterSalaries(
+        if ("SUPERADMIN".equalsIgnoreCase(role)) {
+
+            effectiveBranchCodes = staffService.getBranchCodesByInstituteEmail(email);
+
+            if (effectiveBranchCodes.isEmpty()) {
+                throw new RuntimeException("No branch codes mapped for SuperAdmin email: " + email);
+            }
+
+            if (filter.getBranchCode() != null && !filter.getBranchCode().isBlank()) {
+
+                String requestedBranch = filter.getBranchCode().trim();
+
+                if (!effectiveBranchCodes.contains(requestedBranch)) {
+                    throw new RuntimeException("Invalid branchCode for this SuperAdmin: " + requestedBranch);
+                }
+
+                effectiveBranchCodes = List.of(requestedBranch);
+            }
+
+        } else {
+            String branchCode = permissionService.fetchBranchCode(role, email);
+
+            if (branchCode == null || branchCode.isBlank()) {
+                throw new RuntimeException("Unable to resolve branch code for role: " + role);
+            }
+
+            effectiveBranchCodes = List.of(branchCode);
+        }
+
+        final List<String> finalBranchCodes = new ArrayList<>(effectiveBranchCodes);
+
+        Specification<EmployeeSalary> spec = (root, query, cb) ->
+                root.get("branchCode").in(finalBranchCodes);
+
+        spec = spec.and(EmployeeSalarySpecification.filterSalaries(
                 filter.getEmpId(),
                 filter.getFullName(),
                 filter.getDepartment(),
@@ -299,21 +339,20 @@ public class SalaryServiceImpl implements SalaryService
                 filter.getEmployeecategory(),
                 filter.getMonth(),
                 filter.getYear(),
-                branchCode
-        );
-
+                null
+        ));
         Pageable pageable = PageRequest.of(page, size);
         Page<EmployeeSalary> salaries = employeeSalaryRepository.findAll(spec, pageable);
 
         long totalCount = employeeSalaryRepository.count(spec);
-        BigDecimal totalSum = employeeSalaryRepository.findAll(spec).stream()
+
+        BigDecimal totalSum = salaries.getContent().stream()
                 .map(EmployeeSalary::getFinalNetSalary)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return new SalarySummaryResponseDTO(salaries, totalCount, totalSum);
     }
-
 
     @Override
     @Transactional

@@ -33,9 +33,6 @@ public class PermissionServiceImpl implements PermissionService {
 
     public boolean hasPermission(String role, String email, String action)
     {
-        System.out.println("Checking permission for role: " + role + ", email: " + email + ", action: " + action);
-
-        // ✅ Normalize role and action to avoid case-sensitive mismatch
         if (role == null || role.isBlank()) {
             System.out.println("Role is null or empty");
             return false;
@@ -43,18 +40,20 @@ public class PermissionServiceImpl implements PermissionService {
         role = role.trim().toUpperCase();
         action = (action == null) ? "" : action.trim().toUpperCase();
 
-        if ("SUPERADMIN".equals(role)) {
+        if (role.equals("SUPERADMIN")) {
+
             boolean emailExists = staffService.isClientEmailExist(email);
             if (!emailExists) {
-                System.out.println(" SuperAdmin email does not exist: " + email);
+                System.out.println("SuperAdmin email does not exist: " + email);
                 return false;
             }
-            System.out.println(" SuperAdmin email verified: " + email);
+
+            System.out.println("SuperAdmin email verified: " + email);
 
             return switch (action) {
                 case "GET" -> true;
                 default -> {
-                    System.out.println(" SuperAdmin only allowed to perform GET actions currently.");
+                    System.out.println("SuperAdmin allowed only GET");
                     yield false;
                 }
             };
