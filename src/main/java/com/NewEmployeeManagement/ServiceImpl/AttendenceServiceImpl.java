@@ -411,8 +411,10 @@ public class AttendenceServiceImpl implements AttendenceService {
 
         boolean isSuperAdmin = role != null && role.equalsIgnoreCase("superadmin");
 
+        // collect branch codes for which we should include employees & attendance
         List<String> branchCodeList = new ArrayList<>();
-        String branchCodeForSpec = null;
+        String branchCodeForSpec = null; // kept for backward compatibility / single-branch uses
+
         if (isSuperAdmin) {
             boolean exists = staffService.isClientEmailExist(email);
             if (!exists) {
@@ -430,15 +432,16 @@ public class AttendenceServiceImpl implements AttendenceService {
                 if (branchCodeList.size() == 1) {
                     branchCodeForSpec = branchCodeList.get(0);
                 } else {
-                    branchCodeForSpec = null;
+                    branchCodeForSpec = null; // multiple branches -> use list in spec
                 }
             }
         } else {
             String branchCode = permissionService.fetchBranchCode(role, email);
-            branchCodeList.add(branchCode);
-            branchCodeForSpec = branchCode;
+            if (branchCode != null) branchCodeList.add(branchCode);
+            branchCodeForSpec = branchCodeList.isEmpty() ? null : branchCodeList.get(0);
         }
 
+        // Build employee list from branchCodeList (or fallback)
         Map<Long, Employee> employeeMap = new LinkedHashMap<>();
         for (String bc : branchCodeList) {
             if (bc == null) continue;
@@ -463,6 +466,7 @@ public class AttendenceServiceImpl implements AttendenceService {
                     }
                 }
                 branchCodeForSpec = fallbackBranch;
+                branchCodeList.add(fallbackBranch);
             }
         }
 
@@ -476,14 +480,18 @@ public class AttendenceServiceImpl implements AttendenceService {
         }
 
         var spec = AttendanceSpecification.build(filterDTO, timeFrame, branchCodeForSpec, customStartDate, customEndDate);
-        List<EmployeeAttendence> attendances = attendenceRepository.findAll(spec);
 
+        if (branchCodeList != null && branchCodeList.size() > 1) {
+            var branchSpec = AttendanceSpecification.branchCodesIn(branchCodeList);
+            spec = (spec == null) ? branchSpec : spec.and(branchSpec);
+        }
+        List<EmployeeAttendence> attendances = attendenceRepository.findAll(spec);
         Map<String, EmployeeAttendence> attendanceMap = attendances.stream()
-                .filter(a -> a.getEmployee() != null && a.getTodaysDate() != null)
+                .filter(a -> a.getEmployee() != null && a.getEmployee().getId() != null && a.getTodaysDate() != null)
                 .collect(Collectors.toMap(
-                        a -> a.getEmployee().getId() + "_" + a.getTodaysDate(),
+                        a -> a.getEmployee().getId().toString() + "_" + a.getTodaysDate().toString(),
                         a -> a,
-                        (existing, replacement) -> existing // in case of duplicates keep first
+                        (existing, replacement) -> existing // keep first if duplicates
                 ));
 
         List<EmployeeAttendanceDTO> combinedList = new ArrayList<>();
@@ -506,7 +514,7 @@ public class AttendenceServiceImpl implements AttendenceService {
                         continue;
                     }
 
-                    String key = emp.getId() + "_" + date;
+                    String key = emp.getId().toString() + "_" + date.toString();
                     EmployeeAttendence att = attendanceMap.get(key);
 
                     EmployeeAttendanceDTO dto;
@@ -532,17 +540,8 @@ public class AttendenceServiceImpl implements AttendenceService {
                             dto = new EmployeeAttendanceDTO(emp.getId(), emp.getFullName(), emp.getEmpEmail(), date,
                                     "Absent", null, null, null, null, 0L);
                         } else {
-                            if (terminatedDate != null && !"rejoined".equalsIgnoreCase(empStatus)
-                                    && date.isAfter(terminatedDate)) {
-                                continue;
-                            } else if ("rejoined".equalsIgnoreCase(empStatus)
-                                    && rejoiningDate != null
-                                    && date.isBefore(rejoiningDate)) {
-                                continue;
-                            } else {
-                                dto = new EmployeeAttendanceDTO(emp.getId(), emp.getFullName(), emp.getEmpEmail(), date,
-                                        "Absent", null, null, null, null, 0L);
-                            }
+                            dto = new EmployeeAttendanceDTO(emp.getId(), emp.getFullName(), emp.getEmpEmail(), date,
+                                    "Absent", null, null, null, null, 0L);
                         }
                     }
 
@@ -568,6 +567,7 @@ public class AttendenceServiceImpl implements AttendenceService {
 
         return new PageImpl<>(paged, pageable, combinedList.size());
     }
+
 
 
     @Override

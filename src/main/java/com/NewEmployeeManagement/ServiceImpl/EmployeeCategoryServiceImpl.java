@@ -2,9 +2,11 @@ package com.NewEmployeeManagement.ServiceImpl;
 
 import com.NewEmployeeManagement.Entity.EmployeeCategory;
 import com.NewEmployeeManagement.Repository.EmployeeCategoryRepository;
+import com.NewEmployeeManagement.Repository.EmployeeRepository;
 import com.NewEmployeeManagement.Service.EmployeeCategoryService;
 import com.NewEmployeeManagement.Service.PermissionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +24,9 @@ public class EmployeeCategoryServiceImpl implements EmployeeCategoryService {
 
     @Autowired
     private PermissionService permissionService;
+
+    @Autowired
+    EmployeeRepository employeeRepository;
 
     @Autowired
     private StaffService staffService;
@@ -112,8 +117,15 @@ public class EmployeeCategoryServiceImpl implements EmployeeCategoryService {
 
         EmployeeCategory category = employeeCategoryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Category not found"));
-        category.setDeleted(true);
-        employeeCategoryRepository.deleteById(id);
+        try {
+            employeeCategoryRepository.deleteById(id);
+            category.setDeleted(true);
+        } catch (DataIntegrityViolationException ex) {
+            String userMessage = "Cannot delete category because employees are assigned to it." +
+                    " Change the category for those employees or delete them first.";
+            throw new IllegalStateException(userMessage, ex);
+        }
+
     }
 
     @Override

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@CrossOrigin(origins = "https://pjsofttech.in")
 public class FeedBackController
 {
 
@@ -50,7 +51,6 @@ public class FeedBackController
     ) {
         return ResponseEntity.ok(feedBackService.getFeedbackById(id, role, email));
     }
-
 
     @GetMapping("/getFeedBackbyEmail")
     public ResponseEntity<List<EmployeeFeedBackForm>> getFeedbackByEmail(

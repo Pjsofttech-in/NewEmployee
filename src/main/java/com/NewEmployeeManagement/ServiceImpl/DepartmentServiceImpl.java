@@ -95,7 +95,8 @@ public class DepartmentServiceImpl implements DepartmentService {
                 .orElseThrow(() -> new RuntimeException("Department not found"));
 
         if (!existing.getEmployees().isEmpty()) {
-            throw new IllegalStateException("Cannot delete department with active employees");
+            throw new IllegalStateException("Cannot delete department: employees are assigned to this department." +
+                    " Please delete or change the department for those employees first.");
         }
         departmentRepository.delete(existing); // ❌ No soft delete, directly remove
     }
