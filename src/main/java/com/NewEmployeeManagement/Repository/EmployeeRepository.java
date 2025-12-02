@@ -47,13 +47,20 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
     Optional<LocalDate> findEarliestJoiningDate();
 
     @Query(value = """
-            SELECT e.full_name as fullName, e.dob as dob, e.department as department, e.category_name as categoryName
-            FROM employee e
-            WHERE e.branch_code = :branchCode
-              AND DATE_FORMAT(e.dob, '%m-%d') BETWEEN DATE_FORMAT(CURDATE(), '%m-%d') AND DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 30 DAY), '%m-%d')
-            """, nativeQuery = true)
+        SELECT e.full_name AS fullName, 
+               e.dob AS dob, 
+               e.department AS department, 
+               e.category_name AS categoryName
+        FROM employee e
+        WHERE e.branch_code = :branchCode
+          AND e.status <> 'Terminated'
+          AND e.is_deleted = false
+          AND DATE_FORMAT(e.dob, '%m-%d') BETWEEN 
+                DATE_FORMAT(CURDATE(), '%m-%d') 
+            AND DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 30 DAY), '%m-%d')
+        """,
+            nativeQuery = true)
     List<EmployeeBirthdayDTO> findUpcomingBirthdays(@Param("branchCode") String branchCode);
-
 
     @Query("""
         SELECT e FROM Employee e

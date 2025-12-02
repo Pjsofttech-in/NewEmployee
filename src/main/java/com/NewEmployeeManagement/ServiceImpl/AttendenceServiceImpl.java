@@ -14,6 +14,7 @@ import com.NewEmployeeManagement.Service.PermissionService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
@@ -157,6 +158,7 @@ public class AttendenceServiceImpl implements AttendenceService {
     }
 
     @Override
+    @Transactional
     public String logoutEmployeeFromFace(MultipartFile image, String branchCode, String logoutIp) {
         try {
             String fastApiUrl = "https://pjsofttech.in:51443/auto-branch-scan";
@@ -172,37 +174,28 @@ public class AttendenceServiceImpl implements AttendenceService {
                 }
             });
             body.add("branch_code", branchCode);
-            body.add("classroom_scan", "false"); // Optional, set to false for employee only
+            body.add("classroom_scan", "false");
 
-            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
             RestTemplate restTemplate = new RestTemplate();
-            ResponseEntity<Map> response = restTemplate.postForEntity(fastApiUrl, requestEntity, Map.class);
+            ResponseEntity<Map> response = restTemplate.postForEntity(fastApiUrl, new HttpEntity<>(body, headers), Map.class);
 
             Map<String, Object> responseBody = response.getBody();
-            if (responseBody == null || !"success".equalsIgnoreCase((String) responseBody.get("status"))) {
-                return "Face recognition failed or no success status from server.";
+            if (responseBody == null || !"success".equalsIgnoreCase(String.valueOf(responseBody.get("status")))) {
+                return "Face recognition failed or no success status.";
             }
 
             List<Map<String, Object>> matches = (List<Map<String, Object>>) responseBody.get("matches");
             if (matches == null || matches.isEmpty()) {
-                return "No face match found";
+                return "No face match found.";
             }
 
-            Map<String, Object> firstMatch = matches.get(0);
-            String empIdStr = String.valueOf(firstMatch.get("empid"));
-            Long empId = Long.parseLong(empIdStr);
-
+            Long empId = Long.parseLong(String.valueOf(matches.get(0).get("empid")));
             Employee employee = employeeRepository.findById(empId)
-                    .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + empId));
+                    .orElseThrow(() -> new RuntimeException("Employee not found"));
 
             LocalDate today = LocalDate.now();
-            Optional<EmployeeAttendence> optional = attendenceRepository.findByEmployeeAndTodaysDate(employee, today);
-
-            if (optional.isEmpty()) {
-                return "No attendance record found for Emp ID: " + empId;
-            }
-
-            EmployeeAttendence attendance = optional.get();
+            EmployeeAttendence attendance = attendenceRepository.findByEmployeeAndTodaysDate(employee, today)
+                    .orElseThrow(() -> new RuntimeException("No attendance found for Emp ID: " + empId));
 
             if (attendance.getLogoutTime() != null) {
                 return "Already logged out for Emp ID: " + empId;
@@ -210,49 +203,71 @@ public class AttendenceServiceImpl implements AttendenceService {
 
             LocalTime logoutTime = LocalTime.now();
             attendance.setLogoutTime(logoutTime);
-            attendance.setLogoutIP(logoutIp); // set logout IP
+            attendance.setLogoutIP(logoutIp);
 
-            // ✅ Calculate total worked minutes
             if (attendance.getLoginTime() != null) {
-                int workedMinutes = (int) Duration.between(attendance.getLoginTime(), logoutTime).toMinutes();
-                attendance.setTotalMinutesWorked(workedMinutes);
+                long workedMinutes;
+                if (!logoutTime.isBefore(attendance.getLoginTime())) {
+                    workedMinutes = Duration.between(attendance.getLoginTime(), logoutTime).toMinutes();
+                } else {
+
+                    workedMinutes = Duration.between(attendance.getLoginTime(), logoutTime.plusHours(24)).toMinutes();
+                }
+                if (attendance.getBreakMinutes() != null) {
+                    workedMinutes -= attendance.getBreakMinutes();
+                }
+                if (workedMinutes < 0) workedMinutes = 0;
+                attendance.setTotalMinutesWorked((int) workedMinutes);
             }
 
-            // ✅ Calculate overtime correctly
-            if (attendance.getLoginTime() != null
-                    && attendance.getLogoutTime() != null
-                    && attendance.getShiftStartTime() != null
-                    && attendance.getShiftEndTime() != null) {
-
+            if (attendance.getShiftStartTime() != null && attendance.getShiftEndTime() != null) {
                 try {
-                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+                    LocalTime shiftStart = parseFlexibleTime(attendance.getShiftStartTime());
+                    LocalTime shiftEnd   = parseFlexibleTime(attendance.getShiftEndTime());
 
-                    LocalTime shiftStart = LocalTime.parse(attendance.getShiftStartTime(), formatter);
-                    LocalTime shiftEnd = LocalTime.parse(attendance.getShiftEndTime(), formatter);
-
-                    // Handle night shifts
-                    if (shiftEnd.isBefore(shiftStart)) {
-                        shiftEnd = shiftEnd.plusHours(24);
+                    if (shiftEnd.isBefore(shiftStart) || shiftEnd.equals(shiftStart)) {
+                        LocalTime endPlus12 = shiftEnd.plusHours(12);
+                        if (endPlus12.isAfter(shiftStart)) {
+                            shiftEnd = endPlus12;
+                        } else {
+                            shiftEnd = shiftEnd.plusHours(24);
+                        }
                     }
 
                     long shiftMinutes = Duration.between(shiftStart, shiftEnd).toMinutes();
-                    long workedMinutes = Duration.between(attendance.getLoginTime(), attendance.getLogoutTime()).toMinutes();
+                    if (shiftMinutes < 0) shiftMinutes = 0;
 
-                    // Subtract break minutes if available
-//                    if (attendance.getBreakMinutes() != null) {
-//                        workedMinutes -= attendance.getBreakMinutes();
-//                    }
+                    attendance.setShiftMinutes(shiftMinutes);
 
-                    // Calculate overtime (positive difference)
-                    long overtimeMinutes = workedMinutes - shiftMinutes;
-                    attendance.setOverTime(Math.max(overtimeMinutes, 0L));
+                    long workedMinutes;
+                    if (attendance.getLoginTime() != null && attendance.getLogoutTime() != null) {
+                        LocalTime login = attendance.getLoginTime();
+                        LocalTime logout = attendance.getLogoutTime();
+                        if (!logout.isBefore(login)) {
+                            workedMinutes = Duration.between(login, logout).toMinutes();
+                        } else {
+                            // logout next day
+                            workedMinutes = Duration.between(login, logout.plusHours(24)).toMinutes();
+                        }
+                        if (attendance.getBreakMinutes() != null) {
+                            workedMinutes -= attendance.getBreakMinutes();
+                        }
+                        if (workedMinutes < 0) workedMinutes = 0;
+                    } else {
+                        workedMinutes = attendance.getTotalMinutesWorked() != null ? attendance.getTotalMinutesWorked() : 0;
+                    }
 
+                    long overtime = workedMinutes - shiftMinutes;
+                    attendance.setOverTime(Math.max(0, overtime));
                 } catch (Exception e) {
-                    System.err.println("Error calculating overtime for Emp ID " + empId + ": " + e.getMessage());
+
+                    System.err.println("Error parsing shift times for Emp ID " + empId + " : " + e.getMessage());
+                    attendance.setShiftMinutes(0L);
                     attendance.setOverTime(0L);
                 }
             } else {
                 attendance.setOverTime(0L);
+                if (attendance.getShiftMinutes() == null) attendance.setShiftMinutes(0L);
             }
 
             attendenceRepository.save(attendance);
@@ -264,6 +279,43 @@ public class AttendenceServiceImpl implements AttendenceService {
             return "Failed to logout employee: " + e.getMessage();
         }
     }
+
+
+    private LocalTime parseFlexibleTime(String time) {
+        if (time == null || time.trim().isEmpty()) throw new RuntimeException("Time is empty");
+        String t = time.trim();
+
+        DateTimeFormatter[] formatters = new DateTimeFormatter[] {
+                DateTimeFormatter.ofPattern("H:mm"),           // 9:30 or 09:30
+                DateTimeFormatter.ofPattern("HH:mm"),          // 09:30
+                DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH), // 9:30 AM
+                DateTimeFormatter.ofPattern("hh:mm a", Locale.ENGLISH),
+                DateTimeFormatter.ofPattern("H:mm:ss"),
+                DateTimeFormatter.ofPattern("HH:mm:ss"),
+                DateTimeFormatter.ofPattern("h:mm:ss a", Locale.ENGLISH),
+                DateTimeFormatter.ofPattern("hh:mm:ss a", Locale.ENGLISH)
+        };
+
+        for (DateTimeFormatter f : formatters) {
+            try {
+                return LocalTime.parse(t, f);
+            } catch (Exception ignored) { }
+        }
+        for (DateTimeFormatter f : formatters) {
+            try {
+                return LocalTime.parse(t.toUpperCase().replaceAll("\\.", ""), f);
+            } catch (Exception ignored) { }
+        }
+          try {
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d{1,2}:\\d{2})").matcher(t);
+            if (m.find()) {
+                return LocalTime.parse(m.group(1), DateTimeFormatter.ofPattern("H:mm"));
+            }
+        } catch (Exception ignored) { }
+
+        throw new RuntimeException("Unsupported time format: '" + time + "'");
+    }
+
 
 
     @Override
@@ -405,15 +457,22 @@ public class AttendenceServiceImpl implements AttendenceService {
             case "7days" -> { startDate = today.minusDays(6); endDate = today; }
             case "30days" -> { startDate = today.minusDays(29); endDate = today; }
             case "365days" -> { startDate = today.minusDays(364); endDate = today; }
-            case "custom" -> { if (customStartDate != null && customEndDate != null) { startDate = customStartDate; endDate = customEndDate; } }
-            case "all" -> { startDate = employeeRepository.findEarliestJoiningDate().orElse(today.minusYears(1)); endDate = today; }
+            case "custom" -> {
+                if (customStartDate != null && customEndDate != null) {
+                    startDate = customStartDate;
+                    endDate = customEndDate;
+                }
+            }
+            case "all" -> {
+                startDate = employeeRepository.findEarliestJoiningDate().orElse(today.minusYears(1));
+                endDate = today;
+            }
         }
 
         boolean isSuperAdmin = role != null && role.equalsIgnoreCase("superadmin");
 
-        // collect branch codes for which we should include employees & attendance
         List<String> branchCodeList = new ArrayList<>();
-        String branchCodeForSpec = null; // kept for backward compatibility / single-branch uses
+        String branchCodeForSpec = null;
 
         if (isSuperAdmin) {
             boolean exists = staffService.isClientEmailExist(email);
@@ -426,25 +485,25 @@ public class AttendenceServiceImpl implements AttendenceService {
                 branchCodeForSpec = filterDTO.getBranchCode();
             } else {
                 List<String> result = staffService.getBranchCodesByInstituteEmail(email);
-                if (result != null) {
-                    branchCodeList.addAll(result);
-                }
+                if (result != null) branchCodeList.addAll(result);
+
                 if (branchCodeList.size() == 1) {
                     branchCodeForSpec = branchCodeList.get(0);
                 } else {
-                    branchCodeForSpec = null; // multiple branches -> use list in spec
+                    branchCodeForSpec = null;
                 }
             }
         } else {
             String branchCode = permissionService.fetchBranchCode(role, email);
             if (branchCode != null) branchCodeList.add(branchCode);
+
             branchCodeForSpec = branchCodeList.isEmpty() ? null : branchCodeList.get(0);
         }
 
-        // Build employee list from branchCodeList (or fallback)
         Map<Long, Employee> employeeMap = new LinkedHashMap<>();
         for (String bc : branchCodeList) {
             if (bc == null) continue;
+
             List<Employee> empList = employeeRepository.findActiveEmployeesByBranchCodeAndJoiningDate(bc, endDate);
             if (empList != null) {
                 for (Employee e : empList) {
@@ -454,6 +513,7 @@ public class AttendenceServiceImpl implements AttendenceService {
                 }
             }
         }
+
         if (branchCodeList.isEmpty()) {
             String fallbackBranch = permissionService.fetchBranchCode(role, email);
             if (fallbackBranch != null) {
@@ -485,19 +545,27 @@ public class AttendenceServiceImpl implements AttendenceService {
             var branchSpec = AttendanceSpecification.branchCodesIn(branchCodeList);
             spec = (spec == null) ? branchSpec : spec.and(branchSpec);
         }
+
         List<EmployeeAttendence> attendances = attendenceRepository.findAll(spec);
+
         Map<String, EmployeeAttendence> attendanceMap = attendances.stream()
                 .filter(a -> a.getEmployee() != null && a.getEmployee().getId() != null && a.getTodaysDate() != null)
                 .collect(Collectors.toMap(
-                        a -> a.getEmployee().getId().toString() + "_" + a.getTodaysDate().toString(),
+                        a -> a.getEmployee().getId().toString() + "_" + a.getTodaysDate(),
                         a -> a,
-                        (existing, replacement) -> existing // keep first if duplicates
+                        (existing, replacement) -> existing
                 ));
 
         List<EmployeeAttendanceDTO> combinedList = new ArrayList<>();
 
+        boolean filterAbsentOnly =
+                filterDTO != null &&
+                        filterDTO.getStatus() != null &&
+                        filterDTO.getStatus().equalsIgnoreCase("Absent");
+
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
             for (Employee emp : employees) {
+
                 if (emp.getJoiningDate() != null && !date.isBefore(emp.getJoiningDate())) {
 
                     LocalDate terminatedDate = emp.getTerminatDate();
@@ -514,7 +582,7 @@ public class AttendenceServiceImpl implements AttendenceService {
                         continue;
                     }
 
-                    String key = emp.getId().toString() + "_" + date.toString();
+                    String key = emp.getId() + "_" + date;
                     EmployeeAttendence att = attendanceMap.get(key);
 
                     EmployeeAttendanceDTO dto;
@@ -522,7 +590,12 @@ public class AttendenceServiceImpl implements AttendenceService {
                     if (date.getDayOfWeek() == DayOfWeek.SUNDAY) {
                         dto = new EmployeeAttendanceDTO(emp.getId(), emp.getFullName(), emp.getEmpEmail(), date,
                                 "Sunday", null, null, null, null, 0L);
+
                     } else if (att != null) {
+
+                        // employee has real attendance
+                        if (filterAbsentOnly) continue;  // FIX: do not include present data when filtering Absent
+
                         dto = new EmployeeAttendanceDTO(
                                 att.getEmployee().getId(),
                                 att.getName(),
@@ -535,14 +608,25 @@ public class AttendenceServiceImpl implements AttendenceService {
                                 att.getBreakOut(),
                                 att.getBreakMinutes()
                         );
+
                     } else {
-                        if ("today".equalsIgnoreCase(timeFrame)) {
-                            dto = new EmployeeAttendanceDTO(emp.getId(), emp.getFullName(), emp.getEmpEmail(), date,
-                                    "Absent", null, null, null, null, 0L);
-                        } else {
-                            dto = new EmployeeAttendanceDTO(emp.getId(), emp.getFullName(), emp.getEmpEmail(), date,
-                                    "Absent", null, null, null, null, 0L);
+                        // employee has NO attendance record
+                        // FIX: only include absent when filter == Absent OR no status filter
+                        if (!filterAbsentOnly &&
+                                filterDTO != null &&
+                                filterDTO.getStatus() != null &&
+                                !filterDTO.getStatus().equalsIgnoreCase("All")) {
+                            continue;
                         }
+
+                        dto = new EmployeeAttendanceDTO(
+                                emp.getId(),
+                                emp.getFullName(),
+                                emp.getEmpEmail(),
+                                date,
+                                "Absent",
+                                null, null, null, null, 0L
+                        );
                     }
 
                     combinedList.add(dto);
@@ -550,16 +634,7 @@ public class AttendenceServiceImpl implements AttendenceService {
             }
         }
 
-        if (filterDTO != null && filterDTO.getStatus() != null &&
-                !filterDTO.getStatus().equalsIgnoreCase("All")) {
 
-            String status = filterDTO.getStatus().trim().toLowerCase();
-
-            combinedList = combinedList.stream()
-                    .filter(dto -> dto.getStatus() != null &&
-                            dto.getStatus().trim().toLowerCase().equals(status))
-                    .toList();
-        }
 
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), combinedList.size());

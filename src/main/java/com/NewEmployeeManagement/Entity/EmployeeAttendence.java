@@ -33,6 +33,7 @@ public class EmployeeAttendence {
     private Integer totalMinutesWorked;
     private String workType;
     private String shiftStartTime;
+    private Long shiftMinutes;
     private String day;
     private String shiftEndTime;
     private Long overTime;
