@@ -53,7 +53,10 @@ public class FeedBackServiceImpl implements FeedBackService
         existing.setSubject(feedBackForm.getSubject());
         existing.setDepartment(feedBackForm.getDepartment());
         existing.setDescription(feedBackForm.getDescription());
-        existing.setStatus(feedBackForm.getStatus());
+        if(feedBackForm.getStatus()== null && !feedBackForm.getStatus().isEmpty())
+        {
+            existing.setStatus(feedBackForm.getStatus());
+        }
         existing.setRemark(feedBackForm.getRemark());
 
         return feedBackRepository.save(existing);
