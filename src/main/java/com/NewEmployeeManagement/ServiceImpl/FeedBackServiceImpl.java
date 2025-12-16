@@ -49,15 +49,32 @@ public class FeedBackServiceImpl implements FeedBackService
         EmployeeFeedBackForm existing = feedBackRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Feedback not found"));
 
-        existing.setName(feedBackForm.getName());
-        existing.setSubject(feedBackForm.getSubject());
-        existing.setDepartment(feedBackForm.getDepartment());
-        existing.setDescription(feedBackForm.getDescription());
-        if(feedBackForm.getStatus()== null && !feedBackForm.getStatus().isEmpty())
+        if (feedBackForm.getName()!= null && !feedBackForm.getName().isEmpty())
+        {
+            existing.setName(feedBackForm.getName());
+        }
+        if (feedBackForm.getSubject()!= null && !feedBackForm.getSubject().isEmpty())
+        {
+            existing.setSubject(feedBackForm.getSubject());
+        }
+        if (feedBackForm.getDepartment()!= null && !feedBackForm.getDepartment().isEmpty())
+        {
+            existing.setDepartment(feedBackForm.getDepartment());
+        }
+        if (feedBackForm.getDescription()!= null && !feedBackForm.getDescription().isEmpty())
+        {
+            existing.setDescription(feedBackForm.getDescription());
+        }
+        if(feedBackForm.getStatus()!= null && !feedBackForm.getStatus().isEmpty())
         {
             existing.setStatus(feedBackForm.getStatus());
         }
-        existing.setRemark(feedBackForm.getRemark());
+
+        if (feedBackForm.getRemark()!= null && !feedBackForm.getRemark().isEmpty())
+        {
+            existing.setRemark(feedBackForm.getRemark());
+        }
+
 
         return feedBackRepository.save(existing);
     }

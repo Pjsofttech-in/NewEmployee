@@ -8,6 +8,7 @@ import lombok.Setter;
 import org.springframework.data.domain.Page;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -15,7 +16,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 public class SalarySummaryResponseDTO
 {
-    private Page<EmployeeSalary> salaries;
+    private Page<FlatSalaryDTO> salaries;
     private long totalCount;
     private BigDecimal totalSum;
 }

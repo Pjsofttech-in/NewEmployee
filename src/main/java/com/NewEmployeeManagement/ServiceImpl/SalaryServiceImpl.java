@@ -1,8 +1,6 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
-import com.NewEmployeeManagement.DTO.EmployeeSalaryFilterDTO;
-import com.NewEmployeeManagement.DTO.MonthSalaryResponse;
-import com.NewEmployeeManagement.DTO.SalarySummaryResponseDTO;
+import com.NewEmployeeManagement.DTO.*;
 import com.NewEmployeeManagement.Entity.Employee;
 import com.NewEmployeeManagement.Entity.EmployeeCategory;
 import com.NewEmployeeManagement.Entity.EmployeeSalary;
@@ -27,6 +25,7 @@ import java.time.Month;
 import java.time.YearMonth;
 import java.time.format.TextStyle;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class SalaryServiceImpl implements SalaryService
@@ -342,16 +341,85 @@ public class SalaryServiceImpl implements SalaryService
                 null
         ));
         Pageable pageable = PageRequest.of(page, size);
-        Page<EmployeeSalary> salaries = employeeSalaryRepository.findAll(spec, pageable);
+        Page<EmployeeSalary> salaryPage =
+                employeeSalaryRepository.findAll(spec, pageable);
 
         long totalCount = employeeSalaryRepository.count(spec);
 
-        BigDecimal totalSum = salaries.getContent().stream()
+        BigDecimal totalSum = salaryPage.getContent().stream()
                 .map(EmployeeSalary::getFinalNetSalary)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return new SalarySummaryResponseDTO(salaries, totalCount, totalSum);
+        Set<Long> empIds = salaryPage.getContent().stream()
+                .map(EmployeeSalary::getEmpId)
+                .collect(Collectors.toSet());
+
+        Map<Long, Employee> employeeMap =
+                employeeRepository.findByEmpIdIn(empIds)
+                        .stream()
+                        .collect(Collectors.toMap(Employee::getId, e -> e));
+
+        Page<FlatSalaryDTO> flatPage = salaryPage.map(salary -> {
+
+            Employee emp = employeeMap.get(salary.getEmpId());
+
+            FlatSalaryDTO dto = new FlatSalaryDTO();
+
+            // ===== Salary mapping =====
+            dto.setId(salary.getId());
+            dto.setEmpId(salary.getEmpId());
+            dto.setFullName(salary.getFullName());
+            dto.setDepartment(salary.getDepartment());
+            dto.setEmployeecategory(salary.getEmployeecategory());
+            dto.setBasicSalary(salary.getBasicSalary());
+            dto.setActualBasic(salary.getActualBasic());
+            dto.setHraAllowance(salary.getHraAllowance());
+            dto.setTaAllowance(salary.getTaAllowance());
+            dto.setIncentive(salary.getIncentive());
+            dto.setSpi(salary.getSpi());
+            dto.setMedicalAllowance(salary.getMedicalAllowance());
+            dto.setPf(salary.getPf());
+            dto.setEsic(salary.getEsic());
+            dto.setProfessionalTax(salary.getProfessionalTax());
+            dto.setIncomeTax(salary.getIncomeTax());
+            dto.setCompanyFund(salary.getCompanyFund());
+            dto.setDeductions(salary.getDeductions());
+            dto.setTds(salary.getTds());
+            dto.setNetSalaryBeforeTaxes(salary.getNetSalaryBeforeTaxes());
+            dto.setFinalNetSalary(salary.getFinalNetSalary());
+            dto.setMonth(salary.getMonth());
+            dto.setYear(salary.getYear());
+            dto.setWorkingDays(salary.getWorkingDays());
+            dto.setDaysOfMonth(salary.getDaysOfMonth());
+            dto.setTransactionId(salary.getTransactionId());
+            dto.setPenalty(salary.getPenalty());
+            dto.setCreatedByEmail(salary.getCreatedByEmail());
+            dto.setRole(salary.getRole());
+            dto.setBranchCode(salary.getBranchCode());
+            dto.setStatus(salary.getStatus());
+            dto.setPaymentDate(salary.getPaymentDate());
+            dto.setDeleted(salary.isDeleted());
+
+            // ===== Employee mapping =====
+            if (emp != null) {
+                dto.setDob(emp.getDob());
+                dto.setAdharNo(emp.getAdharNo());
+                dto.setPanNo(emp.getPanNo());
+                dto.setMobileNo(emp.getMobileNo());
+                dto.setEmpEmail(emp.getEmpEmail());
+                dto.setBankName(emp.getBankName());
+                dto.setAccountNumber(emp.getAccountNumber());
+                dto.setCpfNo(emp.getCpfNo());
+                dto.setDesignation(emp.getDesignation());
+            }
+
+            return dto;
+        });
+
+        return new SalarySummaryResponseDTO(flatPage, totalCount, totalSum);
+
+
     }
 
     @Override

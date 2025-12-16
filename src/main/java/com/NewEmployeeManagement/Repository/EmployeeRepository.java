@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSpecificationExecutor<Employee> {
@@ -88,6 +89,9 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
 
     @Query("SELECT e FROM Employee e WHERE e.branchCode IN :branchCodes AND e.isDeleted = false")
     List<Employee> findAllByBranchCodeIn(@Param("branchCodes") List<String> branchCodes);
+
+    @Query("SELECT e FROM Employee e WHERE e.id IN :empIds")
+    List<Employee> findByEmpIdIn(@Param("empIds") Set<Long> empIds);
 
 
 }
