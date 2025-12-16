@@ -274,17 +274,85 @@ public class SalaryServiceImpl implements SalaryService
     }
 
     @Override
-    public Page<EmployeeSalary> getAllSalaryByEmpId(String role, String email, Long empId, Integer month, Integer year, int page, int size) {
+    public Page<FlatSalaryDTO> getAllSalaryByEmpId(String role, String email, Long empId, Integer month, Integer year, int page, int size) {
+
         if (!permissionService.hasPermission(role, email, "Get")) {
             throw new AccessDeniedException("No permission to Get salary");
         }
 
         Pageable pageable = PageRequest.of(page, size);
 
-        Specification<EmployeeSalary> spec = EmployeeSalarySpecification.filterByEmpIdMonthYear(empId, month, year);
+        Specification<EmployeeSalary> spec =
+                EmployeeSalarySpecification.filterByEmpIdMonthYear(empId, month, year);
 
-        return employeeSalaryRepository.findAll(spec, pageable);
+        Page<EmployeeSalary> salaryPage =
+                employeeSalaryRepository.findAll(spec, pageable);
+
+        Set<Long> empIds = salaryPage.getContent().stream()
+                .map(EmployeeSalary::getEmpId)
+                .collect(Collectors.toSet());
+
+        Map<Long, Employee> employeeMap =
+                employeeRepository.findByEmpIdIn(empIds)
+                        .stream()
+                        .collect(Collectors.toMap(Employee::getId, e -> e));
+
+        return salaryPage.map(salary -> {
+
+            Employee emp = employeeMap.get(salary.getEmpId());
+
+            FlatSalaryDTO dto = new FlatSalaryDTO();
+
+            dto.setId(salary.getId());
+            dto.setEmpId(salary.getEmpId());
+            dto.setFullName(salary.getFullName());
+            dto.setDepartment(salary.getDepartment());
+            dto.setEmployeecategory(salary.getEmployeecategory());
+            dto.setBasicSalary(salary.getBasicSalary());
+            dto.setActualBasic(salary.getActualBasic());
+            dto.setHraAllowance(salary.getHraAllowance());
+            dto.setTaAllowance(salary.getTaAllowance());
+            dto.setIncentive(salary.getIncentive());
+            dto.setSpi(salary.getSpi());
+            dto.setMedicalAllowance(salary.getMedicalAllowance());
+            dto.setPf(salary.getPf());
+            dto.setEsic(salary.getEsic());
+            dto.setProfessionalTax(salary.getProfessionalTax());
+            dto.setIncomeTax(salary.getIncomeTax());
+            dto.setCompanyFund(salary.getCompanyFund());
+            dto.setDeductions(salary.getDeductions());
+            dto.setTds(salary.getTds());
+            dto.setNetSalaryBeforeTaxes(salary.getNetSalaryBeforeTaxes());
+            dto.setFinalNetSalary(salary.getFinalNetSalary());
+            dto.setMonth(salary.getMonth());
+            dto.setYear(salary.getYear());
+            dto.setWorkingDays(salary.getWorkingDays());
+            dto.setDaysOfMonth(salary.getDaysOfMonth());
+            dto.setTransactionId(salary.getTransactionId());
+            dto.setPenalty(salary.getPenalty());
+            dto.setCreatedByEmail(salary.getCreatedByEmail());
+            dto.setRole(salary.getRole());
+            dto.setBranchCode(salary.getBranchCode());
+            dto.setStatus(salary.getStatus());
+            dto.setPaymentDate(salary.getPaymentDate());
+            dto.setDeleted(salary.isDeleted());
+
+            if (emp != null) {
+                dto.setDob(emp.getDob());
+                dto.setAdharNo(emp.getAdharNo());
+                dto.setPanNo(emp.getPanNo());
+                dto.setMobileNo(emp.getMobileNo());
+                dto.setEmpEmail(emp.getEmpEmail());
+                dto.setBankName(emp.getBankName());
+                dto.setAccountNumber(emp.getAccountNumber());
+                dto.setCpfNo(emp.getCpfNo());
+                dto.setDesignation(emp.getDesignation());
+            }
+
+            return dto;
+        });
     }
+
 
     @Override
     public SalarySummaryResponseDTO getFilteredSalaries(

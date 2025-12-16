@@ -1,6 +1,7 @@
 package com.NewEmployeeManagement.Controller;
 
 import com.NewEmployeeManagement.DTO.EmployeeSalaryFilterDTO;
+import com.NewEmployeeManagement.DTO.FlatSalaryDTO;
 import com.NewEmployeeManagement.DTO.SalarySummaryResponseDTO;
 import com.NewEmployeeManagement.Entity.EmployeeSalary;
 import com.NewEmployeeManagement.Service.SalaryService;
@@ -52,7 +53,7 @@ public class SalaryController
     }
 
     @GetMapping("/getAllSalariesByEmpId")
-    public ResponseEntity<Page<EmployeeSalary>> getAllSalaryByEmpId(
+    public ResponseEntity<Page<FlatSalaryDTO>> getAllSalaryByEmpId(
             @RequestParam String role,
             @RequestParam String email,
             @RequestParam Long empId,
@@ -61,7 +62,7 @@ public class SalaryController
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
-        Page<EmployeeSalary> salaries = salaryService.getAllSalaryByEmpId(role, email, empId, month, year, page, size);
+        Page<FlatSalaryDTO> salaries = salaryService.getAllSalaryByEmpId(role, email, empId, month, year, page, size);
         return ResponseEntity.ok(salaries);
     }
 
