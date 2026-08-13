@@ -38,6 +38,9 @@ public class EmployeeAttendence {
     private String shiftEndTime;
     private Long overTime;
     private String branchCode;
+    private String workMode;
+    private Double latitude;
+    private Double longitude;
 
     @ManyToOne
     @JoinColumn(name = "empid")

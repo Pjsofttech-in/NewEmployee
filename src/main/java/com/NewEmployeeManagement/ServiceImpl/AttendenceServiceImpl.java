@@ -1,28 +1,28 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
+import com.NewEmployeeManagement.DTO.AttendanceDTO;
 import com.NewEmployeeManagement.DTO.AttendanceSummaryDTO;
 import com.NewEmployeeManagement.DTO.AttendenceFilterDTO;
 import com.NewEmployeeManagement.DTO.EmployeeAttendanceDTO;
-import com.NewEmployeeManagement.Entity.EmployeeAttendence;
 import com.NewEmployeeManagement.Entity.Employee;
+import com.NewEmployeeManagement.Entity.EmployeeAttendence;
 import com.NewEmployeeManagement.Pageination.AttendanceSpecification;
 import com.NewEmployeeManagement.Repository.AttendenceRepository;
 import com.NewEmployeeManagement.Repository.EmployeeRepository;
 import com.NewEmployeeManagement.Repository.LeaveRequestRepository;
 import com.NewEmployeeManagement.Service.AttendenceService;
 import com.NewEmployeeManagement.Service.PermissionService;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.http.HttpServletRequest;
+import io.micrometer.common.util.StringUtils;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -31,9 +31,11 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.net.InetAddress;
-import java.time.*;
+import java.time.DayOfWeek;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -41,26 +43,25 @@ import java.util.stream.Collectors;
 public class AttendenceServiceImpl implements AttendenceService {
 
     private final RestTemplate restTemplate = new RestTemplate();
-
+    @Autowired
+    LeaveRequestRepository leaveRequestRepository;
     @Autowired
     private AttendenceRepository attendenceRepository;
-
     @Autowired
     private EmployeeRepository employeeRepository;
-
     @Autowired
     private StaffService staffService;
-
     @Autowired
     private PermissionService permissionService;
 
-    @Autowired
-    LeaveRequestRepository leaveRequestRepository;
-
     @Override
-    public String markEmployeeAttendanceFromFace(MultipartFile image, String branchCode, String clientIp) {
+    public String markEmployeeAttendanceFromFace(MultipartFile image, AttendanceDTO reqDTO, String clientIp) {
         try {
             String fastApiUrl = "https://pjsofttech.in:51443/auto-branch-scan";
+
+            String branchCode = reqDTO.getBranchCode();
+            Long empId = reqDTO.getEmpId();
+            String workMode = reqDTO.getWorkMode();
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
@@ -78,7 +79,7 @@ public class AttendenceServiceImpl implements AttendenceService {
 
             RestTemplate restTemplate = new RestTemplate();
             ResponseEntity<Map> response = restTemplate.postForEntity(fastApiUrl, requestEntity, Map.class);
-
+            
             Map<String, Object> responseBody = response.getBody();
 
             if (responseBody == null || !"success".equals(responseBody.get("status"))) {
@@ -90,11 +91,16 @@ public class AttendenceServiceImpl implements AttendenceService {
                 return "No face match found";
             }
 
-            Map<String, Object> firstMatch = matches.get(0);
+            Map<String, Object> firstMatch = matches.getFirst();
             String empIdStr = String.valueOf(firstMatch.get("empid"));
-            Long empId = Long.parseLong(empIdStr);
+            Long detectedEmpId = Long.parseLong(empIdStr);
 
             LocalDate today = LocalDate.now();
+
+            String locationVerify = verifyGeoLocation(reqDTO, empId, detectedEmpId);
+
+            if (StringUtils.isBlank(locationVerify) || !"success".equalsIgnoreCase(locationVerify))
+                return locationVerify;
 
             Employee employee = employeeRepository.findById(empId)
                     .orElseThrow(() -> new RuntimeException("Employee not found"));
@@ -125,7 +131,6 @@ public class AttendenceServiceImpl implements AttendenceService {
             if (allowedTime != null) {
                 status = loginTime.isAfter(allowedTime) ? "Late" : "OnTime";
             } else {
-
                 status = "OnTime";
             }
 
@@ -147,6 +152,10 @@ public class AttendenceServiceImpl implements AttendenceService {
             attendance.setSystemIP(InetAddress.getLocalHost().getHostAddress()); // server IP
             attendance.setIP(clientIp);
 
+            attendance.setLatitude(reqDTO.getLatitude());
+            attendance.setLongitude(reqDTO.getLongitude());
+            attendance.setWorkMode(workMode);
+
             attendenceRepository.save(attendance);
 
             return "Attendance marked for employee: " + employee.getFullName() + " With empId :" + empId;
@@ -155,6 +164,20 @@ public class AttendenceServiceImpl implements AttendenceService {
             e.printStackTrace();
             return "Failed to mark attendance: " + e.getMessage();
         }
+    }
+
+    private String verifyGeoLocation(AttendanceDTO reqDTO, Long empId, Long detectedEmpId) {
+        if (!empId.equals(detectedEmpId)) {
+            return "Face recognition failed";
+        }
+
+        if (StringUtils.isNotBlank(reqDTO.getWorkMode()) && "WFO".equalsIgnoreCase(reqDTO.getWorkMode())) {
+            String locationVerificationResult = staffService.verifyGeoLocationForAttendance(reqDTO);
+            if (StringUtils.isBlank(locationVerificationResult) || !locationVerificationResult.equalsIgnoreCase("success")) {
+                return "Employee attendance is not allowed from outside of company";
+            }
+        }
+        return "Success";
     }
 
     @Override
@@ -223,7 +246,7 @@ public class AttendenceServiceImpl implements AttendenceService {
             if (attendance.getShiftStartTime() != null && attendance.getShiftEndTime() != null) {
                 try {
                     LocalTime shiftStart = parseFlexibleTime(attendance.getShiftStartTime());
-                    LocalTime shiftEnd   = parseFlexibleTime(attendance.getShiftEndTime());
+                    LocalTime shiftEnd = parseFlexibleTime(attendance.getShiftEndTime());
 
                     if (shiftEnd.isBefore(shiftStart) || shiftEnd.equals(shiftStart)) {
                         LocalTime endPlus12 = shiftEnd.plusHours(12);
@@ -285,7 +308,7 @@ public class AttendenceServiceImpl implements AttendenceService {
         if (time == null || time.trim().isEmpty()) throw new RuntimeException("Time is empty");
         String t = time.trim();
 
-        DateTimeFormatter[] formatters = new DateTimeFormatter[] {
+        DateTimeFormatter[] formatters = new DateTimeFormatter[]{
                 DateTimeFormatter.ofPattern("H:mm"),           // 9:30 or 09:30
                 DateTimeFormatter.ofPattern("HH:mm"),          // 09:30
                 DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH), // 9:30 AM
@@ -299,23 +322,25 @@ public class AttendenceServiceImpl implements AttendenceService {
         for (DateTimeFormatter f : formatters) {
             try {
                 return LocalTime.parse(t, f);
-            } catch (Exception ignored) { }
+            } catch (Exception ignored) {
+            }
         }
         for (DateTimeFormatter f : formatters) {
             try {
                 return LocalTime.parse(t.toUpperCase().replaceAll("\\.", ""), f);
-            } catch (Exception ignored) { }
+            } catch (Exception ignored) {
+            }
         }
-          try {
+        try {
             java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d{1,2}:\\d{2})").matcher(t);
             if (m.find()) {
                 return LocalTime.parse(m.group(1), DateTimeFormatter.ofPattern("H:mm"));
             }
-        } catch (Exception ignored) { }
+        } catch (Exception ignored) {
+        }
 
         throw new RuntimeException("Unsupported time format: '" + time + "'");
     }
-
 
 
     @Override
@@ -442,8 +467,7 @@ public class AttendenceServiceImpl implements AttendenceService {
             String timeFrame,
             LocalDate customStartDate,
             LocalDate customEndDate,
-            Pageable pageable)
-    {
+            Pageable pageable) {
         if (!permissionService.hasPermission(role, email, "GET")) {
             throw new AccessDeniedException("No permission to view Get Attendance");
         }
@@ -453,10 +477,22 @@ public class AttendenceServiceImpl implements AttendenceService {
         LocalDate endDate = today;
 
         switch (timeFrame != null ? timeFrame.toLowerCase() : "all") {
-            case "today" -> { startDate = today; endDate = today; }
-            case "7days" -> { startDate = today.minusDays(6); endDate = today; }
-            case "30days" -> { startDate = today.minusDays(29); endDate = today; }
-            case "365days" -> { startDate = today.minusDays(364); endDate = today; }
+            case "today" -> {
+                startDate = today;
+                endDate = today;
+            }
+            case "7days" -> {
+                startDate = today.minusDays(6);
+                endDate = today;
+            }
+            case "30days" -> {
+                startDate = today.minusDays(29);
+                endDate = today;
+            }
+            case "365days" -> {
+                startDate = today.minusDays(364);
+                endDate = today;
+            }
             case "custom" -> {
                 if (customStartDate != null && customEndDate != null) {
                     startDate = customStartDate;
@@ -635,14 +671,12 @@ public class AttendenceServiceImpl implements AttendenceService {
         }
 
 
-
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), combinedList.size());
         List<EmployeeAttendanceDTO> paged = (start < end) ? combinedList.subList(start, end) : List.of();
 
         return new PageImpl<>(paged, pageable, combinedList.size());
     }
-
 
 
     @Override
@@ -743,10 +777,8 @@ public class AttendenceServiceImpl implements AttendenceService {
     }
 
 
-
     @Override
-    public String markEmployeeAttendanceManually(List<Long> empIds, String role, String email)
-    {
+    public String markEmployeeAttendanceManually(List<Long> empIds, String role, String email) {
         if (!permissionService.hasPermission(role, email, "Get")) {
             throw new AccessDeniedException("No permission to view Get Attendace");
         }

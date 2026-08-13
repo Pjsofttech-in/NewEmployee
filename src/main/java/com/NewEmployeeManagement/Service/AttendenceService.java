@@ -1,5 +1,6 @@
 package com.NewEmployeeManagement.Service;
 
+import com.NewEmployeeManagement.DTO.AttendanceDTO;
 import com.NewEmployeeManagement.DTO.AttendanceSummaryDTO;
 import com.NewEmployeeManagement.DTO.AttendenceFilterDTO;
 import com.NewEmployeeManagement.DTO.EmployeeAttendanceDTO;
@@ -16,7 +17,7 @@ import java.util.Map;
 
 public interface AttendenceService {
 
-    String markEmployeeAttendanceFromFace(MultipartFile image, String branchCode, String clientIp);
+    String markEmployeeAttendanceFromFace(MultipartFile image, AttendanceDTO reqDTO, String clientIp);
     String logoutEmployeeFromFace(MultipartFile image, String branchCode, String logoutIp);
     String breakInEmployeeFromFace(MultipartFile image, String branchCode);
     String breakOutEmployeeFromFace(MultipartFile image, String branchCode);

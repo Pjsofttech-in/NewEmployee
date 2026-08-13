@@ -1,8 +1,10 @@
 package com.NewEmployeeManagement.ServiceImpl;
 
+import com.NewEmployeeManagement.DTO.AttendanceDTO;
 import com.NewEmployeeManagement.DTO.BranchAddressDTO;
 import com.NewEmployeeManagement.DTO.InstituteClientWrapperResponse;
 import com.NewEmployeeManagement.DTO.InstituteLoginResponse;
+import com.NewEmployeeManagement.JWT.InternalJwtProvider;
 import com.NewEmployeeManagement.JWT.LoginRequest;
 import com.NewEmployeeManagement.JWT.LoginResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,10 +27,12 @@ import java.util.Map;
 public class StaffService
 {
     private final WebClient webClient;
+    private final InternalJwtProvider internalJwtProvider;
 
     @Autowired
-    public StaffService(WebClient webClient) {
+    public StaffService(WebClient webClient, InternalJwtProvider internalJwtProvider) {
         this.webClient = webClient;
+        this.internalJwtProvider = internalJwtProvider;
     }
 
     public Mono<LoginResponse> loginStaff(LoginRequest request) {
@@ -41,6 +45,22 @@ public class StaffService
                                 .flatMap(error -> Mono.error(new RuntimeException("Login Failed: " + error)))
                 )
                 .bodyToMono(LoginResponse.class);
+    }
+
+    public String verifyGeoLocationForAttendance(AttendanceDTO dto) {
+
+        String token = internalJwtProvider.generateInternalToken();
+
+        return webClient.post()
+                .uri("/attendance/verify-geo-location")
+                .bodyValue(dto)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)  // pass it as-is
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, response ->
+                        response.bodyToMono(String.class)
+                                .flatMap(error -> Mono.error(new RuntimeException("Login Failed: " + error)))
+                )
+                .bodyToMono(String.class).block();
     }
 
 

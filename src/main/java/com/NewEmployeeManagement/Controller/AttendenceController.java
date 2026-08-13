@@ -1,10 +1,12 @@
 package com.NewEmployeeManagement.Controller;
 
+import com.NewEmployeeManagement.DTO.AttendanceDTO;
 import com.NewEmployeeManagement.DTO.AttendanceSummaryDTO;
 import com.NewEmployeeManagement.DTO.AttendenceFilterDTO;
 import com.NewEmployeeManagement.DTO.EmployeeAttendanceDTO;
-import com.NewEmployeeManagement.Entity.EmployeeAttendence;
 import com.NewEmployeeManagement.Service.AttendenceService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -12,7 +14,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -33,109 +34,76 @@ public class AttendenceController {
 
 
     @PostMapping(value = "/markAttendanceForEmployee", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<String> markEmployeeAttendanceFromFace(
-            @RequestParam("image") MultipartFile image,
-            @RequestParam("branchCode") String branchCode,
-            HttpServletRequest request)
-    {
+    public ResponseEntity<String> markEmployeeAttendanceFromFace(@RequestParam("image") MultipartFile image,
+                                                                 @RequestParam("requestDto") String attendanceDTOStr,
+                                                                 HttpServletRequest request) throws JsonProcessingException {
         String clientIp = request.getHeader("X-Forwarded-For");
         if (clientIp == null || clientIp.isEmpty()) {
             clientIp = request.getRemoteAddr();
         }
-        String result = attendenceService.markEmployeeAttendanceFromFace(image, branchCode,clientIp);
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        AttendanceDTO reqDTO = objectMapper.readValue(attendanceDTOStr, AttendanceDTO.class);
+
+        String result = attendenceService.markEmployeeAttendanceFromFace(image, reqDTO, clientIp);
         return ResponseEntity.ok(result);
     }
 
     @PostMapping(value = "/employeeLogout", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<String> logoutEmployee(
-        @RequestParam MultipartFile image,
-        @RequestParam String branchCode,
-        HttpServletRequest request) {
+    public ResponseEntity<String> logoutEmployee(@RequestParam MultipartFile image, @RequestParam String branchCode, HttpServletRequest request) {
 
         String logoutIp = request.getHeader("X-Forwarded-For");
         if (logoutIp == null || logoutIp.isEmpty()) {
             logoutIp = request.getRemoteAddr();
         }
-    String result = attendenceService.logoutEmployeeFromFace(image, branchCode, logoutIp);
-    return ResponseEntity.ok(result);
-}
+        String result = attendenceService.logoutEmployeeFromFace(image, branchCode, logoutIp);
+        return ResponseEntity.ok(result);
+    }
 
     @PostMapping(value = "/employeeBreakIn", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<String> breakIn(
-            @RequestParam MultipartFile image,
-            @RequestParam String branchCode)
-    {
+    public ResponseEntity<String> breakIn(@RequestParam MultipartFile image, @RequestParam String branchCode) {
         return ResponseEntity.ok(attendenceService.breakInEmployeeFromFace(image, branchCode));
     }
 
     @PostMapping(value = "/employeeBreakOut", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<String> markBreakOut(
-            @RequestParam MultipartFile image,
-            @RequestParam String branchCode)  {
+    public ResponseEntity<String> markBreakOut(@RequestParam MultipartFile image, @RequestParam String branchCode) {
 
         return ResponseEntity.ok(attendenceService.breakOutEmployeeFromFace(image, branchCode));
     }
 
     @PostMapping("/AttendanceFilter")
-    public ResponseEntity<Page<EmployeeAttendanceDTO>> getAllEmployeeAttendance(
-            @RequestParam String role,
-            @RequestParam String email,
-            @RequestParam(required = false) String timeFrame,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate customStartDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate customEndDate,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestBody(required = false) AttendenceFilterDTO filterDTO) {
+    public ResponseEntity<Page<EmployeeAttendanceDTO>> getAllEmployeeAttendance(@RequestParam String role, @RequestParam String email, @RequestParam(required = false) String timeFrame, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate customStartDate, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate customEndDate, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size, @RequestBody(required = false) AttendenceFilterDTO filterDTO) {
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<EmployeeAttendanceDTO> result = attendenceService.getFilteredEmployeeAttendance(
-                filterDTO, role, email, timeFrame, customStartDate, customEndDate, pageable);
+        Page<EmployeeAttendanceDTO> result = attendenceService.getFilteredEmployeeAttendance(filterDTO, role, email, timeFrame, customStartDate, customEndDate, pageable);
 
         return ResponseEntity.ok(result);
     }
 
     @GetMapping("/TodayAttendaceSummary")
-    public ResponseEntity<AttendanceSummaryDTO> getTodayAttendanceSummary(
-            @RequestParam String branchCode) {
+    public ResponseEntity<AttendanceSummaryDTO> getTodayAttendanceSummary(@RequestParam String branchCode) {
         AttendanceSummaryDTO summary = attendenceService.getTodayAttendanceSummary(branchCode);
         return ResponseEntity.ok(summary);
     }
 
     @GetMapping("/getAttendanceByEmpId")
-    public ResponseEntity<Map<String, Object>> getAttendanceByEmpId(
-            @RequestParam Long empId,
-            @RequestParam String role,
-            @RequestParam String email,
-            @RequestParam(required = false) String timeFrame,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate customStartDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate customEndDate,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
+    public ResponseEntity<Map<String, Object>> getAttendanceByEmpId(@RequestParam Long empId, @RequestParam String role, @RequestParam String email, @RequestParam(required = false) String timeFrame, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate customStartDate, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate customEndDate, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("todaysDate").descending());
 
-        Map<String, Object> response = attendenceService.getAttendanceByEmpId(
-                empId, role, email, timeFrame, customStartDate, customEndDate, pageable
-        );
+        Map<String, Object> response = attendenceService.getAttendanceByEmpId(empId, role, email, timeFrame, customStartDate, customEndDate, pageable);
 
         return ResponseEntity.ok(response);
     }
 
 
     @GetMapping("/getAttendaceCountForSalaryCalculation")
-    public Long getAttendanceCount(
-            @RequestParam Long empId,
-            @RequestParam int month,
-            @RequestParam int year) {
+    public Long getAttendanceCount(@RequestParam Long empId, @RequestParam int month, @RequestParam int year) {
         return attendenceService.getAttendanceCount(empId, month, year);
     }
 
 
     @PostMapping("/markAttendanceEmployeeManually")
-    public ResponseEntity<String> markAttendanceManual(
-            @RequestParam List<Long> empIds,
-            @RequestParam String role,
-            @RequestParam String email) {
+    public ResponseEntity<String> markAttendanceManual(@RequestParam List<Long> empIds, @RequestParam String role, @RequestParam String email) {
         String response = attendenceService.markEmployeeAttendanceManually(empIds, role, email);
         return ResponseEntity.ok(response);
     }
