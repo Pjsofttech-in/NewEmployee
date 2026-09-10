@@ -365,7 +365,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 }
 
                 if (employeePhoto != null && !employeePhoto.isEmpty()) {
-                    s3Service.deleteImage(bucketName,employeePhoto.getName());
+                    s3Service.deleteImage(bucketName, existing.getFaceEncoding());
                     String photoUrl = s3Service.uploadEmployeeFaceImage(employeePhoto, branchCode, existing.getId());
                     document.setEmployeePhoto(photoUrl);
                     existing.setFaceEncoding(photoUrl); // optional
