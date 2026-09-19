@@ -139,4 +139,13 @@ public class Employee {
     @JsonIgnore
     private List<EmployeeHolidays> holidays = new ArrayList<>();
 
+    @OneToMany(
+            mappedBy = "employee",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    @JsonIgnore
+    private List<EmployeeSalaryStructure> salaryStructures =
+            new ArrayList<>();
+
 }
